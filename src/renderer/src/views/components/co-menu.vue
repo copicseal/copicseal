@@ -43,6 +43,7 @@ async function exportToImage() {
     ? Array.from(document.querySelectorAll('style')).find(style =>
         style.textContent?.includes(`[${tplEl.dataset.coTpl}]`),
       )
+      || document.querySelector('link[rel=stylesheet]')
     : document.querySelector('style#co-style');
 
   const { width, height } = renderEl.getBoundingClientRect()!;
@@ -52,8 +53,8 @@ async function exportToImage() {
   const html = `
     <style>html{ font-size: ${fontSize}; }</style>
     <style>body{margin: 0; padding: 0; background-color: black; font-family: "Helvetica Neue",Helvetica,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","微软雅黑",Arial,sans-serif; overflow: hidden; } * { box-sizing: border-box;  }</style>
-    ${style?.outerHTML}
-    ${renderEl.outerHTML}
+    ${style?.outerHTML || ''}
+    ${renderEl.outerHTML || ''}
   `;
   Object.assign(bgEl.style, {
     width: bgStyle.width,

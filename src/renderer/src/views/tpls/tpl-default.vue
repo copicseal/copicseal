@@ -57,6 +57,7 @@ const isHorizontal = computed(() => {
 <style lang="scss" scoped>
 .tpl-card {
   padding: 0.01rem 0.01rem 0;
+  color: #000;
   background-color: #fff;
   box-shadow: 0 0 0.2rem rgba(0, 0, 0, 0.8);
 }

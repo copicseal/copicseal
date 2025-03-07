@@ -31,6 +31,7 @@
     "electron-updater": "^6.1.7",
     "element-plus": "^2.8.6",
     "exifreader": "^4.25.0",
+    "http-proxy-agent": "^7.0.2",
     "lodash-es": "^4.17.21",
     "piexifjs": "^1.0.6",
     "puppeteer-core": "^23.6.1",

@@ -10,4 +10,5 @@ export interface WindowAPI {
   captureDOM: (options: CaptureOptions) => Promise<string[]>;
   openDirectoryDialog: () => Promise<string>;
   showCtxMenu: (menus: MenuItem[]) => Promise<string>;
+  openTargetPath: (targetPath: string) => Promise<void>;
 }

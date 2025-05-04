@@ -38,7 +38,7 @@
     </div>
     <div class="output-path">
       <div>导出目录：（<span class="change-btn" @click="handleOutputFolder">更换</span>）</div>
-      <span>{{ outputPath }}</span>
+      <span @click="handleOpenOutputFolder">{{ outputPath }}</span>
     </div>
     <div class="btns">
       <CoButton outline @click="handleApplyAll">
@@ -92,6 +92,10 @@ async function handleOutputFolder() {
   outputPath.value = path;
   storage.setItem('defaultOutputPath', path);
   currentCoPic.value.getSettings().outputPath = path;
+}
+
+function handleOpenOutputFolder() {
+  window.api.openTargetPath(outputPath.value);
 }
 
 function handleApplyAll() {

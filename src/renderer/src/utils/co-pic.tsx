@@ -66,7 +66,7 @@ export class CoPic {
   }
 
   getSettings() {
-    return this.settings;
+    return this.state.settings;
   }
 
   getExif() {

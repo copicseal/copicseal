@@ -14,8 +14,10 @@ const api: WindowAPI = {
   },
   openDirectoryDialog: () => ipcRenderer.invoke('openDirectoryDialog'),
   showCtxMenu: async (menus) => {
-    menus.forEach(menu => { menu.id = menu.id || Math.random().toString(36).slice(2) })
-    const id = await ipcRenderer.invoke('showCtxMenu', menus.map((menu) => ({ ...menu, click: null })));
+    menus.forEach((menu) => {
+      menu.id = menu.id || Math.random().toString(36).slice(2);
+    });
+    const id = await ipcRenderer.invoke('showCtxMenu', menus.map(menu => ({ ...menu, click: null })));
     menus.forEach((menu) => {
       if (menu.id === id) {
         menu.click?.(menu);
@@ -23,6 +25,7 @@ const api: WindowAPI = {
     });
     return id;
   },
+  openTargetPath: targetPath => ipcRenderer.invoke('openTargetPath', targetPath),
 };
 
 // Use `contextBridge` APIs to expose Electron APIs to

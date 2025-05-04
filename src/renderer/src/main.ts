@@ -1,6 +1,7 @@
+import type { WindowAPI } from 'src/types';
 import { createApp } from 'vue';
-import App from './App.vue';
 
+import App from './App.vue';
 import 'element-plus/theme-chalk/index.css';
 
 const app = createApp(App);
@@ -8,7 +9,7 @@ const app = createApp(App);
 app.mount('#app');
 
 if (!window.api) {
-  const api = {
+  const api: WindowAPI = {
     onWinResized: (callback: () => void) => {
       window.addEventListener('resize', callback);
       return () => void window.removeEventListener('resize', callback);
@@ -23,6 +24,9 @@ if (!window.api) {
     },
     showCtxMenu: async (_menus: any) => {
       return '';
+    },
+    openTargetPath: async (targetPath: string) => {
+      console.log('openTargetPath', targetPath);
     },
   };
 

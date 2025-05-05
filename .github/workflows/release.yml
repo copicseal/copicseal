@@ -54,7 +54,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: copicseal-${{ matrix.label }}
-          path: dist/*.{${{ matrix.ext }},yml,blockmap,zip}
+          path: |
+            dist/*.${{ matrix.ext }}
+            dist/*.yml
+            dist/*.blockmap
+            dist/*.zip
 
   release:
     name: 发布到 GitHub Release
@@ -75,6 +79,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/**/*.{exe,dmg,zip,yml,blockmap}
+            artifacts/**/*.exe
+            artifacts/**/*.dmg
+            artifacts/**/*.zip
+            artifacts/**/*.yml
+            artifacts/**/*.blockmap
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

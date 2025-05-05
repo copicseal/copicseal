@@ -26,5 +26,12 @@ export default defineConfig({
       },
     },
     plugins: [vue(), vueJsx()],
+    css: {
+      preprocessorOptions: {
+        scss: {
+          api: 'modern-compiler',
+        },
+      },
+    },
   },
 });

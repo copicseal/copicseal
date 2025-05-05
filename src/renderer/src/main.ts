@@ -28,6 +28,13 @@ if (!window.api) {
     openTargetPath: async (targetPath: string) => {
       console.log('openTargetPath', targetPath);
     },
+    getAppVersion: async () => {
+      return {
+        currentVersion: '1.0.0',
+        latestVersion: '1.0.0',
+        downloadLink: 'https://copicseal.kohai.top/',
+      };
+    },
   };
 
   window.api = api;

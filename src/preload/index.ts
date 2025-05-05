@@ -26,6 +26,7 @@ const api: WindowAPI = {
     return id;
   },
   openTargetPath: targetPath => ipcRenderer.invoke('openTargetPath', targetPath),
+  getAppVersion: () => ipcRenderer.invoke('getAppVersion'),
 };
 
 // Use `contextBridge` APIs to expose Electron APIs to

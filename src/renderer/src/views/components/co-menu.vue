@@ -3,6 +3,10 @@
     <div v-if="list.length">
       {{ currentCoPic.name }}({{ currentIndex + 1 }}/{{ list.length }})
     </div>
+    <div class="co-menu__placeholder" />
+    <div v-if="appVersion.latestVersion !== appVersion.currentVersion" class="co-menu__version">
+      🎉 新版本 <a :href="appVersion.downloadLink" target="_blank">v{{ appVersion.latestVersion }}</a>
+    </div>
     <div v-if="list.length" class="co-menu__btns">
       <CoButton outline @click="handleExport()">
         导出
@@ -32,6 +36,17 @@ const { currentCoPic, currentIndex, list } = injectCoPic();
 const progress = injectProgress();
 
 const settingsDialogVisible = ref(false);
+
+const appVersion = ref({
+  currentVersion: '',
+  latestVersion: '',
+  downloadLink: '',
+});
+
+async function getAppVersion() {
+  appVersion.value = await window.api.getAppVersion();
+}
+getAppVersion();
 
 async function exportToImage() {
   const filename = currentCoPic.value.name;
@@ -144,9 +159,23 @@ async function handleExportAll() {
   padding: 0 12px;
   background-color: #535353;
 
+  .co-menu__placeholder {
+    flex: 1;
+  }
+
+  .co-menu__version {
+    font-size: 14px;
+
+    a {
+      font-size: 12px;
+      color: #fff;
+    }
+  }
+
   .co-menu__btns {
     display: flex;
     align-items: center;
+    margin-left: 24px;
 
     .btn-settings {
       font-size: 24px;

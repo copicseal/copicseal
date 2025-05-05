@@ -1,5 +1,5 @@
 import type { MenuItemConstructorOptions } from 'electron';
-import { BrowserWindow, dialog, ipcMain, Menu } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
 import { handleCapture } from './utils/capture';
 import { openTargetPath } from './utils/file';
 
@@ -32,5 +32,21 @@ export function mainHandles() {
 
   ipcMain.handle('openTargetPath', async (_event, options) => {
     return openTargetPath(options);
+  });
+
+  ipcMain.handle('getAppVersion', async () => {
+    const ret = {
+      currentVersion: app.getVersion(),
+      latestVersion: app.getVersion(),
+      downloadLink: '',
+    };
+    const res = await fetch('https://copicseal-updater.kohai.top/beta').then(r => r.json());
+    if (res?.[0]?.name) {
+      ret.latestVersion = res[0].name.replace('v', '');
+    }
+
+    ret.downloadLink = `https://copicseal-updater.kohai.top/download?version=v${ret.latestVersion}&platform=${process.platform}`;
+
+    return ret;
   });
 }

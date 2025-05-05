@@ -4,6 +4,7 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import pie from 'puppeteer-in-electron';
 import icon from '../../resources/icon.png?asset';
 import { mainHandles } from './handles';
+import { checkForUpdates } from './utils/updater';
 
 function createWindow() {
   // Create the browser window.
@@ -40,6 +41,9 @@ function createWindow() {
   else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
   }
+
+  // 检查更新
+  checkForUpdates(mainWindow);
 
   return mainWindow;
 }

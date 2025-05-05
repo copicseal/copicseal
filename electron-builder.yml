@@ -40,6 +40,7 @@ appImage:
 npmRebuild: false
 publish:
   provider: generic
-  url: https://example.com/auto-updates
+  url: https://copicseal-updater.kohai.top/auto-updates
+  updaterCacheDirName: copicseal-updater
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/

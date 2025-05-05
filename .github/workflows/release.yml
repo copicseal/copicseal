@@ -84,5 +84,6 @@ jobs:
             artifacts/**/*.zip
             artifacts/**/*.yml
             artifacts/**/*.blockmap
+          overwrite: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

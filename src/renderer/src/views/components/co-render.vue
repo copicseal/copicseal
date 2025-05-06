@@ -16,10 +16,17 @@ import {
   ref,
   watch,
 } from 'vue';
-import TplDefault from '../tpls/tpl-default.vue';
 
 export default defineComponent({
   props: {
+    tpl: {
+      type: Object as PropType<any>,
+      required: true,
+    },
+    tplProps: {
+      type: Object as PropType<any>,
+      required: true,
+    },
     imgUrl: {
       type: String,
       required: true,
@@ -83,7 +90,7 @@ export default defineComponent({
       }, 200);
     });
 
-    watch(() => props.settings, () => {
+    watch(() => [props.settings, props.tpl, props.tplProps], () => {
       setTimeout(() => {
         handleCalcSize();
       }, 0);
@@ -125,8 +132,9 @@ export default defineComponent({
       );
 
       return (
-        <TplDefault
-          data-co-tpl={TplDefault.__scopeId}
+        <props.tpl
+          {...props.tplProps}
+          data-co-tpl={props.tpl.__scopeId}
           utils={renderUtils}
           info={info}
           imgUrl={props.imgUrl}

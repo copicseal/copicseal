@@ -2,6 +2,8 @@
   <ElScrollbar class="co-image-view">
     <CoRender
       v-if="currentCoPic && currentCoPic.state.isLoaded"
+      :tpl="currentCoPic.template.value || TplDefault"
+      :tpl-props="currentCoPic.state.templateProps"
       :img-url="currentCoPic.imgUrl"
       :settings="currentCoPic.state.settings"
       :exif="outputExif"
@@ -11,6 +13,7 @@
 </template>``
 
 <script lang="ts" setup>
+import TplDefault from '@/views/tpls/tpl-default.vue';
 import { injectCoPic } from '@renderer/uses/co-pic';
 import { ElScrollbar } from 'element-plus';
 import { computed } from 'vue';

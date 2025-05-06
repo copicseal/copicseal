@@ -1,8 +1,7 @@
 import type { Settings } from '@/types';
-import type { VNode } from 'vue';
 import type { Tags } from './exif';
-import CoRenderVue from '@/views/components/co-render.vue';
-import { computed, reactive, ref } from 'vue';
+import TplDefault from '@/views/tpls/tpl-default.vue';
+import { computed, reactive, ref, shallowRef } from 'vue';
 import { getExif } from './exif';
 
 export class CoPic {
@@ -12,7 +11,6 @@ export class CoPic {
   private file!: File;
   colorPalette: number[][] = [];
   private settings!: Settings;
-  private vNode: (() => VNode) | null = null;
 
   private initPromise: Promise<void[]> | null = null;
 
@@ -26,6 +24,7 @@ export class CoPic {
     exif: Tags;
     modifiedExif: Tags;
     isLoaded: boolean;
+    templateProps: Record<string, any>;
   }>({
     settings: {
       background: { mode: 'none' },
@@ -35,7 +34,10 @@ export class CoPic {
     exif: {},
     modifiedExif: {},
     isLoaded: false,
+    templateProps: {},
   });
+
+  template = shallowRef(TplDefault);
 
   constructor(file: File) {
     this.file = file;
@@ -61,7 +63,6 @@ export class CoPic {
     // this.settings.fields = fillId(this.settings.fields ?? []);
     this.isLoaded.value = false;
     this.state.isLoaded = false;
-    this.vNode = null;
     this.asyncLoad();
   }
 
@@ -90,12 +91,6 @@ export class CoPic {
     });
   }
 
-  update() {
-    if (!this.vNode)
-      this.vNode = this.renderNode();
-    return this.vNode;
-  }
-
   private async init() {
     this.initPromise = Promise.all([this.loadExif(), this.getColorPalette()]);
     return this.initPromise;
@@ -108,18 +103,6 @@ export class CoPic {
 
     this.isLoaded.value = true;
     this.state.isLoaded = true;
-  }
-
-  private renderNode() {
-    this.asyncLoad();
-    return () => {
-      if (this.isLoaded.value) {
-        return (
-          <CoRenderVue imgUrl={this.imgUrl} settings={this.settings} exif={this.outputExif.value} />
-        );
-      }
-      return <Loading imgUrl={this.imgUrl} />;
-    };
   }
 
   private async loadExif() {
@@ -145,40 +128,4 @@ export class CoPic {
     // }
     console.warn('getColorPalette');
   }
-}
-
-function Loading(props: { imgUrl: string }) {
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        inset: 0,
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        color: '#eee',
-        overflow: 'hidden',
-      }}
-    >
-      <div
-        style={{
-          position: 'absolute',
-          inset: '-20px',
-          backgroundImage: `url(${props.imgUrl})`,
-          backgroundPosition: 'center',
-          backgroundSize: 'cover',
-          opacity: 0.4,
-          filter: `brightness(0.4) blur(${20}px)`,
-        }}
-      >
-      </div>
-      <span
-        style={{
-          position: 'relative',
-        }}
-      >
-        加载中（页面可能会卡顿）...
-      </span>
-    </div>
-  );
 }

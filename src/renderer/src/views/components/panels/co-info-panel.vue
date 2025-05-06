@@ -15,7 +15,7 @@
 
 <script lang="ts" setup>
 import CoSettingsPanel from '@/components/co-settings-panel/index.vue';
-import { injectCoPic, primaryExif } from '@/uses';
+import { injectCoPic, primaryExif } from '@renderer/uses/co-pic';
 
 const { currentCoPic } = injectCoPic();
 </script>

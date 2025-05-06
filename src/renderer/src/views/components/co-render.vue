@@ -5,7 +5,7 @@ import type {
   PropType,
 } from 'vue';
 import type { Settings } from '../../types';
-import { injectCoPic } from '@renderer/uses';
+import { injectCoPic } from '@renderer/uses/co-pic';
 import { mapStyle } from '@renderer/utils/common';
 import { renderUtils } from '@renderer/utils/render';
 import {

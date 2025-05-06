@@ -3,7 +3,7 @@
 </template>
 
 <script setup lang="ts">
-import { provideCoPic } from './uses';
+import { provideCoPic } from './uses/co-pic';
 import CoMark from './views/co-mark.vue';
 import 'element-plus/theme-chalk/el-scrollbar.css';
 

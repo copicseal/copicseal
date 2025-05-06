@@ -11,7 +11,7 @@
 
 <script lang="ts" setup>
 import CoProgress from '@/components/co-progress/index.vue';
-import { provideProgress } from '@renderer/uses';
+import { provideProgress } from '@renderer/uses/progress';
 import CoMain from './components/co-main.vue';
 import CoMenu from './components/co-menu.vue';
 import CoSide from './components/co-side.vue';

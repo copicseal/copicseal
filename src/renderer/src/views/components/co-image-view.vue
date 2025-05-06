@@ -11,7 +11,7 @@
 </template>``
 
 <script lang="ts" setup>
-import { injectCoPic } from '@/uses';
+import { injectCoPic } from '@renderer/uses/co-pic';
 import { ElScrollbar } from 'element-plus';
 import { computed } from 'vue';
 import CoRender from './co-render.vue';

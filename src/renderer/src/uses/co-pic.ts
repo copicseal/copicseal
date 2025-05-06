@@ -1,9 +1,9 @@
 import type { InjectionKey, Ref } from 'vue';
-import type { Settings } from './types';
-import type { CoPic } from './utils/co-pic';
+import type { Settings } from '../types';
+import type { CoPic } from '../utils/co-pic';
 import { cloneDeep } from 'lodash';
 import { computed, inject, provide, ref, shallowRef } from 'vue';
-import { storage } from './utils/storage';
+import { storage } from '../utils/storage';
 
 const CoPicInjectionKey: InjectionKey<ReturnType<typeof getCoPicList>>
   = Symbol('CoPicInjectionKey');
@@ -17,39 +17,6 @@ export function provideCoPic() {
 }
 export function injectCoPic() {
   return inject(CoPicInjectionKey, getCoPicList());
-}
-
-const ProgressInjectionKey = Symbol('ProgressInjectionKey');
-export function provideProgress() {
-  const progress = ref({
-    current: 0,
-    total: 0,
-    filename: '',
-    visible: false,
-    onCancel: () => {
-      progress.value.visible = false;
-    },
-    onFinish: () => {
-      progress.value.visible = false;
-    },
-  });
-  provide(ProgressInjectionKey, progress);
-
-  return progress;
-}
-
-export function injectProgress() {
-  return inject(
-    ProgressInjectionKey,
-    ref({
-      current: 0,
-      total: 0,
-      filename: '',
-      visible: false,
-      onCancel: () => {},
-      onFinish: () => {},
-    }),
-  );
 }
 
 function getCoPicList() {

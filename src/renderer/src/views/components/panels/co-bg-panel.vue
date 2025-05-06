@@ -68,7 +68,7 @@ import { DisabledByDefault, Image, Palette } from '@/components/co-icon';
 import CoInput from '@/components/co-input/index.vue';
 import CoRadioGroup from '@/components/co-radio-group/index.vue';
 import CoSettingsPanel from '@/components/co-settings-panel/index.vue';
-import { injectCoPic } from '@/uses';
+import { injectCoPic } from '@renderer/uses/co-pic';
 import { cloneDeep } from 'lodash';
 import { ref, watch } from 'vue';
 

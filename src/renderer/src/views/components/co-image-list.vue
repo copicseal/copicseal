@@ -16,7 +16,7 @@
 
 <script lang="ts" setup>
 import CoFileInput from '@/components/co-file-input/index.vue';
-import { injectCoPic } from '@/uses';
+import { injectCoPic } from '@renderer/uses/co-pic';
 import { CoPic } from '@/utils/co-pic';
 import { ElScrollbar } from 'element-plus';
 import { ref } from 'vue';

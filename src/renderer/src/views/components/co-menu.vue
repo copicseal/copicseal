@@ -1,7 +1,8 @@
 <template>
   <div class="co-menu">
-    <div v-if="list.length">
-      {{ currentCoPic.name }}({{ currentIndex + 1 }}/{{ list.length }})
+    <div v-if="list.length" class="co-menu__title" :title="currentCoPic.name">
+      <span class="name">{{ displayFileName }}</span>
+      <span class="index">{{ currentIndex + 1 }}/{{ list.length }}</span>
     </div>
     <div class="co-menu__placeholder" />
     <div v-if="appVersion.latestVersion !== appVersion.currentVersion" class="co-menu__version">
@@ -29,9 +30,27 @@ import CoButton from '@/components/co-button/index.vue';
 // import { Settings } from '@/components/co-icon';
 import { injectCoPic, injectProgress } from '@/uses';
 import { ElDialog } from 'element-plus';
-import { nextTick, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 
 const { currentCoPic, currentIndex, list } = injectCoPic();
+
+const MAX_NAME_LENGTH = 20;
+
+const displayFileName = computed(() => {
+  const splits = currentCoPic.value.name.split('.');
+  const suffix = splits.pop() || '';
+  const filename = splits.join('.');
+
+  if (filename.length <= MAX_NAME_LENGTH) {
+    return suffix ? `${filename}.${suffix}` : filename;
+  }
+
+  const middleIndex = Math.floor(MAX_NAME_LENGTH / 2);
+  const front = filename.slice(0, middleIndex);
+  const end = filename.slice(-middleIndex);
+
+  return suffix ? `${front}...${end}.${suffix}` : `${front}...${end}`;
+});
 
 const progress = injectProgress();
 
@@ -158,6 +177,27 @@ async function handleExportAll() {
   align-items: center;
   padding: 0 12px;
   background-color: #535353;
+
+  .co-menu__title {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+
+    .name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .index {
+      margin-left: 8px;
+      padding: 0 8px;
+      font-size: 14px;
+      border-radius: 4px;
+      color: #535353;
+      background-color: rgba(255, 255, 255, 0.8);
+    }
+  }
 
   .co-menu__placeholder {
     flex: 1;

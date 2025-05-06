@@ -19,6 +19,7 @@ defineProps<{
   background-color: transparent;
   cursor: pointer;
   border: none;
+  white-space: nowrap;
 
   &:hover {
     background-color: rgba(255, 255, 255, 0.1);

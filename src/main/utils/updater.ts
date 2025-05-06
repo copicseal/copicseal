@@ -34,7 +34,7 @@ export function checkForUpdates(win: BrowserWindow) {
     }).then(() => {
       console.log(info);
 
-      // autoUpdater.quitAndInstall();
+      autoUpdater.quitAndInstall();
     });
   });
 

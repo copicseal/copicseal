@@ -9,7 +9,9 @@
     "editor.defaultFormatter": "dbaeumer.vscode-eslint"
   },
   "cSpell.words": [
+    "copicseal",
     "exif",
+    "exifreader",
     "piexif",
     "piexifjs"
   ],

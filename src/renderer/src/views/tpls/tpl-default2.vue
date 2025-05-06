@@ -1,5 +1,5 @@
 <template>
-  <div class="tpl-card" :class="{ 'is-horizontal': isHorizontal }">
+  <div class="tpl-card" :class="{ 'is-horizontal': isHorizontal, 'is-text-white': textWhite }">
     <img
       class="main-image"
       :style="{
@@ -52,30 +52,69 @@ const props = defineProps({
   },
   radius: {
     type: Number,
-    default: 0.05,
+    default: 0.1,
     __co: {
       label: '图片圆角',
+    },
+  },
+  direction: {
+    type: Number,
+    default: 0,
+    __co: {
+      label: '排列方向',
+      enums: [
+        {
+          label: '自动',
+          value: 0,
+        },
+        {
+          label: '垂直',
+          value: 1,
+        },
+        {
+          label: '水平',
+          value: -1,
+        },
+      ],
+    },
+  },
+  textWhite: {
+    type: Boolean,
+    default: false,
+    __co: {
+      label: '文字白色',
     },
   },
 });
 
 const isHorizontal = computed(() => {
-  return props.info.ImageWidth < props.info.ImageHeight;
+  return props.direction === 0 ? props.info.ImageWidth < props.info.ImageHeight : props.direction === -1;
 });
 </script>
 
 <style lang="scss" scoped>
 .tpl-card {
   color: #000;
+
+  &.is-text-white {
+    color: #fff;
+
+    .make-model .make-logo {
+
+      > img {
+        filter: drop-shadow(0 0 0.02rem white) drop-shadow(0 0 0.02rem white);
+      }
+    }
+  }
 }
 
 .card-info {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   align-items: center;
-  padding-top: 0.02rem;
-  font-size: 0.05rem;
+  gap: 0.2em;
+  padding-top: 0.2rem;
+  font-size: 0.2rem;
 
   .make-model {
     display: flex;
@@ -87,16 +126,16 @@ const isHorizontal = computed(() => {
       font-weight: bold;
 
       > img {
-        max-height: 0.08rem;
-        max-width: 0.2rem;
+        max-height: 0.2rem;
+        max-width: 0.6rem;
       }
     }
 
     .model-name {
       display: flex;
       align-items: flex-end;
-      margin-left: 0.02rem;
-      font-size: 0.04rem;
+      margin-left: 0.05rem;
+      font-size: 0.1rem;
     }
   }
 
@@ -105,15 +144,14 @@ const isHorizontal = computed(() => {
       display: flex;
       align-items: flex-end;
       gap: 0.5em;
-      margin-left: 0.03rem;
-      font-size: 0.03rem;
+      margin-left: 0.1rem;
+      font-size: 0.1rem;
     }
   }
 }
 
 .is-horizontal.tpl-card {
   display: flex;
-  padding: 0.01rem 0 0.01rem 0.01rem;
 
   .card-info {
     flex-direction: column;
@@ -130,7 +168,7 @@ const isHorizontal = computed(() => {
       flex-direction: column;
       gap: 1em;
       margin-left: 0;
-      font-size: 0.03rem;
+      font-size: 0.1rem;
     }
   }
 }

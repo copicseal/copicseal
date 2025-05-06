@@ -67,7 +67,7 @@ function getDefaultSettings(): Settings {
         filters: [
           {
             type: 'blur',
-            value: '0.04rem',
+            value: '0.4rem',
           },
           {
             type: 'brightness',
@@ -80,7 +80,7 @@ function getDefaultSettings(): Settings {
         justifyContent: 'center',
         alignItems: 'center',
       },
-      padding: [0.1, 0.1],
+      padding: [0.2, 0.2],
     },
     outputs: [
       {

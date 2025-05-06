@@ -20,16 +20,16 @@ import type { Component } from 'vue';
 export interface Option {
   icon?: Component;
   label?: string;
-  value?: string;
+  value?: string | number;
 }
 
 defineProps<{
-  modelValue?: string;
+  modelValue?: string | number;
   options: Option[];
 }>();
 
 const emit = defineEmits<{
-  (event: 'update:modelValue', val?: string): void;
+  (event: 'update:modelValue', val?: string | number): void;
 }>();
 </script>
 
@@ -64,6 +64,10 @@ const emit = defineEmits<{
     &.is-icon {
       width: 25px;
       font-size: 24px;
+    }
+
+    span {
+      padding: 0 4px;
     }
   }
 }

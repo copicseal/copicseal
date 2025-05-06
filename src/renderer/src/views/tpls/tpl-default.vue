@@ -54,15 +54,36 @@ const props = defineProps({
   },
   borderPadding: {
     type: Number,
-    default: 0.01,
+    default: 0.04,
     __co: {
       label: '相框边距',
+    },
+  },
+  direction: {
+    type: Number,
+    default: 0,
+    __co: {
+      label: '排列方向',
+      enums: [
+        {
+          label: '自动',
+          value: 0,
+        },
+        {
+          label: '垂直',
+          value: 1,
+        },
+        {
+          label: '水平',
+          value: -1,
+        },
+      ],
     },
   },
 });
 
 const isHorizontal = computed(() => {
-  return props.info.ImageWidth < props.info.ImageHeight;
+  return props.direction === 0 ? props.info.ImageWidth < props.info.ImageHeight : props.direction === -1;
 });
 </script>
 
@@ -79,10 +100,10 @@ const isHorizontal = computed(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 0.1rem;
-  padding-left: 0.02rem;
-  padding-right: 0.02rem;
-  font-size: 0.05rem;
+  height: 0.4rem;
+  padding-left: 0.1rem;
+  padding-right: 0.1rem;
+  font-size: 0.1rem;
 
   .make-model {
     display: flex;
@@ -94,16 +115,16 @@ const isHorizontal = computed(() => {
       font-weight: bold;
 
       > img {
-        max-height: 0.08rem;
-        max-width: 0.2rem;
+        max-height: 0.2rem;
+        max-width: 0.6rem;
       }
     }
 
     .model-name {
       display: flex;
       align-items: flex-end;
-      margin-left: 0.02rem;
-      font-size: 0.04rem;
+      margin-left: 0.05rem;
+      font-size: 0.1rem;
     }
   }
 
@@ -112,8 +133,8 @@ const isHorizontal = computed(() => {
       display: flex;
       align-items: flex-end;
       gap: 0.5em;
-      margin-left: 0.03rem;
-      font-size: 0.03rem;
+      margin-left: 0.1rem;
+      font-size: 0.1rem;
     }
   }
 }
@@ -125,7 +146,7 @@ const isHorizontal = computed(() => {
   .card-info {
     flex-direction: column;
     height: unset;
-    padding: 0.02rem;
+    padding: 0.1rem;
 
     .make-model {
       flex: 1;
@@ -135,9 +156,9 @@ const isHorizontal = computed(() => {
     }
     .details-info .basie-info {
       flex-direction: column;
-      gap: 1em;
+      gap: 0.5em;
       margin-left: 0;
-      font-size: 0.03rem;
+      font-size: 0.1rem;
     }
   }
 }

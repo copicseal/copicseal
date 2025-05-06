@@ -11,16 +11,17 @@
           </option>
         </select>
       </div>
-      <div class="label">
-        动态参数
-      </div>
-      <div class="value" />
       <template v-for="(item) in tplProps" :key="item.key">
         <div class="label">
           {{ item.__co.label }}:
         </div>
         <div class="value">
-          <CoInput v-model="currentCoPic.state.templateProps[item.key]" mode="percent" />
+          <div v-if="item.__co.enums">
+            <CoRadioGroup v-model="currentCoPic.state.templateProps[item.key]" :options="item.__co.enums" />
+          </div>
+          <CoInput v-else-if="item.type === Number" v-model="currentCoPic.state.templateProps[item.key]" mode="percent" />
+          <input v-else-if="item.type === Boolean" v-model="currentCoPic.state.templateProps[item.key]" type="checkbox">
+          <input v-else v-model="currentCoPic.state.templateProps[item.key]" type="text">
         </div>
       </template>
     </div>
@@ -29,6 +30,7 @@
 
 <script lang="ts" setup>
 import CoInput from '@/components/co-input/index.vue';
+import CoRadioGroup from '@/components/co-radio-group/index.vue';
 import CoSettingsPanel from '@/components/co-settings-panel/index.vue';
 import { injectCoPic } from '@renderer/uses/co-pic';
 import { computed, ref, watch } from 'vue';
@@ -46,12 +48,6 @@ const tpls = computed(() => {
 });
 
 const tpl = ref('');
-
-watch(() => currentCoPic.value?.template.value, (val) => {
-  if (val) {
-    tpl.value = val.id;
-  }
-}, { immediate: true });
 
 const tplProps = computed(() => {
   if (currentCoPic.value?.template.value) {
@@ -72,6 +68,25 @@ const tplProps = computed(() => {
 
   return [];
 });
+
+watch(() => currentCoPic.value, (val) => {
+  if (!val) {
+    return;
+  }
+  if (val.template.value) {
+    tpl.value = val.template.value.id;
+    currentCoPic.value.state.templateProps = tplProps.value.reduce((acc, cur) => {
+      acc = {
+        [cur.key]: cur.default,
+        ...acc,
+      };
+      return acc;
+    }, currentCoPic.value.state.templateProps);
+  }
+  else {
+    handleTplChange();
+  }
+}, { immediate: true });
 
 function handleTplChange() {
   currentCoPic.value.template.value = tpls.value.find(item => item.value === tpl.value)?.component ?? tpls.value[0].component;
@@ -96,7 +111,7 @@ function handleTplChange() {
   }
 
   .value {
-    input, select {
+    input[type=text], select {
       width: 100%;
     }
   }

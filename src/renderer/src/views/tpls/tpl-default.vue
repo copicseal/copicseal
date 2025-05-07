@@ -1,7 +1,7 @@
 <template>
   <div
     class="tpl-card" :class="{ 'is-horizontal': isHorizontal }"
-    :style="{ '--border-padding': `${borderPadding}rem`, '--box-shadow': shadow }"
+    :style="{ '--border-padding': `${borderPadding}rem`, '--box-shadow': shadow, '--font-scale': fontScale }"
   >
     <img
       class="main-image"
@@ -80,9 +80,16 @@ const props = defineProps({
       ],
     },
   },
+  fontScale: {
+    type: Number,
+    default: 1,
+    __co: {
+      label: '字体缩放',
+    },
+  },
   shadow: {
     type: String,
-    default: '0 0 0.2rem 0 rgba(0, 244, 0, 0.8)',
+    default: '0 0 0.2rem 0 rgba(0, 0, 0, 0.8)',
     __co: {
       label: '阴影',
       type: 'shadow',
@@ -99,6 +106,7 @@ const isHorizontal = computed(() => {
 .tpl-card {
   --border-padding: 0.01rem;
   --box-shadow: 0 0 0.2rem rgba(0, 0, 0, 0.8);
+  --font-scale: 1;
   padding: var(--border-padding) var(--border-padding) 0;
   color: #000;
   background-color: #fff;
@@ -112,7 +120,7 @@ const isHorizontal = computed(() => {
   height: 0.4rem;
   padding-left: 0.1rem;
   padding-right: 0.1rem;
-  font-size: 0.1rem;
+  font-size: calc(var(--font-scale) * 0.1rem);
 
   .make-model {
     display: flex;
@@ -124,8 +132,8 @@ const isHorizontal = computed(() => {
       font-weight: bold;
 
       > img {
-        max-height: 0.2rem;
-        max-width: 0.6rem;
+        max-height: calc(var(--font-scale) * 0.2rem);
+        max-width: calc(var(--font-scale) * 0.6rem);
       }
     }
 
@@ -133,7 +141,7 @@ const isHorizontal = computed(() => {
       display: flex;
       align-items: flex-end;
       margin-left: 0.05rem;
-      font-size: 0.1rem;
+      font-size: calc(var(--font-scale) * 0.1rem);
     }
   }
 
@@ -142,8 +150,8 @@ const isHorizontal = computed(() => {
       display: flex;
       align-items: flex-end;
       gap: 0.5em;
-      margin-left: 0.1rem;
-      font-size: 0.1rem;
+      margin-left: calc(var(--font-scale) * 0.1rem);
+      font-size: calc(var(--font-scale) * 0.1rem);
     }
   }
 }
@@ -167,7 +175,7 @@ const isHorizontal = computed(() => {
       flex-direction: column;
       gap: 0.5em;
       margin-left: 0;
-      font-size: 0.1rem;
+      font-size: calc(var(--font-scale) * 0.1rem);
     }
   }
 }

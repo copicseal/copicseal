@@ -1,7 +1,7 @@
 <template>
   <div
     class="tpl-card" :class="{ 'is-horizontal': isHorizontal, 'is-text-white': textWhite }"
-    :style="{ '--box-shadow': shadow }"
+    :style="{ '--box-shadow': shadow, '--font-scale': fontScale }"
   >
     <img
       class="main-image"
@@ -81,6 +81,13 @@ const props = defineProps({
       ],
     },
   },
+  fontScale: {
+    type: Number,
+    default: 1,
+    __co: {
+      label: '字体缩放',
+    },
+  },
   textWhite: {
     type: Boolean,
     default: false,
@@ -106,6 +113,7 @@ const isHorizontal = computed(() => {
 <style lang="scss" scoped>
 .tpl-card {
   --box-shadow: 0 0 0.2rem rgba(0, 0, 0, 0.8);
+  --font-scale: 1;
   color: #000;
 
   &.is-text-white {
@@ -126,7 +134,7 @@ const isHorizontal = computed(() => {
   align-items: center;
   gap: 0.2em;
   padding-top: 0.2rem;
-  font-size: 0.2rem;
+  font-size: calc(var(--font-scale) * 0.2rem);
 
   .make-model {
     display: flex;
@@ -138,8 +146,8 @@ const isHorizontal = computed(() => {
       font-weight: bold;
 
       > img {
-        max-height: 0.2rem;
-        max-width: 0.6rem;
+        max-height: calc(var(--font-scale) * 0.2rem);
+        max-width: calc(var(--font-scale) * 0.6rem);
       }
     }
 
@@ -147,7 +155,7 @@ const isHorizontal = computed(() => {
       display: flex;
       align-items: flex-end;
       margin-left: 0.05rem;
-      font-size: 0.1rem;
+      font-size: calc(var(--font-scale) * 0.1rem);
     }
   }
 
@@ -156,8 +164,8 @@ const isHorizontal = computed(() => {
       display: flex;
       align-items: flex-end;
       gap: 0.5em;
-      margin-left: 0.1rem;
-      font-size: 0.1rem;
+      margin-left: calc(var(--font-scale) * 0.1rem);
+      font-size: calc(var(--font-scale) * 0.1rem);
     }
   }
 }
@@ -180,7 +188,7 @@ const isHorizontal = computed(() => {
       flex-direction: column;
       gap: 1em;
       margin-left: 0;
-      font-size: 0.1rem;
+      font-size: calc(var(--font-scale) * 0.1rem);
     }
   }
 }

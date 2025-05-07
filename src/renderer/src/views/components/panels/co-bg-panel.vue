@@ -31,7 +31,7 @@
             {{ filterMap[it.type] || it.type }}:
           </div>
           <div class="value">
-            <CoInput v-model="it.value" mode="percent" />
+            <CoInput v-model="it.value" mode="percent" :min="0" />
           </div>
         </template>
       <!-- <p>背景模糊: <input v-model="settings.image.blur" type="text" /></p>
@@ -42,13 +42,13 @@
           垂直内边距:
         </div>
         <div class="value">
-          <CoInput v-model="settings.padding[0]" mode="percent" />
+          <CoInput v-model="settings.padding[0]" mode="percent" :min="0" />
         </div>
         <div class="label">
           水平内边距:
         </div>
         <div class="value">
-          <CoInput v-model="settings.padding[1]" mode="percent" />
+          <CoInput v-model="settings.padding[1]" mode="percent" :min="0" />
         </div>
       </template>
     </div>

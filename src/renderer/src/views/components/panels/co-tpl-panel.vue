@@ -19,7 +19,8 @@
           <div v-if="item.__co.enums">
             <CoRadioGroup v-model="currentCoPic.state.templateProps[item.key]" :options="item.__co.enums" />
           </div>
-          <CoInput v-else-if="item.type === Number" v-model="currentCoPic.state.templateProps[item.key]" mode="percent" />
+          <CoShadowInput v-else-if="item.__co.type === 'shadow'" v-model="currentCoPic.state.templateProps[item.key]" />
+          <CoInput v-else-if="item.type === Number" v-model="currentCoPic.state.templateProps[item.key]" mode="percent" :min="0" />
           <input v-else-if="item.type === Boolean" v-model="currentCoPic.state.templateProps[item.key]" type="checkbox">
           <input v-else v-model="currentCoPic.state.templateProps[item.key]" type="text">
         </div>
@@ -29,6 +30,7 @@
 </template>
 
 <script lang="ts" setup>
+import CoShadowInput from '@/components/co-input/co-shadow-input.vue';
 import CoInput from '@/components/co-input/index.vue';
 import CoRadioGroup from '@/components/co-radio-group/index.vue';
 import CoSettingsPanel from '@/components/co-settings-panel/index.vue';
@@ -111,6 +113,8 @@ function handleTplChange() {
   }
 
   .value {
+    overflow: auto;
+
     input[type=text], select {
       width: 100%;
     }

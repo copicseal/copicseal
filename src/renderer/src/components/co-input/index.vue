@@ -26,7 +26,10 @@ import { computed, nextTick, ref, watch } from 'vue';
 interface Props {
   modelValue: number | string;
   mode?: 'percent' | 'number';
+  unit?: 'rem' | '%';
   step?: number;
+  min?: number;
+  max?: number;
 }
 const props = withDefaults(defineProps<Props>(), {
   mode: 'number',
@@ -59,7 +62,14 @@ function parseModelValueToPercent(newModelValue?: number | string) {
 }
 
 function formatNumber(num: number, decimalPlaces = 6) {
-  return Number.parseFloat(num.toFixed(decimalPlaces));
+  let res = Number.parseFloat(num.toFixed(decimalPlaces));
+  if (props.min !== undefined) {
+    res = Math.max(res, props.min);
+  }
+  if (props.max !== undefined) {
+    res = Math.min(res, props.max);
+  }
+  return res;
 }
 
 // 当前百分比
@@ -168,10 +178,10 @@ function exitEditMode() {
 
   if (props.mode === 'percent') {
     if (typeof props.modelValue === 'string') {
-      if (props.modelValue.endsWith('rem')) {
+      if (props.modelValue.endsWith('rem') || props.unit === 'rem') {
         emit('update:modelValue', `${formatNumber(inputVal / 100)}rem`);
       }
-      else if (props.modelValue.endsWith('%')) {
+      else if (props.modelValue.endsWith('%') || props.unit === '%') {
         emit('update:modelValue', `${formatNumber(inputVal)}%`);
       }
       else {
@@ -194,10 +204,10 @@ function updateValue(deltaValue: number) {
 
   if (props.mode === 'percent') {
     if (typeof props.modelValue === 'string') {
-      if (props.modelValue.endsWith('rem')) {
+      if (props.modelValue.endsWith('rem') || props.unit === 'rem') {
         newModelValue = `${formatNumber(newPercent / 100)}rem`;
       }
-      else if (props.modelValue.endsWith('%')) {
+      else if (props.modelValue.endsWith('%') || props.unit === '%') {
         newModelValue = `${formatNumber(newPercent)}%`;
       }
       else {

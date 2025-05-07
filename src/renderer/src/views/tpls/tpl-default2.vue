@@ -1,5 +1,8 @@
 <template>
-  <div class="tpl-card" :class="{ 'is-horizontal': isHorizontal, 'is-text-white': textWhite }">
+  <div
+    class="tpl-card" :class="{ 'is-horizontal': isHorizontal, 'is-text-white': textWhite }"
+    :style="{ '--box-shadow': shadow }"
+  >
     <img
       class="main-image"
       :style="{
@@ -85,6 +88,14 @@ const props = defineProps({
       label: '文字白色',
     },
   },
+  shadow: {
+    type: String,
+    default: '0 0 0.2rem 0 rgba(0, 0, 0, 0.8)',
+    __co: {
+      label: '阴影',
+      type: 'shadow',
+    },
+  },
 });
 
 const isHorizontal = computed(() => {
@@ -94,6 +105,7 @@ const isHorizontal = computed(() => {
 
 <style lang="scss" scoped>
 .tpl-card {
+  --box-shadow: 0 0 0.2rem rgba(0, 0, 0, 0.8);
   color: #000;
 
   &.is-text-white {
@@ -177,6 +189,6 @@ const isHorizontal = computed(() => {
   width: 1rem;
   height: auto;
   border-radius: 0.05rem;
-  box-shadow: 0 0 0.2rem rgba(0, 0, 0, 0.8);
+  box-shadow: var(--box-shadow);
 }
 </style>

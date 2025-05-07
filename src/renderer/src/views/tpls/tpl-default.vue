@@ -1,7 +1,7 @@
 <template>
   <div
     class="tpl-card" :class="{ 'is-horizontal': isHorizontal }"
-    :style="{ '--border-padding': `${borderPadding}rem` }"
+    :style="{ '--border-padding': `${borderPadding}rem`, '--box-shadow': shadow }"
   >
     <img
       class="main-image"
@@ -80,6 +80,14 @@ const props = defineProps({
       ],
     },
   },
+  shadow: {
+    type: String,
+    default: '0 0 0.2rem 0 rgba(0, 244, 0, 0.8)',
+    __co: {
+      label: '阴影',
+      type: 'shadow',
+    },
+  },
 });
 
 const isHorizontal = computed(() => {
@@ -90,10 +98,11 @@ const isHorizontal = computed(() => {
 <style lang="scss" scoped>
 .tpl-card {
   --border-padding: 0.01rem;
+  --box-shadow: 0 0 0.2rem rgba(0, 0, 0, 0.8);
   padding: var(--border-padding) var(--border-padding) 0;
   color: #000;
   background-color: #fff;
-  box-shadow: 0 0 0.2rem rgba(0, 0, 0, 0.8);
+  box-shadow: var(--box-shadow);
 }
 
 .card-info {

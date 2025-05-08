@@ -33,5 +33,8 @@ export default defineConfig({
         },
       },
     },
+    build: {
+      assetsInlineLimit: 0, // 禁止将任何资源转换为 data URL
+    },
   },
 });

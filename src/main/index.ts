@@ -4,7 +4,7 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import pie from 'puppeteer-in-electron';
 import icon from '../../resources/icon.png?asset';
 import { mainHandles } from './handles';
-import { checkForUpdates } from './utils/updater';
+// import { checkForUpdates } from './utils/updater';
 
 function createWindow() {
   // Create the browser window.
@@ -43,7 +43,7 @@ function createWindow() {
   }
 
   // 检查更新
-  checkForUpdates(mainWindow);
+  // checkForUpdates(mainWindow);
 
   return mainWindow;
 }

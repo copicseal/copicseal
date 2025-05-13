@@ -49,7 +49,7 @@ export function useExport() {
     const res = await window.api.captureDOM({
       html,
       output: [
-        ...outputs.map((output) => {
+        ...outputs.map((output, index) => {
           output = { ...output };
           let fs = Number.parseFloat(fontSize);
           const outputRatio = output.width / output.height;
@@ -68,10 +68,11 @@ export function useExport() {
               output.height = Math.floor(output.width / containerRatio);
             }
           }
+
           return {
             ...output,
             rem: fs,
-            path: `${outputPath}/${filename}@${output.scale}x.${output.type}`,
+            path: `${outputPath}/${filename.split('.').slice(0, -1).join('.')}${outputs.length > 1 ? `_${index + 1}` : ''}@${output.scale}x.${output.type}`,
           };
         }),
       ],

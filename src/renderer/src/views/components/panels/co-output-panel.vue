@@ -12,7 +12,9 @@
       <template v-for="(item, index) in outputs" :key="index">
         <div class="width-height">
           <input v-model="item.width" type="text">
-          <div>*</div>
+          <div class="separator" @click="handleSwap(item)">
+            *
+          </div>
           <input v-model="item.height" type="text">
         </div>
         <div>
@@ -85,6 +87,12 @@ function handleDel(index: number) {
   outputs.value.splice(index, 1);
 }
 
+function handleSwap(item: Output) {
+  const width = item.width;
+  item.width = item.height;
+  item.height = width;
+}
+
 async function handleOutputFolder() {
   const path = await window.api.openDirectoryDialog();
   if (!path)
@@ -123,8 +131,9 @@ function handleApplyAll() {
     input {
       flex: 1;
     }
-    > div {
+    .separator {
       margin: 0 4px;
+      cursor: pointer;
     }
   }
   .btn {
@@ -151,6 +160,7 @@ function handleApplyAll() {
       text-decoration: underline;
       cursor: pointer;
       color: #98c4f6;
+      word-break: break-word;
     }
   }
 }

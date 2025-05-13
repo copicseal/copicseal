@@ -1,0 +1,11 @@
+name: 📋 其他问题
+description: 提出其他与 copicseal 相关的问题或建议
+labels: [question]
+body:
+  - type: textarea
+    id: content
+    attributes:
+      label: 请描述你的问题或建议
+      placeholder: 比如：如何导入我自己的边框模板？
+    validations:
+      required: true

@@ -5,9 +5,18 @@
       <div>倍数：</div>
       <div>类型：</div>
       <div class="btn">
-        <CoButton icon @click="handleAdd">
-          +
-        </CoButton>
+        <el-dropdown trigger="click" @command="handleAdd">
+          <CoButton icon>
+            +
+          </CoButton>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item v-for="(opt, i) in outputOpts" :key="i" :command="i">
+                {{ opt.label }}
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
       </div>
       <template v-for="(item, index) in outputs" :key="index">
         <div class="width-height">
@@ -71,12 +80,24 @@ watch(currentCoPic, (value) => {
   }
 });
 
-function handleAdd() {
+const outputOpts = [
+  { value: { width: 1920, height: 1080 }, label: '1080P' },
+  { value: { width: 2560, height: 1440 }, label: '2K' },
+  { value: { width: 1440, height: 2560 }, label: '2K（竖屏）' },
+  { value: { width: 3840, height: 2160 }, label: '4K' },
+  { value: { width: 2160, height: 3840 }, label: '4K（竖屏）' },
+  { value: { width: 1080, height: 1080 }, label: '方图（1080）' },
+  { value: { width: 2048, height: 2048 }, label: '方图（2048）' },
+
+  { value: { width: 4524, height: 2262 }, label: '微信朋友圈（2:1）' },
+  { value: { width: 1280, height: 1706 }, label: '小红书（1280）' },
+];
+
+function handleAdd(cmd: number) {
   outputs.value.push({
     scale: 1,
-    width: 1920,
-    height: 1080,
     type: 'jpeg',
+    ...outputOpts[cmd].value,
   });
 }
 

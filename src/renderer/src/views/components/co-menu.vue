@@ -26,12 +26,10 @@
 </template>
 
 <script lang="ts" setup>
-import CoButton from '@/components/co-button/index.vue';
+// import CoButton from '@/components/co-button/index.vue';
 // import { Settings } from '@/components/co-icon';
 import { injectCoPic } from '@renderer/uses/co-pic';
 import { useExport } from '@renderer/uses/export';
-import { ElDialog } from 'element-plus';
-import { computed, ref } from 'vue';
 
 const { currentCoPic, currentIndex, list } = injectCoPic();
 

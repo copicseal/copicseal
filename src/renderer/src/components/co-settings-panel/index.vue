@@ -19,13 +19,9 @@
 </template>
 
 <script lang="ts" setup>
-import { ElCollapse, ElCollapseItem } from 'element-plus';
 import CoButton from '../co-button/index.vue';
 import { Undo } from '../co-icon';
 import IconArrowDown from './components/icon-arrow-down.vue';
-import 'element-plus/theme-chalk/base.css';
-import 'element-plus/theme-chalk/el-collapse.css';
-import 'element-plus/theme-chalk/el-collapse-item.css';
 
 defineProps<{
   title: string;

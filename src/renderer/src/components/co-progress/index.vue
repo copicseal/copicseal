@@ -32,7 +32,6 @@
 
 <script lang="ts" setup>
 import CoButton from '@/components/co-button/index.vue';
-import { ElProgress } from 'element-plus';
 
 defineProps<{
   current: number;

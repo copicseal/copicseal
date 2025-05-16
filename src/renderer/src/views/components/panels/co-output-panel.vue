@@ -52,12 +52,9 @@
 
 <script lang="ts" setup>
 import type { Output } from '@/types';
-import CoButton from '@/components/co-button/index.vue';
 import { Delete } from '@/components/co-icon/index';
-import CoSettingsPanel from '@/components/co-settings-panel/index.vue';
-import { injectCoPic } from '@renderer/uses/co-pic';
-import { storage } from '@renderer/utils/storage';
-import { ref, watch } from 'vue';
+import { injectCoPic } from '@/uses/co-pic';
+import { storage } from '@/utils/storage';
 
 const { currentCoPic, list } = injectCoPic();
 

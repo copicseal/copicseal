@@ -34,8 +34,6 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue';
-
 defineOptions({
   id: 'tpl-default',
   name: 'TplDefault',

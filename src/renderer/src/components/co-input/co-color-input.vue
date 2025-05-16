@@ -8,7 +8,6 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
 import CoInput from './index.vue';
 
 interface Props {

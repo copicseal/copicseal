@@ -21,8 +21,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue';
-
 interface Props {
   modelValue: number | string;
   mode?: 'percent' | 'number';

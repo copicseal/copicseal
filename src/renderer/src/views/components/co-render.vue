@@ -8,14 +8,6 @@ import type { Settings } from '../../types';
 import { injectCoPic } from '@renderer/uses/co-pic';
 import { mapStyle } from '@renderer/utils/common';
 import { renderUtils } from '@renderer/utils/render';
-import {
-  computed,
-  defineComponent,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  watch,
-} from 'vue';
 
 export default defineComponent({
   props: {

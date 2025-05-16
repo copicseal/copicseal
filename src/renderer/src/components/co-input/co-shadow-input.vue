@@ -49,7 +49,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
 import CoColorInput from './co-color-input.vue';
 import CoInput from './index.vue';
 

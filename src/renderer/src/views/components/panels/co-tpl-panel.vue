@@ -30,12 +30,7 @@
 </template>
 
 <script lang="ts" setup>
-import CoShadowInput from '@/components/co-input/co-shadow-input.vue';
-import CoInput from '@/components/co-input/index.vue';
-import CoRadioGroup from '@/components/co-radio-group/index.vue';
-import CoSettingsPanel from '@/components/co-settings-panel/index.vue';
 import { injectCoPic } from '@renderer/uses/co-pic';
-import { computed, ref, watch } from 'vue';
 
 const comps = import.meta.glob('@/views/tpls/*.vue', { eager: true, import: 'default' });
 

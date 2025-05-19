@@ -2,7 +2,7 @@
   <CoSettingsPanel v-if="currentCoPic" title="输出">
     <div class="camera-info">
       <div>宽 * 高：</div>
-      <div>倍数：</div>
+      <!-- <div>倍数：</div> -->
       <div>类型：</div>
       <div class="btn">
         <el-dropdown trigger="click" @command="handleAdd">
@@ -22,17 +22,17 @@
         <div class="width-height">
           <input v-model="item.width" type="text">
           <div class="separator" @click="handleSwap(item)">
-            *
+            ⇋
           </div>
           <input v-model="item.height" type="text">
         </div>
-        <div>
+        <!-- <div>
           <select v-model="item.scale">
             <option v-for="option in scaleOptions" :key="option" :value="option">
               {{ option }}x
             </option>
           </select>
-        </div>
+        </div> -->
         <div>
           <select v-model="item.type">
             <option v-for="option in typeOptions" :key="option" :value="option">
@@ -67,7 +67,7 @@ import { storage } from '@/utils/storage';
 
 const { currentCoPic, list } = injectCoPic();
 
-const scaleOptions = ref([1, 2, 4, 6, 8]);
+// const scaleOptions = ref([1, 2, 4, 6, 8]);
 const typeOptions = ref(['jpeg', 'png', 'webp']);
 
 const outputs = ref<Output[]>([]);
@@ -135,7 +135,7 @@ function handleApplyAll() {
 <style lang="scss" scoped>
 .camera-info {
   display: grid;
-  grid-template-columns: 2fr 40px 56px 16px;
+  grid-template-columns: 2fr 56px 16px;
   /* 行/列间距 */
   gap: 4px 8px;
 

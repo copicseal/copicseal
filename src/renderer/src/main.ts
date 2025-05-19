@@ -2,7 +2,7 @@ import type { WindowAPI } from 'src/types';
 import { createApp } from 'vue';
 
 import App from './App.vue';
-import 'element-plus/theme-chalk/index.css';
+import './theme';
 
 const app = createApp(App);
 

@@ -152,7 +152,7 @@ const filterMap = {
   /* 关键代码：第一列宽度自适应内容，第二列自动填充 */
   grid-template-columns: max-content 1fr;
   /* 行/列间距 */
-  gap: 8px 16px;
+  gap: 8px 8px;
   margin-top: 12px;
 
   .label {

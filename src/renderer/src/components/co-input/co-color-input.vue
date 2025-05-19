@@ -106,6 +106,7 @@ function rgbToHex(r: number, g: number, b: number) {
 
     .alpha {
         max-width: 60px;
+        min-width: 48px;
         overflow: hidden;
     }
 }

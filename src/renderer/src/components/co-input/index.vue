@@ -251,38 +251,39 @@ function getSpeedModifier(e: MouseEvent | KeyboardEvent) {
 }
 </script>
 
-  <style lang="scss" scoped>
-  .smart-input {
-    display: inline-block;
-    width: 100%;
-    position: relative;
-    user-select: none;
-    cursor: ew-resize;
-    font-size: 14px;
-    line-height: 20px;
-  }
+<style lang="scss" scoped>
+.smart-input {
+  display: inline-block;
+  width: 100%;
+  position: relative;
+  user-select: none;
+  cursor: ew-resize;
+  font-size: 14px;
+  line-height: 20px;
+}
 
-  .smart-input__display {
-    width: 100%;
-    border: 1px dashed #0000;
-    border-bottom: 1px dashed #eee;
-    padding: 2px 4px;
-    line-height: 20px;
-    color: #eee;
-    box-sizing: border-box;
-    // text-decoration: underline dashed #1e98fb;
-  }
+.smart-input__display {
+  width: 100%;
+  border: 1px dashed #0000;
+  border-bottom: 1px dashed transparent;
+  padding: 2px 4px;
+  line-height: 20px;
+  box-sizing: border-box;
+  text-decoration: underline dashed #68bbff;
+  text-underline-offset: 4px;
+  color: #68bbff;
+}
 
-  .smart-input__input {
-    display: block;
-    width: 100%;
-    padding: 2px 4px;
-    font-size: 14px;
-    line-height: 20px;
-    // border: none;
-    // border-bottom: 1px solid #eee;
-    outline: none;
-    cursor: text;
-    box-sizing: border-box;
-  }
-  </style>
+.smart-input__input {
+  display: block;
+  width: 100%;
+  padding: 2px 4px;
+  font-size: 14px;
+  line-height: 20px;
+  // border: none;
+  // border-bottom: 1px solid #eee;
+  outline: none;
+  cursor: text;
+  box-sizing: border-box;
+}
+</style>

@@ -7,12 +7,12 @@
 
     <div v-if="expanded" class="inputs">
       <div class="grid-inputs">
-        <div class="label">
+        <!-- <div class="label">
           内阴影：
         </div>
         <div class="input">
           <input v-model="inset" type="checkbox">
-        </div>
+        </div> -->
         <div class="label">
           X 偏移：
         </div>
@@ -135,6 +135,7 @@ watch([inset, x, y, blur, spread, color], () => {
         .label {
             display: flex;
             align-items: center;
+            justify-content: flex-end;
             white-space: nowrap;
             font-size: 12px;
             color: #ccc;

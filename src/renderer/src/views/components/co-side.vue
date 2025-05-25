@@ -20,5 +20,9 @@ import CoTplPanel from './panels/co-tpl-panel.vue';
 .co-side {
   overflow: auto;
   background-color: #3e3e3e;
+
+  :deep(.el-scrollbar__view) {
+    padding-bottom: 40px;
+  }
 }
 </style>

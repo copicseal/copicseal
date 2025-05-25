@@ -5,31 +5,27 @@
       <span class="index">{{ currentIndex + 1 }}/{{ list.length }}</span>
     </div>
     <div class="co-menu__placeholder" />
-    <div v-if="appVersion.latestVersion !== appVersion.currentVersion" class="co-menu__version">
-      🎉 新版本 <a :href="appVersion.downloadLink" target="_blank">v{{ appVersion.latestVersion }}</a>
-    </div>
-    <div v-if="list.length" class="co-menu__btns">
-      <CoButton outline @click="handleExport()">
+    <div class="co-menu__btns">
+      <CoButton v-if="list.length" outline @click="handleExport()">
         导出
       </CoButton>
-      <CoButton outline @click="handleExportAll()">
+      <CoButton v-if="list.length" outline @click="handleExportAll()">
         导出全部
       </CoButton>
-      <!-- <CoButton icon class="btn-settings" @click="settingsDialogVisible = true">
-        <Settings />
-      </CoButton> -->
+      <CoMenuDropdown>
+        <CoButton icon class="btn-settings">
+          <Menu />
+        </CoButton>
+      </CoMenuDropdown>
     </div>
-    <ElDialog v-model="settingsDialogVisible" title="设置">
-      1
-    </ElDialog>
   </div>
 </template>
 
 <script lang="ts" setup>
-// import CoButton from '@/components/co-button/index.vue';
-// import { Settings } from '@/components/co-icon';
+import { Menu } from '@/components/co-icon';
 import { injectCoPic } from '@renderer/uses/co-pic';
 import { useExport } from '@renderer/uses/export';
+import CoMenuDropdown from './co-menu-dropdown.vue';
 
 const { currentCoPic, currentIndex, list } = injectCoPic();
 
@@ -49,19 +45,6 @@ const displayFileName = computed(() => {
 
   return suffix ? `${front}...${end}.${suffix}` : `${front}...${end}`;
 });
-
-const settingsDialogVisible = ref(false);
-
-const appVersion = ref({
-  currentVersion: '',
-  latestVersion: '',
-  downloadLink: '',
-});
-
-async function getAppVersion() {
-  appVersion.value = await window.api.getAppVersion();
-}
-getAppVersion();
 
 const { handleExport, handleExportAll } = useExport();
 </script>
@@ -114,6 +97,7 @@ const { handleExport, handleExportAll } = useExport();
     margin-left: 24px;
 
     .btn-settings {
+      margin-left: 12px;
       font-size: 24px;
     }
   }

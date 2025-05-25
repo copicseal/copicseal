@@ -5,7 +5,7 @@
       <!-- <div>倍数：</div> -->
       <div>类型：</div>
       <div class="btn">
-        <el-dropdown trigger="click" @command="handleAdd">
+        <el-dropdown trigger="click" size="small" @command="handleAdd">
           <CoButton icon>
             +
           </CoButton>

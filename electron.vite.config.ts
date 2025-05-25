@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 import vue from '@vitejs/plugin-vue';
 import vueJsx from '@vitejs/plugin-vue-jsx';
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
+import UnoCSS from 'unocss/vite';
 import AutoImport from 'unplugin-auto-import/vite';
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers';
 import Components from 'unplugin-vue-components/vite';
@@ -31,18 +32,22 @@ export default defineConfig({
     plugins: [
       vue(),
       vueJsx(),
+      UnoCSS(),
       AutoImport({
         imports: ['vue'],
         resolvers: [ElementPlusResolver()],
       }),
       Components({
-        resolvers: [ElementPlusResolver()],
+        resolvers: [ElementPlusResolver({
+          importStyle: 'sass',
+        })],
       }),
     ],
     css: {
       preprocessorOptions: {
         scss: {
           api: 'modern-compiler',
+          additionalData: `@use "@/theme/element/index.scss" as *;`,
         },
       },
     },

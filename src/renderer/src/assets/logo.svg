@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" xmlns:bx="https://boxy-svg.com">
+  <defs>
+    <linearGradient id="gradient-bg" bx:pinned="true">
+      <stop offset="0" style="stop-color: rgb(208, 191, 227);"></stop>
+      <stop offset="1" style="stop-color: rgb(228, 217, 224);"></stop>
+    </linearGradient>
+    <linearGradient id="gradient-1-0" href="#gradient-bg" gradientUnits="userSpaceOnUse" x1="250" y1="0" x2="250" y2="500" spreadMethod="pad"></linearGradient>
+    <linearGradient id="color-0" bx:pinned="true" gradientUnits="userSpaceOnUse">
+      <stop style="stop-color: rgb(91, 79, 153);"></stop>
+    </linearGradient>
+    <linearGradient id="color-1" bx:pinned="true" gradientUnits="userSpaceOnUse">
+      <stop style="stop-color: rgb(174, 136, 178);"></stop>
+    </linearGradient>
+    <linearGradient id="color-2" bx:pinned="true" gradientUnits="userSpaceOnUse">
+      <stop style="stop-color: rgb(148, 113, 229);"></stop>
+    </linearGradient>
+    <linearGradient id="color-3" bx:pinned="true" gradientUnits="userSpaceOnUse">
+      <stop style="stop-color: rgb(211, 171, 223);"></stop>
+    </linearGradient>
+    <linearGradient id="gradient-0" bx:pinned="true">
+      <stop offset="0.214" style="stop-color: rgb(174, 136, 178);"></stop>
+      <stop offset="1" style="stop-color: rgb(197, 156, 202);"></stop>
+    </linearGradient>
+    <linearGradient id="gradient-0-0" href="#gradient-0" gradientUnits="userSpaceOnUse" x1="296.847" y1="190.755" x2="296.847" y2="500"></linearGradient>
+    <linearGradient id="gradient-1" bx:pinned="true">
+      <stop offset="0.331" style="stop-color: rgb(91, 79, 153);"></stop>
+      <stop offset="1" style="stop-color: rgb(116, 105, 173);"></stop>
+    </linearGradient>
+    <linearGradient id="gradient-1-1" href="#gradient-1" gradientUnits="userSpaceOnUse" x1="185.553" y1="287.85" x2="185.553" y2="500"></linearGradient>
+    <linearGradient id="gradient-2" bx:pinned="true">
+      <stop offset="0.201" style="stop-color: rgb(147, 113, 229);"></stop>
+      <stop offset="1" style="stop-color: rgb(179, 142, 237);"></stop>
+    </linearGradient>
+    <linearGradient id="gradient-2-0" href="#gradient-2" gradientUnits="userSpaceOnUse" x1="257.925" y1="205.848" x2="257.925" y2="464.92"></linearGradient>
+    <linearGradient id="gradient-2-1" href="#gradient-2" gradientUnits="userSpaceOnUse" x1="364.635" y1="217.571" x2="364.635" y2="340.429"></linearGradient>
+    <bx:export>
+      <bx:file format="svg"></bx:file>
+    </bx:export>
+  </defs>
+  <rect style="fill: url(#gradient-1-0); fill-rule: nonzero; pointer-events: none;" x="0" y="0" width="500" height="500" rx="90" ry="90">
+  </rect>
+  <path style="pointer-events: none; fill: url(#gradient-2-1);" d="M 241.782 297.835 L 339.909 224.679 C 339.909 224.679 357.467 206.506 383.268 228.275 C 409.069 250.044 487.488 301.188 487.488 301.188 L 302.859 340.429 L 241.782 297.835 Z">
+  </path>
+  <path style="pointer-events: none; fill: url(#color-3);" d="M 371.854 285.821 C 366.417 280.112 356.801 277.747 362.168 260.721 C 367.535 243.695 366.555 245.726 359.155 231.574 C 356.062 225.659 355.719 221.025 356.367 217.634 C 363.527 217.146 372.707 219.364 383.268 228.275 C 409.069 250.044 487.488 301.188 487.488 301.188 L 417.922 315.973 C 399.861 304.837 375.244 289.38 371.854 285.821 Z">
+  </path>
+  <path style="pointer-events: none; fill: url(#gradient-2-0);" d="M 35.406 316.95 C 35.406 316.95 142.572 264.284 177.959 226.471 C 215.597 186.253 234.145 215.349 250.1 226.268 C 266.055 237.187 310.039 271.921 345.31 285.23 C 380.581 298.539 480.444 334.171 480.444 334.171 C 480.444 334.171 402.114 465.182 401.588 464.92 C 401.062 464.658 41.933 435.953 41.933 435.953 L 35.406 316.95 Z">
+  </path>
+  <path style="fill: url(#color-3); pointer-events: none;" d="M 209.745 337.297 C 180.583 323.732 202.59 314.847 217.512 297.734 C 227.21 267.881 194.046 271.041 212.621 251.343 C 231.196 231.645 212.9 228.886 212.025 215.042 C 211.768 210.979 212.632 207.993 213.982 205.802 C 229.537 205.975 240.304 219.52 250.094 226.22 C 266.049 237.139 310.033 271.873 345.304 285.182 C 380.575 298.491 480.438 334.123 480.438 334.123 C 480.438 334.123 457.239 372.924 436.007 408.252 C 385.417 393.394 233.969 348.565 209.745 337.297 Z">
+  </path>
+  <path d="M 500 410 C 500 459.706 459.706 500 410 500 L 93.693 500 L 147.713 411.35 C 198.399 372.585 274.093 336.541 274.093 336.541 C 274.093 336.541 338.597 313.421 382.712 260.474 C 425.966 208.561 497.234 191.405 500 190.755 Z" style="pointer-events: none; fill: url(#gradient-0-0);">
+  </path>
+  <path style="pointer-events: none; fill: url(#gradient-1-1);" d="M 90.677 351.192 C 141.864 406.422 181.766 409.043 226.998 436.024 C 272.073 462.911 325.922 463.436 371.105 500 L 90 500 C 40.294 500 0 459.706 0 410 L 0 287.85 C 3.986 288.792 42.25 298.94 90.677 351.192 Z">
+  </path>
+  <path style="fill: rgba(35, 25, 89, 0.192);" d="M 104.834 462.068 L 446.158 380.391 L 123.83 404.764 L 52.91 120.185 L 104.834 462.068 Z"></path>
+  <path style="fill: rgb(255, 255, 255); pointer-events: none;" d="M 52.957 119.978 L 383.375 55.838 L 446.098 379.386 L 115.712 444.574 L 52.957 119.978 Z M 128.199 391.398 L 414.528 335.557 L 365.277 80.648 L 79.323 137.541 L 128.199 391.398 Z"></path>
+</svg>

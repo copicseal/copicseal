@@ -1,6 +1,8 @@
 import type { WindowAPI } from 'src/types';
 import { createApp } from 'vue';
 
+import 'virtual:uno.css';
+// eslint-disable-next-line perfectionist/sort-imports
 import App from './App.vue';
 import './theme';
 

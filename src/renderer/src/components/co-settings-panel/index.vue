@@ -43,19 +43,25 @@ defineProps<{
     --el-collapse-content-text-color: #eee;
 
     .el-collapse-item__header {
-      --el-color-primary: #eee;
-      display: flex;
-      justify-content: space-between;
-      padding: 0 12px;
       border-bottom: 0;
-      color: unset;
+      padding-right: 0;
 
-      .icon {
+      .el-collapse-item__title {
+        --el-color-primary: #eee;
         display: flex;
         align-items: center;
-        font-size: 20px;
-        transform: rotate(-90deg);
-        transition: all 0.3s;
+        justify-content: space-between;
+        padding: 0 12px;
+        border-bottom: 0;
+        color: unset;
+
+        .icon {
+          display: flex;
+          align-items: center;
+          font-size: 20px;
+          transform: rotate(-90deg);
+          transition: all 0.3s;
+        }
       }
 
       &.is-active {

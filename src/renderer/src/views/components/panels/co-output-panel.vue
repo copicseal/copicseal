@@ -5,7 +5,7 @@
       <!-- <div>倍数：</div> -->
       <div>类型：</div>
       <div class="btn">
-        <el-dropdown trigger="click" size="small" @command="handleAdd">
+        <el-dropdown trigger="click" size="small" :popper-options="popperOptions" @command="handleAdd">
           <CoButton icon>
             +
           </CoButton>
@@ -64,6 +64,17 @@ import type { Output } from '@/types';
 import { Delete } from '@/components/co-icon/index';
 import { injectCoPic } from '@/uses/co-pic';
 import { storage } from '@/utils/storage';
+
+const popperOptions = {
+  modifiers: [
+    {
+      name: 'offset',
+      options: {
+        offset: [0, 4],
+      },
+    },
+  ],
+};
 
 const { currentCoPic, list } = injectCoPic();
 

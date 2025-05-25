@@ -11,5 +11,5 @@ export interface WindowAPI {
   openDirectoryDialog: () => Promise<string>;
   showCtxMenu: (menus: MenuItem[]) => Promise<string>;
   openTargetPath: (targetPath: string) => Promise<void>;
-  getAppVersion: () => Promise<{ currentVersion: string; latestVersion: string; downloadLink: string }>;
+  getAppVersion: () => Promise<{ currentVersion: string; latestVersion: string; downloadLink: string; changelog: string }>;
 }

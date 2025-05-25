@@ -39,11 +39,14 @@ export function mainHandles() {
       currentVersion: app.getVersion(),
       latestVersion: app.getVersion(),
       downloadLink: '',
+      changelog: '',
     };
     const res = await fetch(`https://copicseal-updater.kohai.top/${ret.currentVersion.includes('beta') ? 'beta' : 'stable'}`).then(r => r.json());
     if (res?.[0]?.name) {
       ret.latestVersion = res[0].name.replace('v', '');
     }
+    if (res?.[0]?.body)
+      ret.changelog = res[0].body;
 
     ret.downloadLink = `https://copicseal-updater.kohai.top/download?version=v${ret.latestVersion}&platform=${process.platform}`;
 

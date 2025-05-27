@@ -12,15 +12,15 @@
         </select>
       </div>
       <template v-for="(item) in tplProps" :key="item.key">
-        <div class="label">
+        <div class="label" v-show="!item.hidden">
           {{ item.__co.label }}:
         </div>
-        <div class="value">
+        <div class="value" v-show="!item.hidden">
           <div v-if="item.__co.enums">
             <CoRadioGroup v-model="currentCoPic.state.templateProps[item.key]" :options="item.__co.enums" />
           </div>
           <CoShadowInput v-else-if="item.__co.type === 'shadow'" v-model="currentCoPic.state.templateProps[item.key]" />
-          <CoInput v-else-if="item.type === Number" v-model="currentCoPic.state.templateProps[item.key]" mode="percent" :min="0" />
+          <CoInput v-else-if="item.type === Number || item.__co.type === Number" v-model="currentCoPic.state.templateProps[item.key]" mode="percent" :min="item.__co.min ?? 0" :max="item.__co.max ?? undefined" />
           <input v-else-if="item.type === Boolean" v-model="currentCoPic.state.templateProps[item.key]" type="checkbox">
           <input v-else v-model="currentCoPic.state.templateProps[item.key]" type="text">
         </div>
@@ -52,8 +52,19 @@ const tplProps = computed(() => {
     const props = Object.keys(tpl.props).flatMap((key) => {
       const prop = tpl.props[key];
       if (prop.__co) {
+        let hidden = false;
+        if (prop.__co.when) {
+          const { templateProps } = currentCoPic.value.state;
+          if (typeof prop.__co.when === 'function' && !prop.__co.when(templateProps)) {
+            hidden = true;
+          } else if (typeof prop.__co.when === 'string' && !templateProps[prop.__co.when]) {
+            hidden = true;
+          }
+        }
+
         return [{
           key,
+          hidden,
           ...prop,
         }];
       }

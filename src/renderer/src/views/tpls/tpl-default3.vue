@@ -1,8 +1,5 @@
 <template>
-  <div
-    class="tpl-card"
-    :class="{ 'is-crop-pic': isCropPic }"
-  >
+  <div class="tpl-card" :class="{ 'is-crop-pic': isCropPic, 'is-acrylic': isAcrylic }">
     <div class="card-info">
       <div class="header">
         <div class="logo">
@@ -50,13 +47,12 @@
       </div>
     </div>
     <img
-      class="main-image"
-      :style="{
+      class="main-image" :style="{
         display: 'block',
         objectPosition: `${imgOffsetX} ${imgOffsetY}`,
-      }"
-      :src="imgUrl"
+      }" :src="imgUrl"
     >
+    <div v-if="isAcrylic && noiseImg" :style="{ backgroundImage: `url(${noiseImg})`, opacity: noiseOpacity }" class="noise" />
   </div>
 </template>
 
@@ -134,7 +130,52 @@ defineProps({
       label: 'Ps 标志',
     },
   },
+  isAcrylic: {
+    type: Boolean,
+    default: false,
+    __co: {
+      label: '亚克力背景',
+    },
+  },
+  noiseOpacity: {
+    type: Number,
+    default: 0.1,
+    __co: {
+      when: 'isAcrylic',
+      label: '噪点透明度',
+      min: 0,
+      max: 100,
+    },
+  },
 });
+
+const noiseImg = ref('');
+
+onMounted(() => {
+  generateNoise();
+});
+
+function generateNoise(density = 0.2) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d')!;
+  const [width, height] = [100, 100];
+  canvas.width = width;
+  canvas.height = height;
+
+  const imageData = ctx.createImageData(width, height);
+  const pixels = imageData.data;
+
+  for (let i = 0; i < pixels.length; i += 4) {
+    const value = Math.random() < density ? 255 : 0; // white dot or transparent
+    pixels[i] = pixels[i + 1] = pixels[i + 2] = 255; // white
+    pixels[i + 3] = value; // alpha channel
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+
+  noiseImg.value = canvas.toDataURL();
+  canvas.remove();
+}
 </script>
 
 <style lang="scss" scoped>
@@ -175,7 +216,8 @@ defineProps({
       border-radius: calc(var(--base-size) * 0.2);
       overflow: hidden;
 
-      img, svg {
+      img,
+      svg {
         width: 100%;
         height: 100%;
         object-fit: contain;
@@ -208,7 +250,8 @@ defineProps({
         radial-gradient(at 30% 80%, #8f00ff, transparent 60%),
         radial-gradient(at 70% 60%, #ffff00, transparent 60%),
         radial-gradient(at 90% 90%, #00bfff, transparent 60%),
-        #000; /* 背景基色 */
+        #000;
+      /* 背景基色 */
       background-blend-mode: screen;
     }
 
@@ -224,7 +267,8 @@ defineProps({
     flex: 1;
   }
 
-  .website, .details {
+  .website,
+  .details {
     margin-top: calc(var(--base-size) * 0.4);
   }
 
@@ -251,6 +295,36 @@ defineProps({
 .is-crop-pic {
   .main-image {
     width: calc(var(--base-size) * 8.28) !important;
+  }
+}
+
+.is-acrylic {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(calc(var(--base-size) * 0.5)) saturate(180%);
+  border: calc(var(--base-size) * 0.02) solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 calc(var(--base-size) * 0.08) calc(var(--base-size) * 0.6) rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+
+  .card-info {
+    color: #fff;
+
+    .make-model {
+      color: #fff;
+    }
+
+    .lens-info .lens-name {
+      color: #fff;
+    }
+  }
+
+  .noise {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    opacity: 0.1;
+    z-index: 2;
   }
 }
 </style>

@@ -2,6 +2,19 @@
   <CoSettingsPanel v-if="currentCoPic" title="模板">
     <div class="camera-info">
       <div class="label">
+        全局字体:
+      </div>
+      <div class="value font-input">
+        <select v-model="currentCoPic.state.fontFamily" @change="handleFontChange">
+          <option v-for="(item, index) in fonts" :key="index" :value="item.value">
+            {{ item.name }}
+          </option>
+        </select>
+        <CoButton icon title="刷新字体列表" @click="loadFonts">
+          <div class="i-solar-refresh-broken" />
+        </CoButton>
+      </div>
+      <div class="label">
         模板:
       </div>
       <div class="value">
@@ -12,16 +25,20 @@
         </select>
       </div>
       <template v-for="(item) in tplProps" :key="item.key">
-        <div class="label" v-show="!item.hidden">
+        <div v-show="!item.hidden" class="label">
           {{ item.__co.label }}:
         </div>
-        <div class="value" v-show="!item.hidden">
+        <div v-show="!item.hidden" class="value">
           <div v-if="item.__co.enums">
             <CoRadioGroup v-model="currentCoPic.state.templateProps[item.key]" :options="item.__co.enums" />
           </div>
           <CoShadowInput v-else-if="item.__co.type === 'shadow'" v-model="currentCoPic.state.templateProps[item.key]" />
           <CoInput v-else-if="item.type === Number || item.__co.type === Number" v-model="currentCoPic.state.templateProps[item.key]" mode="percent" :min="item.__co.min ?? 0" :max="item.__co.max ?? undefined" />
-          <input v-else-if="item.type === Boolean" v-model="currentCoPic.state.templateProps[item.key]" type="checkbox">
+          <!-- <input v-else-if="item.type === Boolean" v-model="currentCoPic.state.templateProps[item.key]" type="checkbox"> -->
+          <el-switch
+            v-else-if="item.type === Boolean" v-model="currentCoPic.state.templateProps[item.key]"
+            size="small"
+          />
           <input v-else v-model="currentCoPic.state.templateProps[item.key]" type="text">
         </div>
       </template>
@@ -57,7 +74,8 @@ const tplProps = computed(() => {
           const { templateProps } = currentCoPic.value.state;
           if (typeof prop.__co.when === 'function' && !prop.__co.when(templateProps)) {
             hidden = true;
-          } else if (typeof prop.__co.when === 'string' && !templateProps[prop.__co.when]) {
+          }
+          else if (typeof prop.__co.when === 'string' && !templateProps[prop.__co.when]) {
             hidden = true;
           }
         }
@@ -95,13 +113,23 @@ watch(() => currentCoPic.value, (val) => {
     handleTplChange();
   }
 }, { immediate: true });
-
 function handleTplChange() {
   currentCoPic.value.template.value = tpls.value.find(item => item.value === tpl.value)?.component ?? tpls.value[0].component;
   currentCoPic.value.state.templateProps = tplProps.value.reduce((acc, cur) => {
     acc[cur.key] = cur.default;
     return acc;
   }, {});
+}
+
+const fonts = ref<{ name: string; value: string }[]>([]);
+async function loadFonts() {
+  const list = await window.api.getSysFonts();
+  fonts.value = list.map(item => ({ name: item, value: item }));
+}
+loadFonts();
+
+function handleFontChange() {
+  localStorage.setItem('fontFamily', currentCoPic.value.state.fontFamily);
 }
 </script>
 
@@ -124,6 +152,16 @@ function handleTplChange() {
     input[type=text], select {
       width: 100%;
     }
+  }
+
+}
+.font-input {
+  display: flex;
+  align-items: center;
+
+  .co-button {
+    margin-left: 4px;
+    font-size: 16px;
   }
 }
 </style>

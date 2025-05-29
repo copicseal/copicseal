@@ -34,8 +34,12 @@ if (!window.api) {
       return {
         currentVersion: '1.0.0',
         latestVersion: '1.0.0',
+        changelog: '',
         downloadLink: 'https://copicseal.kohai.top/',
       };
+    },
+    getSysFonts: async () => {
+      return ['Arial'];
     },
   };
 

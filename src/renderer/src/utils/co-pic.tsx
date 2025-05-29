@@ -25,6 +25,7 @@ export class CoPic {
     modifiedExif: Tags;
     isLoaded: boolean;
     templateProps: Record<string, any>;
+    fontFamily: string;
   }>({
     settings: {
       background: { mode: 'none' },
@@ -35,6 +36,7 @@ export class CoPic {
     modifiedExif: {},
     isLoaded: false,
     templateProps: {},
+    fontFamily: localStorage.getItem('fontFamily') || 'Arial',
   });
 
   template = shallowRef(TplDefault);

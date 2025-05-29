@@ -253,7 +253,7 @@ export default defineComponent({
       });
     }
     return () => (
-      <div ref={el} class="co-render" style={{ opacity: isLoading.value ? 0 : 1 }}>
+      <div ref={el} class="co-render" style={{ opacity: isLoading.value ? 0 : 1, fontFamily: `"${currentCoPic.value.state.fontFamily}"` }}>
         <div ref={bgEl} class="background" style={bgStyle.value}>
           <div class="background-image" style={bgImgStyle.value}></div>
           {render()}

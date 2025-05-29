@@ -11,3 +11,12 @@
         // padding: 0px 8px;
     }
 }
+
+.el-switch {
+    --el-switch-off-color: #3e3e3e;
+    --el-switch-on-color: #68bbff;
+
+    &:not(.is-checked) {
+        --el-color-white: rgba(255, 255, 255, 0.5);
+    }
+}

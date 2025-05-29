@@ -12,4 +12,5 @@ export interface WindowAPI {
   showCtxMenu: (menus: MenuItem[]) => Promise<string>;
   openTargetPath: (targetPath: string) => Promise<void>;
   getAppVersion: () => Promise<{ currentVersion: string; latestVersion: string; downloadLink: string; changelog: string }>;
+  getSysFonts: () => Promise<string[]>;
 }

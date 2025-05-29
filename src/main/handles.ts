@@ -2,6 +2,7 @@ import type { MenuItemConstructorOptions } from 'electron';
 import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
 import { handleCapture } from './utils/capture';
 import { openTargetPath } from './utils/file';
+import { getSysFonts } from './utils/font';
 
 export function mainHandles() {
   ipcMain.handle('captureDOM', async (_event, options) => {
@@ -32,6 +33,10 @@ export function mainHandles() {
 
   ipcMain.handle('openTargetPath', async (_event, options) => {
     return openTargetPath(options);
+  });
+
+  ipcMain.handle('getSysFonts', async () => {
+    return getSysFonts();
   });
 
   ipcMain.handle('getAppVersion', async () => {

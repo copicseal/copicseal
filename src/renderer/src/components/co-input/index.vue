@@ -265,8 +265,7 @@ function getSpeedModifier(e: MouseEvent | KeyboardEvent) {
 .smart-input__display {
   width: 100%;
   border: 1px dashed #0000;
-  border-bottom: 1px dashed transparent;
-  padding: 2px 4px;
+  padding: 0 4px 4px 0;
   line-height: 20px;
   box-sizing: border-box;
   text-decoration: underline dashed #68bbff;

@@ -32,6 +32,7 @@
     "electron-updater": "^6.3.9",
     "element-plus": "^2.9.10",
     "exifreader": "^4.25.0",
+    "font-list": "^1.5.1",
     "http-proxy-agent": "^7.0.2",
     "lodash-es": "^4.17.21",
     "marked": "^15.0.12",

@@ -25,6 +25,7 @@ export interface Output {
   quality?: number;
   width: number;
   height: number;
+  isOriginal?: boolean;
 }
 
 export interface Settings {

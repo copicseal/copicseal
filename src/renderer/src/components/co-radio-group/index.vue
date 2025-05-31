@@ -9,7 +9,7 @@
       @click="emit('update:modelValue', opt.value)"
     >
       <component :is="opt.icon" v-if="opt.icon" />
-      <span v-if="opt.iconClass" class="icon-class" :class="opt.iconClass" />
+      <span v-else-if="opt.iconClass" class="icon-class" :class="opt.iconClass" />
       <span v-else>{{ opt.label }}</span>
     </div>
   </div>

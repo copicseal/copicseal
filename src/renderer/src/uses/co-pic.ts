@@ -88,6 +88,7 @@ function getDefaultSettings(): Settings {
         width: 1920,
         height: 1080,
         type: 'jpeg',
+        isOriginal: true,
       },
     ],
     outputPath: storage.getItem('defaultOutputPath') || '',

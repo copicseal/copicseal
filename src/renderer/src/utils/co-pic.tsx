@@ -111,6 +111,19 @@ export class CoPic {
     if (!this.exif.value) {
       this.exif.value = await getExif(this.file);
       this.state.exif = this.exif.value;
+      this.state.settings.outputs = this.state.settings.outputs.map((output) => {
+        if (output.isOriginal) {
+          const { ImageWidth, ImageHeight } = this.state.exif;
+          return {
+            ...output,
+            width: +(ImageWidth || output.width),
+            height: +(ImageHeight || output.height),
+          };
+        }
+        return output;
+      });
+      console.warn(this.state.settings.outputs);
+
       // this.imgInfo = toImgInfo(this.exif)
     }
     console.log(this.exif.value);

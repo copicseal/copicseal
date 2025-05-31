@@ -106,7 +106,7 @@ const props = defineProps({
   },
   fontColor: {
     type: String,
-    default: '#ff4d00',
+    default: '#f37e37',
     __co: {
       label: '文字颜色',
       type: 'color',

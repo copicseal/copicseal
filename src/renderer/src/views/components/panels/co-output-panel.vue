@@ -84,14 +84,15 @@ const typeOptions = ref(['jpeg', 'png', 'webp']);
 const outputs = ref<Output[]>([]);
 const outputPath = ref('');
 
-watch(currentCoPic, (value) => {
-  if (value) {
-    outputs.value = value.getSettings().outputs;
-    outputPath.value = value.getSettings().outputPath || '';
+watch(() => currentCoPic.value?.state.settings, (settings) => {
+  if (settings) {
+    outputs.value = settings.outputs;
+    outputPath.value = settings.outputPath || '';
   }
-});
+}, { deep: true });
 
 const outputOpts = [
+  { value: { width: 1920, height: 1080 }, label: '原始图片', isOriginal: true },
   { value: { width: 1920, height: 1080 }, label: '1080P' },
   { value: { width: 2560, height: 1440 }, label: '2K' },
   { value: { width: 1440, height: 2560 }, label: '2K（竖屏）' },
@@ -105,11 +106,25 @@ const outputOpts = [
 ];
 
 function handleAdd(cmd: number) {
-  outputs.value.push({
-    scale: 1,
-    type: 'jpeg',
-    ...outputOpts[cmd].value,
-  });
+  const opt = outputOpts[cmd];
+  if (opt.isOriginal) {
+    const { ImageWidth, ImageHeight } = currentCoPic.value.state.exif;
+    outputs.value.push({
+      scale: 1,
+      type: 'jpeg',
+      ...opt.value,
+      width: +(ImageWidth || opt.value.width),
+      height: +(ImageHeight || opt.value.height),
+      isOriginal: true,
+    });
+  }
+  else {
+    outputs.value.push({
+      scale: 1,
+      type: 'jpeg',
+      ...opt.value,
+    });
+  }
 }
 
 function handleDel(index: number) {
@@ -137,7 +152,17 @@ function handleOpenOutputFolder() {
 
 function handleApplyAll() {
   list.value.forEach((item) => {
-    item.getSettings().outputs = outputs.value;
+    item.getSettings().outputs = outputs.value.map((opt) => {
+      if (opt.isOriginal) {
+        const { ImageWidth, ImageHeight } = item.state.exif;
+        return {
+          ...opt,
+          width: +(ImageWidth || opt.width),
+          height: +(ImageHeight || opt.height),
+        };
+      }
+      return opt;
+    });
     item.getSettings().outputPath = outputPath.value;
   });
 }

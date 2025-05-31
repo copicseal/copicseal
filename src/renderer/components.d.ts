@@ -10,8 +10,10 @@ declare module 'vue' {
   export interface GlobalComponents {
     CoButton: typeof import('./src/components/co-button/index.vue')['default']
     CoColorInput: typeof import('./src/components/co-input/co-color-input.vue')['default']
+    CoDigital7: typeof import('./src/components/co-digital-7/index.vue')['default']
     CoFileInput: typeof import('./src/components/co-file-input/index.vue')['default']
     CoInput: typeof import('./src/components/co-input/index.vue')['default']
+    CoPos9Input: typeof import('./src/components/co-input/co-pos9-input.vue')['default']
     CoProgress: typeof import('./src/components/co-progress/index.vue')['default']
     CoRadioGroup: typeof import('./src/components/co-radio-group/index.vue')['default']
     CoSettingsPanel: typeof import('./src/components/co-settings-panel/index.vue')['default']

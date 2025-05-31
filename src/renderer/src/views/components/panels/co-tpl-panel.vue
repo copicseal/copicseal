@@ -25,14 +25,16 @@
         </select>
       </div>
       <template v-for="(item) in tplProps" :key="item.key">
-        <div v-show="!item.hidden" class="label">
+        <div v-show="!item.hidden" class="label" :title="item.__co.description">
           {{ item.__co.label }}:
         </div>
         <div v-show="!item.hidden" class="value">
           <div v-if="item.__co.enums">
             <CoRadioGroup v-model="currentCoPic.state.templateProps[item.key]" :options="item.__co.enums" />
           </div>
+          <CoPos9Input v-else-if="item.__co.type === 'pos9'" v-model="currentCoPic.state.templateProps[item.key]" />
           <CoShadowInput v-else-if="item.__co.type === 'shadow'" v-model="currentCoPic.state.templateProps[item.key]" />
+          <CoColorInput v-else-if="item.__co.type === 'color'" v-model="currentCoPic.state.templateProps[item.key]" />
           <CoInput v-else-if="item.type === Number || item.__co.type === Number" v-model="currentCoPic.state.templateProps[item.key]" mode="percent" :min="item.__co.min ?? 0" :max="item.__co.max ?? undefined" />
           <!-- <input v-else-if="item.type === Boolean" v-model="currentCoPic.state.templateProps[item.key]" type="checkbox"> -->
           <el-switch

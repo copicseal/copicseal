@@ -60,12 +60,26 @@ function parseModelValueToPercent(newModelValue?: number | string) {
 }
 
 function formatNumber(num: number, decimalPlaces = 6) {
-  let res = Number.parseFloat(num.toFixed(decimalPlaces));
+  return Number.parseFloat(num.toFixed(decimalPlaces));
+}
+
+function checkModelValue(num: number, isPercent = false) {
+  let res = num;
   if (props.min !== undefined) {
-    res = Math.max(res, props.min);
+    if (props.mode === 'percent' && isPercent) {
+      res = Math.max(res, formatNumber(props.min / 100));
+    }
+    else {
+      res = Math.max(res, props.min);
+    }
   }
   if (props.max !== undefined) {
-    res = Math.min(res, props.max);
+    if (props.mode === 'percent' && isPercent) {
+      res = Math.min(res, formatNumber(props.max / 100));
+    }
+    else {
+      res = Math.min(res, props.max);
+    }
   }
   return res;
 }
@@ -177,21 +191,21 @@ function exitEditMode() {
   if (props.mode === 'percent') {
     if (typeof props.modelValue === 'string') {
       if (props.modelValue.endsWith('rem') || props.unit === 'rem') {
-        emit('update:modelValue', `${formatNumber(inputVal / 100)}rem`);
+        emit('update:modelValue', `${checkModelValue(formatNumber(inputVal / 100))}rem`);
       }
       else if (props.modelValue.endsWith('%') || props.unit === '%') {
-        emit('update:modelValue', `${formatNumber(inputVal)}%`);
+        emit('update:modelValue', `${checkModelValue(formatNumber(inputVal))}%`);
       }
       else {
-        emit('update:modelValue', formatNumber(inputVal / 100));
+        emit('update:modelValue', checkModelValue(formatNumber(inputVal / 100), true));
       }
     }
     else if (typeof props.modelValue === 'number') {
-      emit('update:modelValue', formatNumber(inputVal / 100));
+      emit('update:modelValue', checkModelValue(formatNumber(inputVal / 100), true));
     }
   }
   else {
-    emit('update:modelValue', inputVal);
+    emit('update:modelValue', checkModelValue(inputVal));
   }
 }
 
@@ -203,22 +217,22 @@ function updateValue(deltaValue: number) {
   if (props.mode === 'percent') {
     if (typeof props.modelValue === 'string') {
       if (props.modelValue.endsWith('rem') || props.unit === 'rem') {
-        newModelValue = `${formatNumber(newPercent / 100)}rem`;
+        newModelValue = `${checkModelValue(formatNumber(newPercent / 100))}rem`;
       }
       else if (props.modelValue.endsWith('%') || props.unit === '%') {
-        newModelValue = `${formatNumber(newPercent)}%`;
+        newModelValue = `${checkModelValue(formatNumber(newPercent))}%`;
       }
       else {
-        newModelValue = formatNumber(newPercent / 100);
+        newModelValue = checkModelValue(formatNumber(newPercent / 100), true);
       }
     }
     else {
-      newModelValue = formatNumber(newPercent / 100);
+      newModelValue = checkModelValue(formatNumber(newPercent / 100), true);
     }
   }
   else {
     if (typeof props.modelValue === 'number') {
-      newModelValue = formatNumber(props.modelValue + deltaValue);
+      newModelValue = checkModelValue(formatNumber(props.modelValue + deltaValue));
     }
     else {
       newModelValue = props.modelValue;

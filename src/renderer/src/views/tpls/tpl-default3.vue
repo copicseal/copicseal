@@ -37,7 +37,7 @@
         <span>F Number: {{ info.FNumber }}</span>
         <span v-if="info.ExposureTime">Exposure Time: {{ info.ExposureTime }}s</span>
         <span v-if="info.ISOSpeedRatings">ISO: {{ info.ISOSpeedRatings }}</span>
-        <span v-if="info.DateTime">Date Time: {{ info.DateTime }}</span>
+        <span v-if="info.DateTimeOriginal">Date Time: {{ info.DateTimeOriginal }}</span>
       </div>
       <div class="lens-info">
         <div class="lens-logo" />

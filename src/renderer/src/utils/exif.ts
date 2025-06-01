@@ -65,7 +65,7 @@ export const exifPrimaryKeys = [
   'Make',
   'Model',
   'Software',
-  'DateTime',
+  'DateTimeOriginal',
   'LensModel',
   'FocalLength',
   'FNumber',

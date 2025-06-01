@@ -99,7 +99,7 @@ export const primaryExif = [
   { name: '相机厂商', key: 'Make' },
   { name: '相机型号', key: 'Model' },
   { name: '软件', key: 'Software' },
-  { name: '拍摄日期', key: 'DateTime' },
+  { name: '拍摄日期', key: 'DateTimeOriginal' },
   { name: '镜头型号', key: 'LensModel' },
   { name: '焦距', key: 'FocalLength' },
   { name: '光圈', key: 'FNumber' },

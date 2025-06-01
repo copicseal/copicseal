@@ -161,12 +161,9 @@ export default defineComponent({
 
     function handleCalcSize() {
       const wrapperEl = el.value?.parentElement?.parentElement;
-      console.log(el.value, bgEl.value, wrapperEl);
       if (el.value && bgEl.value && wrapperEl) {
         const { width, height } = wrapperEl.getBoundingClientRect();
         calcSize(el.value, bgEl.value, [width, height]);
-        // calcSize(el.value, bgEl.value, [1280, 720])
-        // console.log(wrapperEl, [width, height])
       }
     }
 
@@ -187,10 +184,6 @@ export default defineComponent({
         return;
 
       const [iw, ih] = await getImgSize();
-      console.log(iw, ih);
-      //   const { width: iw, height: ih } = mainImage.getBoundingClientRect()
-      console.log(mainImage);
-
       if (iw < ih) {
         mainImage.style.width = `${iw / ih}rem`;
         mainImage.style.height = '1rem';
@@ -205,24 +198,15 @@ export default defineComponent({
       mainImage.style.width = `${wr}rem`;
       mainImage.style.height = `${hr}rem`;
 
-      console.log(containerEl);
-
       const { width: w1, height: h1 } = containerEl.getBoundingClientRect();
 
       const imgRatio = w1 / h1;
-
-      //   const [ow, oh] = [1280, 720]
-      // const [ow, oh] = [108, 192];
-      console.log({ w1, h1, ow, oh });
-
-      console.log(imgRatio, ow / oh);
       isHorizontal.value = imgRatio <= ow / oh;
       const fontSize = isHorizontal.value ? (initialWidth * oh) / h1 : (initialWidth * ow) / w1;
 
       document.querySelector('html')!.style.fontSize = `${fontSize}px`;
 
       sizeRatio.value = isHorizontal.value ? oh / fontSize : ow / fontSize;
-      console.log('sizeRatio', sizeRatio.value, isHorizontal.value);
 
       if (props.settings.background.mode === 'none') {
         ow = oh * imgRatio;

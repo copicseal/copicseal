@@ -122,9 +122,6 @@ export class CoPic {
         }
         return output;
       });
-      console.warn(this.state.settings.outputs);
-
-      // this.imgInfo = toImgInfo(this.exif)
     }
     console.log(this.exif.value);
 

@@ -90,7 +90,7 @@ const tplProps = computed(() => {
       }
       return [];
     });
-    console.log(props);
+
     return props;
   }
 

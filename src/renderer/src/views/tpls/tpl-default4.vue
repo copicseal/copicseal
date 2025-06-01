@@ -122,7 +122,7 @@ const props = defineProps({
 });
 
 const datetime = computed(() => {
-  return dayjs(props.info.DateTime, 'YYYY:MM:DD HH:mm:ss').format(props.dateFormat);
+  return dayjs(props.info.DateTimeOriginal, 'YYYY:MM:DD HH:mm:ss').format(props.dateFormat);
 });
 
 const datetimeStyle = computed(() => {

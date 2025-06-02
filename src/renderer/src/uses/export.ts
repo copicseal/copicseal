@@ -1,3 +1,4 @@
+import type { Output } from '@renderer/types';
 import { injectCoPic } from '@renderer/uses/co-pic';
 import { nextTick } from 'vue';
 import { injectProgress } from './progress';
@@ -72,7 +73,7 @@ export function useExport() {
           return {
             ...output,
             rem: fs,
-            path: `${outputPath}/${filename.split('.').slice(0, -1).join('.')}${outputs.length > 1 ? `_${index + 1}` : ''}@${output.scale}x.${output.type}`,
+            path: `${outputPath}/${getOutputFilename(filename, outputs, index)}`,
           };
         }),
       ],
@@ -127,4 +128,14 @@ export function useExport() {
     handleExport,
     handleExportAll,
   };
+}
+
+function getOutputFilename(filename: string, outputs: Output[], index: number) {
+  const output = outputs[index];
+  const baseName = filename.split('.').slice(0, -1).join('.');
+  const outputType = output.type === 'jpeg' ? 'jpg' : output.type;
+
+  const outputName = `${baseName}@${output.width}x${output.height}.${outputType}`;
+
+  return outputName;
 }

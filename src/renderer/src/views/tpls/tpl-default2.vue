@@ -1,7 +1,11 @@
 <template>
   <div
-    class="tpl-card" :class="{ 'is-horizontal': isHorizontal, 'is-text-white': textWhite }"
-    :style="{ '--box-shadow': shadow, '--font-scale': fontScale }"
+    class="tpl-card" :class="{ 'is-horizontal': isHorizontal, 'is-logo-shadow': logoShadow }"
+    :style="{
+      '--box-shadow': shadow,
+      '--font-scale': fontScale,
+      '--text-color': textColor,
+    }"
   >
     <img
       class="main-image"
@@ -28,6 +32,9 @@
           <span>{{ info.FNumber }}</span>
           <span v-if="info.ExposureTime">{{ info.ExposureTime }}s</span>
           <span v-if="info.ISOSpeedRatings">ISO{{ info.ISOSpeedRatings }}</span>
+        </div>
+        <div class="date-time">
+          <span>{{ info.DateTimeOriginal }}</span>
         </div>
       </div>
     </div>
@@ -83,14 +90,22 @@ const props = defineProps({
     type: Number,
     default: 1,
     __co: {
-      label: '字体缩放',
+      label: '文字缩放',
     },
   },
-  textWhite: {
+  textColor: {
+    type: String,
+    default: '#000',
+    __co: {
+      label: '文字颜色',
+      type: 'color',
+    },
+  },
+  logoShadow: {
     type: Boolean,
     default: false,
     __co: {
-      label: '文字白色',
+      label: '标志阴影',
     },
   },
   shadow: {
@@ -112,15 +127,14 @@ const isHorizontal = computed(() => {
 .tpl-card {
   --box-shadow: 0 0 0.2rem rgba(0, 0, 0, 0.8);
   --font-scale: 1;
-  color: #000;
+  --text-color: #000;
+ color: var(--text-color);
 
-  &.is-text-white {
-    color: #fff;
-
+  &.is-logo-shadow {
     .make-model .make-logo {
 
       > img {
-        filter: drop-shadow(0 0 0.02rem white) drop-shadow(0 0 0.02rem white);
+        filter: drop-shadow(0 0 0.02rem var(--text-color)) drop-shadow(0 0 0.02rem var(--text-color));
       }
     }
   }
@@ -162,8 +176,13 @@ const isHorizontal = computed(() => {
       display: flex;
       align-items: flex-end;
       gap: 0.5em;
-      margin-left: calc(var(--font-scale) * 0.1rem);
       font-size: calc(var(--font-scale) * 0.1rem);
+    }
+    .date-time {
+      margin-top: calc(var(--font-scale) * 0.02rem);
+      font-size: calc(var(--font-scale) * 0.08rem);
+      text-align: center;
+      color: color-mix(in srgb, var(--text-color) 50%, #888888ff);
     }
   }
 }
@@ -178,15 +197,18 @@ const isHorizontal = computed(() => {
 
     .make-model {
       flex: 1;
-      justify-content: center;
-      width: 0.1rem;
-      transform: rotate(90deg);
-    }
-    .details-info .basie-info {
       flex-direction: column;
-      gap: 1em;
-      margin-left: 0;
-      font-size: calc(var(--font-scale) * 0.1rem);
+      justify-content: center;
+      gap: 0.1rem;
+    }
+    .details-info {
+      .basie-info {
+        align-items: center;
+        flex-direction: column;
+        gap: 1em;
+        margin-left: 0;
+        font-size: calc(var(--font-scale) * 0.1rem);
+      }
     }
   }
 }

@@ -1,4 +1,5 @@
 import type { Tags as RawTags } from 'exifreader';
+import dayjs from 'dayjs';
 // import Exif from 'exif-js'
 import ExifReader from 'exifreader';
 // import piexif from 'piexifjs';
@@ -55,6 +56,11 @@ const exifKeyFormatter: Record<keyof RawTags, (exif: RawTags) => Tags> = {
   'FocalLength': (exif) => {
     return {
       FocalLength: exif.FocalLength?.description.replace(' ', ''),
+    };
+  },
+  'DateTimeOriginal': (exif) => {
+    return {
+      DateTimeOriginal: dayjs(exif.DateTimeOriginal?.description, 'YYYY:MM:DD HH:mm:ss').format('YYYY-MM-DD HH:mm:ss'),
     };
   },
 };

@@ -1,11 +1,14 @@
 import type { Tags as RawTags } from 'exifreader';
 import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+
 // import Exif from 'exif-js'
 import ExifReader from 'exifreader';
 // import piexif from 'piexifjs';
 export { type ExifDict, ImageIFD, TAGS } from 'piexifjs';
 // export type ExifDict = piexif.ExifDict
 
+dayjs.extend(customParseFormat);
 // window.n = window.n ?? undefined
 
 export async function getExif(file: File) {

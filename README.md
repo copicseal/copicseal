@@ -6,16 +6,61 @@
 - 📷 **EXIF 读取**：自动解析照片元信息，展示快门、ISO、焦距等拍摄参数，支持选择性显示。
 - ⚡ **所见即所得**：实时预览水印效果，调整参数，极简操作快速上手。
 - 💻 **跨平台支持**：兼容 Windows 与 macOS，保证一致体验。
-- 📦 **极简安装**：单文件安装，零依赖，启动迅速，占用资源极低。
+- 📦 **极简安装**：单文件安装，零依赖，启动迅速。
 - 🔄 **持续优化中**：功能持续更新，欢迎反馈建议与贡献。
 
 ## 🖥️ 软件截图
 
-![Copicseal 软件界面截图](./static/screenshot01.png)
+<picture>
+  <source srcset="./static/screenshot01.webp" type="image/webp">
+  <img src="./static/screenshot01.jpg" alt="Copicseal 软件界面截图">
+</picture>
+
+## 🖼️ 模板示例
+
+### 1. 白色边框模板
+<picture>
+  <source srcset="./static/templates/template01.webp" type="image/webp">
+  <img src="./static/templates/template01.jpg" alt="白色边框模板">
+</picture>
+
+### 2. 无框圆角模板
+<picture>
+  <source srcset="./static/templates/template02.webp" type="image/webp">
+  <img src="./static/templates/template02.jpg" alt="无框圆角模板">
+</picture>
+
+### 3.1 PS 启动窗模板
+<picture>
+  <source srcset="./static/templates/template03_00.webp" type="image/webp">
+  <img src="./static/templates/template03_00.jpg" alt="PS 启动窗模板">
+</picture>
+
+### 3.2 PS 启动窗模板（磨砂）
+<picture>
+  <source srcset="./static/templates/template03_01.webp" type="image/webp">
+  <img src="./static/templates/template03_01.jpg" alt="PS 启动窗模板（磨砂）">
+</picture>
+
+### 4. 时间戳模板
+<picture>
+  <source srcset="./static/templates/template04.webp" type="image/webp">
+  <img src="./static/templates/template04.jpg" alt="时间戳模板">
+</picture>
+
+### 5. 文字内嵌模板
+<picture>
+  <source srcset="./static/templates/template05.webp" type="image/webp">
+  <img src="./static/templates/template05.jpg" alt="文字内嵌模板">
+</picture>
 
 ## 📦 下载
 
 👉 [前往 GitHub Releases 下载最新版 Copicseal](https://github.com/copicseal/copicseal/releases)
+
+### ⬇️ 代理下载
+- [Windows 下载](https://copicseal-updater.kohai.top/download?platform=win32)
+- [MacOS 下载](https://copicseal-updater.kohai.top/download?platform=darwin)
 
 ## 💬 常见问题
 

@@ -182,7 +182,7 @@ const isHorizontal = computed(() => {
       margin-top: calc(var(--font-scale) * 0.02rem);
       font-size: calc(var(--font-scale) * 0.08rem);
       text-align: center;
-      color: color-mix(in srgb, var(--text-color) 50%, #888888ff);
+      color: color-mix(in srgb, var(--text-color) 50%, transparent);
     }
   }
 }

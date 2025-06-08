@@ -1,8 +1,10 @@
 <template>
   <div
     class="tpl-card"
+    :class="{ 'is-logo-shadow': logoShadow }"
     :style="{
       '--font-scale': fontScale,
+      '--text-color': textColor,
     }"
   >
     <img
@@ -120,7 +122,7 @@ const props = defineProps({
       when: props => props.fontPosition?.split(',')[1] === '1',
     },
   },
-  fontColor: {
+  textColor: {
     type: String,
     default: '#fff',
     __co: {
@@ -128,11 +130,11 @@ const props = defineProps({
       type: 'color',
     },
   },
-  shadow: {
+  logoShadow: {
     type: Boolean,
-    default: true,
+    default: false,
     __co: {
-      label: '文字光晕',
+      label: '标志阴影',
     },
   },
 });
@@ -142,9 +144,7 @@ const datetime = computed(() => {
 });
 
 const datetimeStyle = computed(() => {
-  const style: CSSProperties = {
-    color: props.fontColor,
-  };
+  const style: CSSProperties = {};
   const [x, y] = props.fontPosition.split(',');
   if (x === '-1') {
     style.left = `${props.offsetLeft * 100}%`;
@@ -177,8 +177,18 @@ const datetimeStyle = computed(() => {
 <style lang="scss" scoped>
 .tpl-card {
   --font-scale: 1;
+  --text-color: #000;
   position: relative;
-  color: #000;
+  color: var(--text-color);
+
+  &.is-logo-shadow {
+    .detail-info .make-logo {
+
+      > img {
+        filter: drop-shadow(0 0 0.02rem var(--text-color)) drop-shadow(0 0 0.02rem var(--text-color));
+      }
+    }
+  }
 
   .main-image {
     /* width: 100%; */
@@ -220,7 +230,7 @@ const datetimeStyle = computed(() => {
       margin-top: calc(var(--font-scale) * 0.02rem);
       font-size: calc(var(--font-scale) * 0.08rem);
       text-align: center;
-      color: color-mix(in srgb, var(--text-color) 50%, #888888ff);
+      color: color-mix(in srgb, var(--text-color) 50%, transparent);
     }
   }
 }

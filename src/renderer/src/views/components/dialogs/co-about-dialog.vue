@@ -146,7 +146,9 @@ defineExpose({ open });
         border-radius: 50%;
         object-fit: cover;
         border: 1px solid #444;
-        transition: transform 0.2s ease, opacity 0.2s ease;
+        transition:
+          transform 0.2s ease,
+          opacity 0.2s ease;
         cursor: pointer;
         background-color: #fff;
 

@@ -142,7 +142,7 @@ async function handleOutputFolder() {
   if (!path)
     return;
   outputPath.value = path;
-  storage.setItem('defaultOutputPath', path);
+  storage.set('defaultOutputPath', path);
   currentCoPic.value.getSettings().outputPath = path;
 }
 

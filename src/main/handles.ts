@@ -1,8 +1,9 @@
 import type { MenuItemConstructorOptions } from 'electron';
 import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
-import { handleCapture } from './utils/capture';
-import { openTargetPath } from './utils/file';
-import { getSysFonts } from './utils/font';
+import { handleCapture } from './utils/capture.ts';
+import { openTargetPath } from './utils/file.ts';
+import { getSysFonts } from './utils/font.ts';
+import { store } from './utils/storage.ts';
 
 export function mainHandles() {
   ipcMain.handle('captureDOM', async (_event, options) => {
@@ -56,5 +57,17 @@ export function mainHandles() {
     ret.downloadLink = `https://copicseal-updater.kohai.top/download?version=v${ret.latestVersion}&platform=${process.platform}`;
 
     return ret;
+  });
+
+  ipcMain.handle('config:get', (_e, key, defaultValue) => {
+    return store.get(key, defaultValue);
+  });
+
+  ipcMain.handle('config:set', (_e, key, value) => {
+    store.set(key, value);
+  });
+
+  ipcMain.handle('config:delete', (_e, key) => {
+    store.delete(key);
   });
 }

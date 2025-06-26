@@ -151,11 +151,11 @@ function handleFontChange() {
   .value {
     overflow: auto;
 
-    input[type=text], select {
+    input[type='text'],
+    select {
       width: 100%;
     }
   }
-
 }
 .font-input {
   display: flex;

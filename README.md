@@ -21,6 +21,7 @@
 👉 [前往 GitHub Releases 下载最新版 Copicseal](https://github.com/copicseal/copicseal/releases)
 
 ### ⬇️ 代理下载
+
 - [Windows 下载](https://copicseal-updater.kohai.top/download?platform=win32)
 - [MacOS 下载](https://copicseal-updater.kohai.top/download?platform=darwin)
 
@@ -37,26 +38,27 @@ sudo xattr -rd com.apple.quarantine /Applications/Copicseal.app
 ## 🖼️ 模板示例
 
 ### 1. 白色边框模板
+
 <picture>
   <source srcset="./static/templates/template01.webp" type="image/webp">
   <img src="./static/templates/template01.jpg" alt="白色边框模板">
 </picture>
 
 ### 2. 无框圆角模板
+
 <picture>
   <source srcset="./static/templates/template02.webp" type="image/webp">
   <img src="./static/templates/template02.jpg" alt="无框圆角模板">
 </picture>
 
 ### 3.1 PS 启动窗模板
+
 <picture>
   <source srcset="./static/templates/template03_00.webp" type="image/webp">
   <img src="./static/templates/template03_00.jpg" alt="PS 启动窗模板">
 </picture>
 
-
 > 更多请前往 [Copicseal 官网](https://copicseal.kohai.top) 查看
-
 
 ## ⭐ Star History
 

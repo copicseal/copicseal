@@ -92,71 +92,71 @@ function gotoDownload() {
 
   <style lang="scss" scoped>
   .update-dialog {
+  background-color: #1d1e1f;
+
+  .el-dialog__body {
+    padding-top: 12px;
     background-color: #1d1e1f;
+    color: #e0e0e0;
+  }
 
-    .el-dialog__body {
-      padding-top: 12px;
-      background-color: #1d1e1f;
-      color: #e0e0e0;
+  .el-dialog__footer {
+    background-color: #1d1e1f;
+  }
+
+  .content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .title {
+      font-size: 18px;
+      font-weight: bold;
+      text-align: center;
     }
 
-    .el-dialog__footer {
-      background-color: #1d1e1f;
+    .version-info {
+      font-size: 14px;
+      color: #bbb;
+      line-height: 1.5;
+      text-align: center;
+
+      span {
+        color: #fff;
+        font-weight: 500;
+      }
     }
 
-    .content {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
+    :deep(.changelog) {
+      background: #2a2a2a;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #ccc;
 
-      .title {
-        font-size: 18px;
-        font-weight: bold;
-        text-align: center;
-      }
-
-      .version-info {
-        font-size: 14px;
-        color: #bbb;
-        line-height: 1.5;
-        text-align: center;
-
-        span {
-          color: #fff;
-          font-weight: 500;
-        }
-      }
-
-      :deep(.changelog) {
-        background: #2a2a2a;
-        padding: 12px;
-        border-radius: 8px;
-        font-size: 12px;
+      a {
         color: #ccc;
-
-        a {
-          color: #ccc;
-        }
-      }
-
-      .loading {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100%;
-        font-size: 16px;
-        color: #ccc;
-
-        .el-icon {
-          margin-right: 8px;
-          color: #ccc;
-        }
       }
     }
 
-    .footer-buttons {
+    .loading {
       display: flex;
-      justify-content: flex-end;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      font-size: 16px;
+      color: #ccc;
+
+      .el-icon {
+        margin-right: 8px;
+        color: #ccc;
+      }
     }
   }
-  </style>
+
+  .footer-buttons {
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+</style>

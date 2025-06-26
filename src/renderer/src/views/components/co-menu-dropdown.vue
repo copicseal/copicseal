@@ -15,14 +15,13 @@
   </el-dropdown>
   <CoCheckUpdateDialog v-model="updateDialogVisible" />
   <CoAboutDialog v-model="aboutDialogVisible" />
-  <ElDialog v-model="settingsDialogVisible" title="设置" fullscreen :close-on-click-modal="false" :close-on-press-escape="false">
-    1
-  </ElDialog>
+  <CoSettingsDialog v-model="settingsDialogVisible" />
 </template>
 
 <script lang="ts" setup>
 import CoAboutDialog from './dialogs/co-about-dialog.vue';
 import CoCheckUpdateDialog from './dialogs/co-check-update-dialog.vue';
+import CoSettingsDialog from './dialogs/co-settings-dialog.vue';
 
 const popperOptions = {
   modifiers: [
@@ -59,7 +58,7 @@ const menuOpts = computed(() => {
   const { latestVersion } = appVersion.value;
 
   return [
-    // { label: '设置', icon: 'i-solar-settings-minimalistic-broken', value: 'settings' },
+    { label: '应用设置', icon: 'i-solar-settings-minimalistic-broken', value: 'settings' },
     { label: hasNewVersion.value ? `🎉 新版本 v${latestVersion}` : '检查更新', icon: 'i-solar-refresh-square-broken', value: 'check-update', hasDot: hasNewVersion.value },
     { label: '意见反馈', icon: 'i-solar-chat-dots-broken', value: 'feedback' },
     { label: '关于 Copicseal', icon: 'i-solar-info-square-broken', value: 'about' },

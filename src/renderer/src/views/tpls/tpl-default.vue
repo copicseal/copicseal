@@ -147,7 +147,6 @@ const isHorizontal = computed(() => {
 
   &.is-logo-shadow {
     .make-model .make-logo {
-
       > img {
         filter: drop-shadow(0 0 0.02rem var(--text-color)) drop-shadow(0 0 0.02rem var(--text-color));
       }

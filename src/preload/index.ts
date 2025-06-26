@@ -1,7 +1,8 @@
-import type { CaptureOptions } from '../main/utils/capture';
-import type { WindowAPI } from '../types';
+import type { CaptureOptions } from '../main/utils/capture.ts';
+import type { WindowAPI } from '../types.d.ts';
 import { electronAPI } from '@electron-toolkit/preload';
 import { contextBridge, ipcRenderer } from 'electron/renderer';
+import { getStorage } from './utils/storage.ts';
 
 // Custom APIs for renderer
 const api: WindowAPI = {
@@ -28,6 +29,7 @@ const api: WindowAPI = {
   openTargetPath: targetPath => ipcRenderer.invoke('openTargetPath', targetPath),
   getAppVersion: () => ipcRenderer.invoke('getAppVersion'),
   getSysFonts: () => ipcRenderer.invoke('getSysFonts'),
+  getStorage,
 };
 
 // Use `contextBridge` APIs to expose Electron APIs to

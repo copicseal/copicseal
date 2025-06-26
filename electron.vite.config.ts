@@ -11,14 +11,14 @@ export default defineConfig({
   main: {
     plugins: [
       externalizeDepsPlugin({
-        include: ['http-proxy-agent'],
+        include: ['http-proxy-agent', 'ajv'],
       }),
     ],
   },
   preload: {
     plugins: [
       externalizeDepsPlugin({
-        include: ['http-proxy-agent'],
+        include: ['http-proxy-agent', 'ajv'],
       }),
     ],
   },

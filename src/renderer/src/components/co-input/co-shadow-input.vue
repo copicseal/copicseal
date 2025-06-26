@@ -98,55 +98,55 @@ watch([inset, x, y, blur, spread, color], () => {
 
 <style lang="scss" scoped>
   .co-shadow-input {
+  width: 100%;
+  font-size: 14px;
+  color: #fff;
+}
+
+.preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.preview-box {
+  width: 20px;
+  height: 20px;
+  border: 1px solid #ccc;
+}
+
+.shadow-string {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inputs {
+  margin-top: 12px;
+
+  .grid-inputs {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 4px 4px;
     width: 100%;
-    font-size: 14px;
-    color: #fff;
-  }
 
-  .preview {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-  }
+    .label {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      white-space: nowrap;
+      font-size: 12px;
+      color: #ccc;
+    }
 
-  .preview-box {
-    width: 20px;
-    height: 20px;
-    border: 1px solid #ccc;
-  }
-
-  .shadow-string {
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .inputs {
-    margin-top: 12px;
-
-    .grid-inputs {
-        display: grid;
-        grid-template-columns: max-content 1fr;
-        gap: 4px 4px;
+    .input {
+      display: flex;
+      input {
         width: 100%;
-
-        .label {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            white-space: nowrap;
-            font-size: 12px;
-            color: #ccc;
-        }
-
-        .input {
-            display: flex;
-            input {
-                width: 100%;
-            }
-        }
+      }
     }
   }
+}
 </style>

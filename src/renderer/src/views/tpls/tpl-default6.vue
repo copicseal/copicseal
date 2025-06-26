@@ -19,23 +19,84 @@
       class="detail-info"
       :style="datetimeStyle"
     >
-      <div class="make-logo">
-        <img v-if="utils.getMakeLogo(info.Make)" :src="utils.getMakeLogo(info.Make)" alt="">
-        <span v-else>{{ info.Make }}</span>
-      </div>
-      <div class="model-name">
-        {{ utils.getModelName(info.Model) }}
-      </div>
-      <div class="basie-info">
-        <span>{{ info.FocalLength }}</span>
-        <span>{{ info.FNumber }}</span>
-        <span v-if="info.ExposureTime">{{ info.ExposureTime }}s</span>
-        <span v-if="info.ISOSpeedRatings">ISO{{ info.ISOSpeedRatings }}</span>
-      </div>
-      <div class="date-time">
-        {{ datetime }}
+      <div class="liquid-glass-effect" />
+      <div class="liquid-glass-tint" />
+      <div class="liquid-glass-shine" />
+      <div class="liquid-glass-text">
+        <div class="make-logo">
+          <img v-if="utils.getMakeLogo(info.Make)" :src="utils.getMakeLogo(info.Make)" alt="">
+          <span v-else>{{ info.Make }}</span>
+        </div>
+        <div class="model-name">
+          {{ utils.getModelName(info.Model) }}
+        </div>
+        <div class="basie-info">
+          <span>{{ info.FocalLength }}</span>
+          <span>{{ info.FNumber }}</span>
+          <span v-if="info.ExposureTime">{{ info.ExposureTime }}s</span>
+          <span v-if="info.ISOSpeedRatings">ISO{{ info.ISOSpeedRatings }}</span>
+        </div>
+        <div class="date-time">
+          {{ datetime }}
+        </div>
       </div>
     </div>
+    <svg style="display: none">
+      <filter
+        id="glass-distortion"
+        x="0%"
+        y="0%"
+        width="100%"
+        height="100%"
+        filterUnits="objectBoundingBox"
+      >
+        <feTurbulence
+          type="fractalNoise"
+          baseFrequency="0.001 0.005"
+          numOctaves="1"
+          seed="5"
+          result="turbulence"
+        />
+        <!-- Seeds: 14, 17,  -->
+
+        <feComponentTransfer in="turbulence" result="mapped">
+          <feFuncR type="gamma" amplitude="1" exponent="10" offset="0.5" />
+          <feFuncG type="gamma" amplitude="0" exponent="1" offset="0" />
+          <feFuncB type="gamma" amplitude="0" exponent="1" offset="0.5" />
+        </feComponentTransfer>
+
+        <feGaussianBlur in="turbulence" stdDeviation="3" result="softMap" />
+
+        <feSpecularLighting
+          in="softMap"
+          surfaceScale="5"
+          specularConstant="1"
+          specularExponent="100"
+          lighting-color="white"
+          result="specLight"
+        >
+          <fePointLight x="-200" y="-200" z="300" />
+        </feSpecularLighting>
+
+        <feComposite
+          in="specLight"
+          operator="arithmetic"
+          k1="0"
+          k2="1"
+          k3="1"
+          k4="0"
+          result="litImage"
+        />
+
+        <feDisplacementMap
+          in="SourceGraphic"
+          in2="softMap"
+          scale="150"
+          xChannelSelector="R"
+          yChannelSelector="G"
+        />
+      </filter>
+    </svg>
   </div>
 </template>
 
@@ -44,9 +105,9 @@ import type { CSSProperties } from 'vue';
 import dayjs from 'dayjs';
 
 defineOptions({
-  id: 'tpl-default5',
-  name: 'TplDefault5',
-  title: '文字内嵌模板',
+  id: 'tpl-default6',
+  name: 'TplDefault6',
+  title: '玻璃模板',
 });
 
 const props = defineProps({
@@ -230,6 +291,58 @@ const datetimeStyle = computed(() => {
       font-size: calc(var(--font-scale) * 0.08rem);
       text-align: center;
       color: color-mix(in srgb, var(--text-color) 50%, transparent);
+    }
+
+    // position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.1rem;
+    overflow: hidden;
+    box-shadow:
+      0 6px 6px rgba(0, 0, 0, 0.2),
+      0 0 20px rgba(0, 0, 0, 0.1);
+    // transition: all 0.4s;
+
+    &,
+    > div {
+      border-radius: 0.1rem;
+    }
+
+    .liquid-glass-effect {
+      position: absolute;
+      z-index: 0;
+      inset: 0;
+      backdrop-filter: blur(3px);
+      filter: url(#glass-distortion);
+      overflow: hidden;
+      isolation: isolate;
+    }
+
+    .liquid-glass-tint {
+      z-index: 1;
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .liquid-glass-shine {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+
+      overflow: hidden;
+
+      box-shadow:
+        inset 2px 2px 1px 0 rgba(255, 255, 255, 0.5),
+        inset -1px -1px 1px 1px rgba(255, 255, 255, 0.5);
+    }
+
+    .liquid-glass-text {
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      align-items: center !important;
     }
   }
 }

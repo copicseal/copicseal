@@ -3,7 +3,7 @@ import { electronApp, is, optimizer } from '@electron-toolkit/utils';
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import pie from 'puppeteer-in-electron';
 import icon from '../../resources/icon.png?asset';
-import { mainHandles } from './handles';
+import { mainHandles } from './handles.ts';
 // import { checkForUpdates } from './utils/updater';
 
 function createWindow() {
@@ -15,7 +15,7 @@ function createWindow() {
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: join(__dirname, '../preload/index.mjs'),
       sandbox: false,
     },
   });

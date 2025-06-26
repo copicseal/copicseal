@@ -244,12 +244,9 @@ function generateNoise(density = 0.2) {
       height: calc(var(--base-size) * 0.5);
       border-radius: calc(var(--base-size) * 0.1);
       background:
-        radial-gradient(at 20% 30%, #ff4d4d, transparent 60%),
-        radial-gradient(at 80% 20%, #ffa500, transparent 60%),
-        radial-gradient(at 50% 70%, #00ffcc, transparent 60%),
-        radial-gradient(at 30% 80%, #8f00ff, transparent 60%),
-        radial-gradient(at 70% 60%, #ffff00, transparent 60%),
-        radial-gradient(at 90% 90%, #00bfff, transparent 60%),
+        radial-gradient(at 20% 30%, #ff4d4d, transparent 60%), radial-gradient(at 80% 20%, #ffa500, transparent 60%),
+        radial-gradient(at 50% 70%, #00ffcc, transparent 60%), radial-gradient(at 30% 80%, #8f00ff, transparent 60%),
+        radial-gradient(at 70% 60%, #ffff00, transparent 60%), radial-gradient(at 90% 90%, #00bfff, transparent 60%),
         #000;
       /* 背景基色 */
       background-blend-mode: screen;

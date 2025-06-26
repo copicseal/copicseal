@@ -29,6 +29,8 @@ declare module 'vue' {
     ElProgress: typeof import('element-plus/es')['ElProgress']
     ElScrollbar: typeof import('element-plus/es')['ElScrollbar']
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
+    ElTabPane: typeof import('element-plus/es')['ElTabPane']
+    ElTabs: typeof import('element-plus/es')['ElTabs']
     ElTooltip: typeof import('element-plus/es')['ElTooltip']
     IconArrowDown: typeof import('./src/components/co-settings-panel/components/icon-arrow-down.vue')['default']
     IconImage: typeof import('./src/components/co-file-input/components/icon-image.vue')['default']

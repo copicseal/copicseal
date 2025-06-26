@@ -58,15 +58,15 @@ const options = [
 
 <style lang="scss" scoped>
 .co-pos9-input {
-    display: flex;
+  display: flex;
 
-    .co-radio-group {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
+  .co-radio-group {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
 
-        :deep(.co-radio-group-item) {
-            margin-left: 0;
-        }
+    :deep(.co-radio-group-item) {
+      margin-left: 0;
     }
+  }
 }
 </style>

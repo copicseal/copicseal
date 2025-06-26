@@ -41,6 +41,19 @@ if (!window.api) {
     getSysFonts: async () => {
       return ['Arial'];
     },
+    getStorage() {
+      return {
+        async get(key) {
+          return JSON.parse(localStorage.getItem(key) || 'null');
+        },
+        async set(key, value) {
+          return localStorage.setItem(key, JSON.stringify(value));
+        },
+        async delete(key) {
+          return localStorage.removeItem(key);
+        },
+      };
+    },
   };
 
   window.api = api;

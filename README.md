@@ -34,6 +34,34 @@
 sudo xattr -rd com.apple.quarantine /Applications/Copicseal.app
 ```
 
+## 社区交流
+
+⚠️ 温馨提示：群聊仅限日常讨论和经验分享，如需反馈问题或提交新需求，请提交 Issue。
+
+<table>
+  <thead>
+    <tr>
+      <th width="33.3%">微信群</th>
+      <th width="33.3%">QQ 群</th>
+      <th width="33.3%"></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        <picture>
+          <img src="./static/wechat.jpg" />
+        </picture>
+      </td>
+      <td>
+        <picture>
+          <img src="./static/qq.jpg" />
+        </picture>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
 ## 🖼️ 模板示例
 
 ### 1. 白色边框模板

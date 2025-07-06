@@ -51,12 +51,12 @@ sudo xattr -rd com.apple.quarantine /Applications/Copicseal.app
     <tr>
       <td>
         <picture>
-          <img src="./static/wechat.jpg" />
+          <img src="https://copicseal-s0.kohai.top/assets/images/wechat_group_qrcode.jpg" />
         </picture>
       </td>
       <td>
         <picture>
-          <img src="./static/qq.jpg" />
+          <img src="https://copicseal-s0.kohai.top/assets/images/qq_group_qrcode.jpg" />
         </picture>
       </td>
     </tr>

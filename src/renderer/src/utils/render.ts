@@ -31,9 +31,6 @@ const logoSvgMap = Object.keys(logoSvg).reduce(
   {} as Record<string, string>,
 );
 
-console.log(logoSvgMap);
-
-
 export const renderUtils = {
   getMakeName,
   getMakeLogo,

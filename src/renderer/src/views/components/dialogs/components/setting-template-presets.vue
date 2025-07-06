@@ -1,6 +1,6 @@
 <template>
   <div class="setting-template-presets">
-    <el-table :data="templatePresets" size="small" border row-key="id">
+    <el-table :data="templatePresets" size="small" border row-key="id" empty-text="配置为空，请从主界面顶部模板配置添加">
       <el-table-column type="expand">
         <template #default="{ row }">
           <div class="preset-desc">
@@ -61,6 +61,7 @@ function handleDelete(index: number) {
 <style lang="scss" scoped>
 .setting-template-presets {
   --el-border-color-lighter: #666;
+  --el-fill-color-blank: rgba(0, 0, 0, 0);
   margin-top: 12px;
 
   :deep(.el-table) {

@@ -55,8 +55,7 @@ defineProps<{
   }
 
   &--info {
-    color: var(--el-color-info);
-    border-color: var(--el-color-info);
+    border-color: #999;
   }
 
   + .co-button {

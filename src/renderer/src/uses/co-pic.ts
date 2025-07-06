@@ -84,7 +84,7 @@ function getDefaultSettings(): Settings {
       },
       padding: [0.2, 0.2],
     },
-    outputs: [
+    outputs: cloneDeep(config.value.output.presets ?? [
       {
         scale: 1,
         width: 1920,
@@ -92,7 +92,7 @@ function getDefaultSettings(): Settings {
         type: 'jpeg',
         isOriginal: true,
       },
-    ],
+    ]),
     outputPath: config.value.output.defaultPath ?? '',
   };
 }

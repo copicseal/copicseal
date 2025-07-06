@@ -15,10 +15,13 @@
           <SettingTemplatePresets :config="localConfig" />
         </el-scrollbar>
       </el-tab-pane>
-      <!-- <el-tab-pane label="输出设置">
-        输出预设
+      <el-tab-pane label="输出设置">
+        <el-scrollbar>
+          <div>输出设置</div>
+          <SettingOutput :config="localConfig" />
+        </el-scrollbar>
       </el-tab-pane>
-      <el-tab-pane label="模板">
+      <!-- <el-tab-pane label="模板">
         模板
       </el-tab-pane>
       <el-tab-pane label="字体">
@@ -39,6 +42,7 @@
 <script lang="ts" setup>
 import { useConfig } from '@renderer/uses/config';
 import { cloneDeep } from 'lodash-es';
+import SettingOutput from './components/setting-output.vue';
 import SettingTemplatePresets from './components/setting-template-presets.vue';
 
 const modelValue = defineModel({ default: false });

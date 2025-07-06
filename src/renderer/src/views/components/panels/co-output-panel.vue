@@ -52,6 +52,9 @@
       <span @click="handleOpenOutputFolder">{{ outputPath }}</span>
     </div>
     <div class="btns">
+      <CoButton outline type="info" @click="handleSaveAsDefault">
+        存为默认
+      </CoButton>
       <CoButton outline @click="handleApplyAll">
         应用全部
       </CoButton>
@@ -64,6 +67,8 @@ import type { Output } from '@/types';
 import { Delete } from '@/components/co-icon/index';
 import { injectCoPic } from '@/uses/co-pic';
 import { useConfig } from '@renderer/uses/config';
+import { coMessage } from '@renderer/utils/element';
+import { cloneDeep } from 'lodash-es';
 
 const popperOptions = {
   modifiers: [
@@ -165,6 +170,16 @@ function handleApplyAll() {
       return opt;
     });
     item.getSettings().outputPath = outputPath.value;
+  });
+}
+
+function handleSaveAsDefault() {
+  config.value.output = cloneDeep({
+    defaultPath: outputPath.value,
+    presets: outputs.value,
+  });
+  coMessage('保存成功', {
+    type: 'success',
   });
 }
 </script>

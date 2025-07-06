@@ -20,7 +20,8 @@
       :style="datetimeStyle"
     >
       <div class="make-logo">
-        <img v-if="utils.getMakeLogo(info.Make)" :src="utils.getMakeLogo(info.Make)" alt="">
+          <div v-if="logoColorAuto && utils.getMakeLogoSvg(info.Make)" v-html="utils.getMakeLogoSvg(info.Make)" class="svg-logo"></div>
+        <img v-else-if="utils.getMakeLogo(info.Make)" :src="utils.getMakeLogo(info.Make)" alt="">
         <span v-else>{{ info.Make }}</span>
       </div>
       <div class="model-name">
@@ -130,11 +131,19 @@ const props = defineProps({
       type: 'color',
     },
   },
+  logoColorAuto: {
+    type: Boolean,
+    default: true,
+    __co: {
+      label: '标志颜色',
+    },
+  },
   logoShadow: {
     type: Boolean,
     default: false,
     __co: {
       label: '标志阴影',
+      when: props => !props.logoColorAuto
     },
   },
 });
@@ -206,7 +215,16 @@ const datetimeStyle = computed(() => {
       align-items: center;
       font-weight: bold;
 
-      > img {
+       .svg-logo {
+        display: flex;
+
+        :deep(svg) {
+          width: unset;
+          height: unset;
+        }
+      }
+
+      > img, :deep(svg) {
         max-height: calc(var(--font-scale) * 0.2rem);
         max-width: calc(var(--font-scale) * 0.6rem);
       }

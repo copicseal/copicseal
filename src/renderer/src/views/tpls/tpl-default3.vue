@@ -7,7 +7,8 @@
             Ps
           </template>
           <template v-else>
-            <img v-if="utils.getMakeLogo(info.Make)" :src="utils.getMakeLogo(info.Make)" alt="">
+          <div v-if="utils.getMakeLogoSvg(info.Make)" v-html="utils.getMakeLogoSvg(info.Make)" class="svg-logo"></div>
+            <img v-else-if="utils.getMakeLogo(info.Make)" :src="utils.getMakeLogo(info.Make)" alt="">
             <span v-else>{{ info.Make }}</span>
           </template>
         </div>
@@ -215,6 +216,15 @@ function generateNoise(density = 0.2) {
       background-color: #071125;
       border-radius: calc(var(--base-size) * 0.2);
       overflow: hidden;
+
+      .svg-logo {
+        display: flex;
+
+        :deep(svg) {
+          width: 100%;
+        height: 100%;
+        }
+      }
 
       img,
       svg {

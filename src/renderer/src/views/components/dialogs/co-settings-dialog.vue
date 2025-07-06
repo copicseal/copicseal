@@ -9,24 +9,27 @@
     :show-close="false"
   >
     <el-tabs tab-position="left" type="card">
-      <el-tab-pane label="常规">
-        常规
+      <el-tab-pane label="模板预设">
+        <el-scrollbar>
+          <div>模板预设</div>
+          <SettingTemplatePresets :config="localConfig" />
+        </el-scrollbar>
       </el-tab-pane>
-      <el-tab-pane label="界面">
-        界面
+      <!-- <el-tab-pane label="输出设置">
+        输出预设
       </el-tab-pane>
       <el-tab-pane label="模板">
         模板
       </el-tab-pane>
       <el-tab-pane label="字体">
         字体
-      </el-tab-pane>
+      </el-tab-pane> -->
     </el-tabs>
     <template #footer>
-      <CoButton type="primary" outline>
+      <CoButton type="primary" outline @click="handleSave">
         确定
       </CoButton>
-      <CoButton outline>
+      <CoButton outline @click="modelValue = false">
         取消
       </CoButton>
     </template>
@@ -34,7 +37,30 @@
 </template>
 
 <script lang="ts" setup>
+import { useConfig } from '@renderer/uses/config';
+import { cloneDeep } from 'lodash-es';
+import SettingTemplatePresets from './components/setting-template-presets.vue';
+
 const modelValue = defineModel({ default: false });
+
+const { config } = useConfig();
+
+const localConfig = ref(cloneDeep(config.value));
+
+watch(config, () => {
+  localConfig.value = cloneDeep(config.value);
+});
+
+watch(modelValue, (val) => {
+  if (val) {
+    localConfig.value = cloneDeep(config.value);
+  }
+});
+
+function handleSave() {
+  config.value = cloneDeep(localConfig.value);
+  modelValue.value = false;
+}
 </script>
 
 <style lang="scss">
@@ -75,6 +101,12 @@ const modelValue = defineModel({ default: false });
               background-color: #6b6b6b;
             }
           }
+        }
+      }
+
+      .el-tabs__content {
+        .el-tab-pane {
+          height: 100%;
         }
       }
     }

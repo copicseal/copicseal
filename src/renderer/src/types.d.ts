@@ -63,6 +63,8 @@ interface TemplatePreset {
   id: string; // 唯一 ID，比如 uuid 或自定义名称
   name: string; // 展示名称，比如“微博图·白边”
   templateId: string; // 所基于的原始模板 ID（如 TplDefault）
+  templateName: string;
+  description: string;
   templateProps?: Record<string, any>; // 模板参数
   background?: Settings['background']; // 背景设置
   fontFamily?: string; // 使用字体

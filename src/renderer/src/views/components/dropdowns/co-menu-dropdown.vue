@@ -19,9 +19,9 @@
 </template>
 
 <script lang="ts" setup>
-import CoAboutDialog from './dialogs/co-about-dialog.vue';
-import CoCheckUpdateDialog from './dialogs/co-check-update-dialog.vue';
-import CoSettingsDialog from './dialogs/co-settings-dialog.vue';
+import CoAboutDialog from '../dialogs/co-about-dialog.vue';
+import CoCheckUpdateDialog from '../dialogs/co-check-update-dialog.vue';
+import CoSettingsDialog from '../dialogs/co-settings-dialog.vue';
 
 const popperOptions = {
   modifiers: [

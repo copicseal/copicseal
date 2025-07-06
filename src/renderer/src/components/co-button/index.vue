@@ -49,6 +49,16 @@ defineProps<{
     }
   }
 
+  &--danger {
+    color: var(--el-color-danger);
+    border-color: var(--el-color-danger);
+  }
+
+  &--info {
+    color: var(--el-color-info);
+    border-color: var(--el-color-info);
+  }
+
   + .co-button {
     margin-left: 8px;
   }

@@ -6,6 +6,7 @@
     </div>
     <div class="co-menu__placeholder" />
     <div class="co-menu__btns">
+      <CoPresetsDropdown v-if="list.length" />
       <CoButton v-if="list.length" outline @click="handleExport()">
         导出
       </CoButton>
@@ -25,7 +26,8 @@
 import { Menu } from '@/components/co-icon';
 import { injectCoPic } from '@renderer/uses/co-pic';
 import { useExport } from '@renderer/uses/export';
-import CoMenuDropdown from './co-menu-dropdown.vue';
+import CoMenuDropdown from './dropdowns/co-menu-dropdown.vue';
+import CoPresetsDropdown from './dropdowns/co-presets-dropdown.vue';
 
 const { currentCoPic, currentIndex, list } = injectCoPic();
 

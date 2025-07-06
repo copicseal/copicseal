@@ -63,7 +63,7 @@
 import type { Output } from '@/types';
 import { Delete } from '@/components/co-icon/index';
 import { injectCoPic } from '@/uses/co-pic';
-import { storage } from '@/utils/storage';
+import { useConfig } from '@renderer/uses/config';
 
 const popperOptions = {
   modifiers: [
@@ -76,6 +76,7 @@ const popperOptions = {
   ],
 };
 
+const { config } = useConfig();
 const { currentCoPic, list } = injectCoPic();
 
 // const scaleOptions = ref([1, 2, 4, 6, 8]);
@@ -142,7 +143,7 @@ async function handleOutputFolder() {
   if (!path)
     return;
   outputPath.value = path;
-  storage.set('defaultOutputPath', path);
+  config.value.output.defaultPath = path;
   currentCoPic.value.getSettings().outputPath = path;
 }
 

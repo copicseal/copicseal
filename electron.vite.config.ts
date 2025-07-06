@@ -35,7 +35,9 @@ export default defineConfig({
       UnoCSS(),
       AutoImport({
         imports: ['vue'],
-        resolvers: [ElementPlusResolver()],
+        resolvers: [ElementPlusResolver({
+          importStyle: 'sass',
+        })],
       }),
       Components({
         resolvers: [ElementPlusResolver({

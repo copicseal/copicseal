@@ -50,9 +50,12 @@
 
 <script lang="ts" setup>
 import { injectCoPic } from '@renderer/uses/co-pic';
+import { useConfig } from '@renderer/uses/config';
+import { coMessage } from '@renderer/utils/element';
 
 const comps = import.meta.glob('@/views/tpls/*.vue', { eager: true, import: 'default' });
 
+const { config } = useConfig();
 const { currentCoPic } = injectCoPic();
 
 const tpls = computed(() => {
@@ -102,7 +105,10 @@ watch(() => currentCoPic.value, (val) => {
     return;
   }
   if (val.template.value) {
-    tpl.value = val.template.value.id;
+    tpl.value = val.state.templateId;
+    if (val.template.value.id !== val.state.templateId) {
+      val.template.value = tpls.value.find(item => item.value === tpl.value)?.component ?? tpls.value[0].component;
+    }
     currentCoPic.value.state.templateProps = tplProps.value.reduce((acc, cur) => {
       acc = {
         [cur.key]: cur.default,
@@ -115,8 +121,18 @@ watch(() => currentCoPic.value, (val) => {
     handleTplChange();
   }
 }, { immediate: true });
+
+watch(() => currentCoPic.value?.state?.templateId, (val) => {
+  if (!val) {
+    return;
+  }
+  tpl.value = val;
+  currentCoPic.value.template.value = tpls.value.find(item => item.value === tpl.value)?.component ?? tpls.value[0].component;
+}, { immediate: true });
+
 function handleTplChange() {
   currentCoPic.value.template.value = tpls.value.find(item => item.value === tpl.value)?.component ?? tpls.value[0].component;
+  currentCoPic.value.state.templateId = currentCoPic.value.template.value.id;
   currentCoPic.value.state.templateProps = tplProps.value.reduce((acc, cur) => {
     acc[cur.key] = cur.default;
     return acc;
@@ -124,14 +140,17 @@ function handleTplChange() {
 }
 
 const fonts = ref<{ name: string; value: string }[]>([]);
-async function loadFonts() {
+async function loadFonts(toast = true) {
   const list = await window.api.getSysFonts();
   fonts.value = list.map(item => ({ name: item, value: item }));
+  toast && coMessage('已加载系统字体', {
+    type: 'success',
+  });
 }
-loadFonts();
+loadFonts(false);
 
 function handleFontChange() {
-  localStorage.setItem('fontFamily', currentCoPic.value.state.fontFamily);
+  config.value.fonts.defaultFont = currentCoPic.value.state.fontFamily;
 }
 </script>
 

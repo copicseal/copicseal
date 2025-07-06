@@ -77,17 +77,17 @@ const settings = ref<Settings['background']>();
 
 let isPicChange = false;
 watch(
-  currentCoPic,
-  () => {
-    if (currentCoPic.value) {
+  () => currentCoPic.value?.state.settings.background,
+  (background) => {
+    if (background) {
       isPicChange = true;
-      settings.value = cloneDeep(currentCoPic.value.state.settings.background);
+      settings.value = cloneDeep(background);
     }
     else {
       settings.value = undefined;
     }
   },
-  { immediate: true },
+  { immediate: true, deep: true },
 );
 
 watch(

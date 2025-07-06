@@ -1,8 +1,11 @@
 import type { Settings } from '@/types';
 import type { Tags } from './exif';
 import TplDefault from '@/views/tpls/tpl-default.vue';
+import { useConfig } from '@renderer/uses/config';
 import { computed, reactive, ref, shallowRef } from 'vue';
 import { getExif } from './exif';
+
+const { config } = useConfig();
 
 export class CoPic {
   id = Math.random();
@@ -24,6 +27,7 @@ export class CoPic {
     exif: Tags;
     modifiedExif: Tags;
     isLoaded: boolean;
+    templateId: string;
     templateProps: Record<string, any>;
     fontFamily: string;
   }>({
@@ -35,8 +39,9 @@ export class CoPic {
     exif: {},
     modifiedExif: {},
     isLoaded: false,
+    templateId: TplDefault.id,
     templateProps: {},
-    fontFamily: localStorage.getItem('fontFamily') || 'Arial',
+    fontFamily: config.value.fonts.defaultFont || 'Arial',
   });
 
   template = shallowRef(TplDefault);

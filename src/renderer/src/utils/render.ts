@@ -81,12 +81,15 @@ function getMakeName(make?: string) {
   if (!make)
     return '';
 
+  make = make.trim();
+
   const makeMap: { [key: string]: string } = {
-    SONY: 'Sony',
-    Leica: 'Leica',
-    OM: 'Olympus',
-    NIKON: 'Nikon',
-    Panasonic: 'Lumix',
+    'SONY': 'Sony',
+    'Leica': 'Leica',
+    'OM': 'Olympus',
+    'NIKON': 'Nikon',
+    'Panasonic': 'Lumix',
+    'RICOH IMAGING COMPANY, LTD.': 'RICOH',
   };
 
   if (makeMap[make])

@@ -219,7 +219,7 @@ const datetimeStyle = computed(() => {
         display: flex;
 
         :deep(svg) {
-          width: 100rem;
+          width: unset;
         }
       }
 
@@ -234,7 +234,6 @@ const datetimeStyle = computed(() => {
     .model-name {
       display: flex;
       align-items: flex-end;
-      margin-left: 0.05rem;
       font-size: calc(var(--font-scale) * 0.1rem);
     }
 

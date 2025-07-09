@@ -170,12 +170,12 @@ const isHorizontal = computed(() => {
 
         :deep(svg) {
           width: unset;
-          height: unset;
         }
       }
 
       > img,
       :deep(svg) {
+        height: 100rem;
         max-height: calc(var(--font-scale) * 0.2rem);
         max-width: calc(var(--font-scale) * 0.6rem);
       }

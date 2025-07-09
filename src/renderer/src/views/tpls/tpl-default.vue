@@ -187,12 +187,12 @@ const isHorizontal = computed(() => {
 
         :deep(svg) {
           width: unset;
-          height: unset;
         }
       }
 
       > img,
       :deep(svg) {
+        height: 100rem;
         max-height: calc(var(--font-scale) * 0.2rem);
         max-width: calc(var(--font-scale) * 0.6rem);
       }
@@ -220,7 +220,7 @@ const isHorizontal = computed(() => {
       justify-content: flex-end;
       font-size: calc(var(--font-scale) * 0.08rem);
       text-align: right;
-      color: color-mix(in srgb, var(--text-color) 50%, #888888ff);
+      color: color-mix(in srgb, var(--text-color) 50%, transparent);
     }
   }
 }

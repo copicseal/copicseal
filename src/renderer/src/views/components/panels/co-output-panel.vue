@@ -20,11 +20,11 @@
       </div>
       <template v-for="(item, index) in outputs" :key="index">
         <div class="width-height">
-          <input v-model="item.width" type="text">
+          <input v-model="item.width" type="text" :disabled="item.isOriginal">
           <div class="separator" @click="handleSwap(item)">
             ⇋
           </div>
-          <input v-model="item.height" type="text">
+          <input v-model="item.height" type="text" :disabled="item.isOriginal">
         </div>
         <!-- <div>
           <select v-model="item.scale">

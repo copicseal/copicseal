@@ -1,5 +1,6 @@
 import type { MenuItemConstructorOptions } from 'electron';
 import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
+import semver from 'semver';
 import { handleCapture } from './utils/capture.ts';
 import { openTargetPath } from './utils/file.ts';
 import { getSysFonts } from './utils/font.ts';
@@ -47,12 +48,19 @@ export function mainHandles() {
       downloadLink: '',
       changelog: '',
     };
-    const res = await fetch(`https://copicseal-updater.kohai.top/${ret.currentVersion.includes('beta') ? 'beta' : 'stable'}`).then(r => r.json());
-    if (res?.[0]?.name) {
-      ret.latestVersion = res[0].name.replace('v', '');
+    const res = await fetch(`https://copicseal-updater.kohai.top/${ret.currentVersion.includes('beta') ? 'beta' : 'stable'}`)
+      .then(r => r.json() as Promise<{ name: string; body: string }[]>)
+      .catch(() => []);
+    if (res && res.length) {
+      res.forEach((item, index) => {
+        if (!index) {
+          ret.latestVersion = item.name.replace('v', '');
+        }
+        if (semver.gt(item.name, ret.currentVersion)) {
+          ret.changelog += `${item.body}\n`;
+        }
+      });
     }
-    if (res?.[0]?.body)
-      ret.changelog = res[0].body;
 
     ret.downloadLink = `https://copicseal-updater.kohai.top/download?version=v${ret.latestVersion}&platform=${process.platform}`;
 

@@ -44,7 +44,8 @@
     "marked": "^15.0.12",
     "piexifjs": "^1.0.6",
     "puppeteer-core": "^23.6.1",
-    "puppeteer-in-electron": "^3.0.5"
+    "puppeteer-in-electron": "^3.0.5",
+    "semver": "^7.7.2"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^4.2.0",
@@ -56,6 +57,7 @@
     "@rushstack/eslint-patch": "^1.10.3",
     "@stylistic/eslint-plugin-js": "^3.1.0",
     "@types/node": "^20.14.8",
+    "@types/semver": "^7.7.0",
     "@unocss/eslint-config": "^66.1.2",
     "@vitejs/plugin-vue": "^5.0.5",
     "@vitejs/plugin-vue-jsx": "^4.0.1",

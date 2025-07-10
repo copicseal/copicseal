@@ -15,7 +15,9 @@
       </div>
 
       <!-- 更新内容 -->
-      <div class="changelog" v-html="changelog" />
+      <el-scrollbar class="mt-2 changelog" max-height="200px">
+        <div v-html="changelog" />
+      </el-scrollbar>
     </div>
     <div v-else class="content">
       <div class="loading">

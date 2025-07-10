@@ -7,8 +7,8 @@
             Ps
           </template>
           <template v-else>
-            <div v-if="utils.getMakeLogoSvg(info.Make)" class="svg-logo" v-html="utils.getMakeLogoSvg(info.Make)" />
-            <img v-else-if="utils.getMakeLogo(info.Make)" :src="utils.getMakeLogo(info.Make)" alt="">
+            <div v-if="utils.getMakeLogoSvg(info)" class="svg-logo" v-html="utils.getMakeLogoSvg(info)" />
+            <img v-else-if="utils.getMakeLogo(info)" :src="utils.getMakeLogo(info)" alt="">
             <span v-else>{{ info.Make }}</span>
           </template>
         </div>

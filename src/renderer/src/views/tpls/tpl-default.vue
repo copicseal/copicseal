@@ -20,8 +20,8 @@
     <div class="card-info">
       <div class="make-model">
         <div class="make-logo">
-          <div v-if="logoColorAuto && utils.getMakeLogoSvg(info.Make)" class="svg-logo" v-html="utils.getMakeLogoSvg(info.Make)" />
-          <img v-else-if="utils.getMakeLogo(info.Make)" :src="utils.getMakeLogo(info.Make)" alt="">
+          <div v-if="logoColorAuto && utils.getMakeLogoSvg(info)" class="svg-logo" v-html="utils.getMakeLogoSvg(info)" />
+          <img v-else-if="utils.getMakeLogo(info)" :src="utils.getMakeLogo(info)" alt="">
           <span v-else>{{ info.Make }}</span>
         </div>
         <div class="model-name">

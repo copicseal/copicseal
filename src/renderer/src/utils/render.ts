@@ -55,6 +55,7 @@ function getModelName(model?: string) {
     'NIKON Z ': 'ℤ',
     'Canon': -1,
     'Digital Camera': -1,
+    'PENTAX': -1,
   };
 
   const matchKey = Object.keys(modelFormatMap).find((key) => {
@@ -84,12 +85,13 @@ function getMakeName(make?: string) {
   make = make.trim();
 
   const makeMap: { [key: string]: string } = {
-    'SONY': 'Sony',
-    'Leica': 'Leica',
-    'OM': 'Olympus',
-    'NIKON': 'Nikon',
-    'Panasonic': 'Lumix',
-    'RICOH IMAGING COMPANY, LTD.': 'RICOH',
+    SONY: 'Sony',
+    Leica: 'Leica',
+    OM: 'Olympus',
+    NIKON: 'Nikon',
+    Panasonic: 'Lumix',
+    PENTAX: 'PENTAX',
+    RICOH: 'RICOH',
   };
 
   if (makeMap[make])
@@ -104,10 +106,18 @@ function getMakeName(make?: string) {
   return make;
 }
 
-function getMakeLogo(make?: string) {
-  return make && logoMap[getMakeName(make).toUpperCase()];
+function getMakeLogo<T extends { Make: string; Model: string }>(exif?: string | T) {
+  if (typeof exif === 'string') {
+    return logoMap[getMakeName(exif).toUpperCase()];
+  }
+  return logoMap[getMakeName(exif?.Model).toUpperCase()]
+    || logoMap[getMakeName(exif?.Make).toUpperCase()];
 }
 
-function getMakeLogoSvg(make?: string) {
-  return make && logoSvgMap[getMakeName(make).toUpperCase()];
+function getMakeLogoSvg<T extends { Make: string; Model: string }>(exif?: string | T) {
+  if (typeof exif === 'string') {
+    return logoSvgMap[getMakeName(exif).toUpperCase()];
+  }
+  return logoSvgMap[getMakeName(exif?.Model).toUpperCase()]
+    || logoSvgMap[getMakeName(exif?.Make).toUpperCase()];
 }

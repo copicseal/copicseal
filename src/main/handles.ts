@@ -1,7 +1,10 @@
 import type { MenuItemConstructorOptions } from 'electron';
 import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
-import { handleCapture } from './utils/capture';
-import { openTargetPath } from './utils/file';
+import semver from 'semver';
+import { handleCapture } from './utils/capture.ts';
+import { openTargetPath } from './utils/file.ts';
+import { getSysFonts } from './utils/font.ts';
+import { store } from './utils/storage.ts';
 
 export function mainHandles() {
   ipcMain.handle('captureDOM', async (_event, options) => {
@@ -34,19 +37,45 @@ export function mainHandles() {
     return openTargetPath(options);
   });
 
+  ipcMain.handle('getSysFonts', async () => {
+    return getSysFonts();
+  });
+
   ipcMain.handle('getAppVersion', async () => {
     const ret = {
       currentVersion: app.getVersion(),
       latestVersion: app.getVersion(),
       downloadLink: '',
+      changelog: '',
     };
-    const res = await fetch(`https://copicseal-updater.kohai.top/${ret.currentVersion.includes('beta') ? 'beta' : 'stable'}`).then(r => r.json());
-    if (res?.[0]?.name) {
-      ret.latestVersion = res[0].name.replace('v', '');
+    const res = await fetch(`https://copicseal-updater.kohai.top/${ret.currentVersion.includes('beta') ? 'beta' : 'stable'}`)
+      .then(r => r.json() as Promise<{ name: string; body: string }[]>)
+      .catch(() => []);
+    if (res && res.length) {
+      res.forEach((item, index) => {
+        if (!index) {
+          ret.latestVersion = item.name.replace('v', '');
+        }
+        if (semver.gt(item.name, ret.currentVersion)) {
+          ret.changelog += `${item.body}\n`;
+        }
+      });
     }
 
     ret.downloadLink = `https://copicseal-updater.kohai.top/download?version=v${ret.latestVersion}&platform=${process.platform}`;
 
     return ret;
+  });
+
+  ipcMain.handle('config:get', (_e, key, defaultValue) => {
+    return store.get(key, defaultValue);
+  });
+
+  ipcMain.handle('config:set', (_e, key, value) => {
+    store.set(key, value);
+  });
+
+  ipcMain.handle('config:delete', (_e, key) => {
+    store.delete(key);
   });
 }

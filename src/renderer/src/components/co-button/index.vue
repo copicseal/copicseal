@@ -1,5 +1,5 @@
 <template>
-  <button class="co-button" :class="{ 'co-button--outline': outline, 'co-button--icon': icon }">
+  <button class="co-button" :class="{ 'co-button--outline': outline, 'co-button--icon': icon, [`co-button--${type}`]: type }" type="button">
     <slot />
   </button>
 </template>
@@ -8,6 +8,7 @@
 defineProps<{
   outline?: boolean;
   icon?: boolean;
+  type?: 'primary' | 'success' | 'warning' | 'danger' | 'info';
 }>();
 </script>
 
@@ -37,6 +38,24 @@ defineProps<{
     &:hover {
       background-color: transparent;
     }
+  }
+
+  &--primary {
+    background-color: var(--el-color-primary);
+    border-color: var(--el-color-primary);
+
+    &:hover {
+      background-color: var(--el-color-primary);
+    }
+  }
+
+  &--danger {
+    color: var(--el-color-danger);
+    border-color: var(--el-color-danger);
+  }
+
+  &--info {
+    border-color: #999;
   }
 
   + .co-button {

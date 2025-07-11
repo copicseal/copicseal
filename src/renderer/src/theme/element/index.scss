@@ -1,0 +1,27 @@
+@forward 'element-plus/theme-chalk/src/common/var.scss' with (
+  $colors: (
+    // 'primary': (
+    //   'base': green,
+     // ),
+  ),
+  $text-color: (
+    'primary': #fff,
+    'regular': #fff,
+    'secondary': #fff,
+    'placeholder': #fff,
+  ),
+  $bg-color: (
+    'page': #0a0a0a,
+    '': #535353,
+    'overlay': #1d1e1f,
+  ),
+  $fill-color: (
+    'primary': #68bbff,
+    'secondary': #3e3e3e,
+    'blank': #2c2c2c,
+    'light': #3e3e3e,
+  ),
+  $overlay-color: (
+    'lighter': rgba(255, 255, 255, 0.5),
+  )
+);

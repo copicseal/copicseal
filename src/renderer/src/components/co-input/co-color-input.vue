@@ -8,7 +8,6 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
 import CoInput from './index.vue';
 
 interface Props {
@@ -96,18 +95,19 @@ function rgbToHex(r: number, g: number, b: number) {
 
 <style lang="scss" scoped>
 .co-color-input {
-    display: flex;
-    align-items: center;
-    width: 100%;
+  display: flex;
+  align-items: center;
+  width: 100%;
 
-    > input {
-        flex: 1;
-        margin-right: 4px;
-    }
+  > input {
+    flex: 1;
+    margin-right: 4px;
+  }
 
-    .alpha {
-        max-width: 60px;
-        overflow: hidden;
-    }
+  .alpha {
+    max-width: 60px;
+    min-width: 48px;
+    overflow: hidden;
+  }
 }
 </style>

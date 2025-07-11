@@ -1,3 +1,4 @@
+import type { Output } from '@renderer/types';
 import { injectCoPic } from '@renderer/uses/co-pic';
 import { nextTick } from 'vue';
 import { injectProgress } from './progress';
@@ -49,7 +50,7 @@ export function useExport() {
     const res = await window.api.captureDOM({
       html,
       output: [
-        ...outputs.map((output) => {
+        ...outputs.map((output, index) => {
           output = { ...output };
           let fs = Number.parseFloat(fontSize);
           const outputRatio = output.width / output.height;
@@ -68,10 +69,11 @@ export function useExport() {
               output.height = Math.floor(output.width / containerRatio);
             }
           }
+
           return {
             ...output,
             rem: fs,
-            path: `${outputPath}/${filename}@${output.scale}x.${output.type}`,
+            path: `${outputPath}/${getOutputFilename(filename, outputs, index)}`,
           };
         }),
       ],
@@ -126,4 +128,14 @@ export function useExport() {
     handleExport,
     handleExportAll,
   };
+}
+
+function getOutputFilename(filename: string, outputs: Output[], index: number) {
+  const output = outputs[index];
+  const baseName = filename.split('.').slice(0, -1).join('.');
+  const outputType = output.type === 'jpeg' ? 'jpg' : output.type;
+
+  const outputName = `${baseName}@${output.width}x${output.height}.${outputType}`;
+
+  return outputName;
 }

@@ -71,7 +71,7 @@ export async function handleCapture({ html, output }: CaptureOptions, retry = 1)
     await page.screenshot({
       path: outputPath,
       type: currentOutput.type,
-      quality: currentOutput.quality,
+      quality: currentOutput.type !== 'png' ? currentOutput.quality ?? 100 : undefined,
     });
     page.setViewport(vp);
     console.log('截图完成', outputPath);

@@ -1,8 +1,11 @@
 import type { Settings } from '@/types';
 import type { Tags } from './exif';
 import TplDefault from '@/views/tpls/tpl-default.vue';
+import { useConfig } from '@renderer/uses/config';
 import { computed, reactive, ref, shallowRef } from 'vue';
 import { getExif } from './exif';
+
+const { config } = useConfig();
 
 export class CoPic {
   id = Math.random();
@@ -24,7 +27,9 @@ export class CoPic {
     exif: Tags;
     modifiedExif: Tags;
     isLoaded: boolean;
+    templateId: string;
     templateProps: Record<string, any>;
+    fontFamily: string;
   }>({
     settings: {
       background: { mode: 'none' },
@@ -34,7 +39,9 @@ export class CoPic {
     exif: {},
     modifiedExif: {},
     isLoaded: false,
+    templateId: TplDefault.id,
     templateProps: {},
+    fontFamily: config.value.fonts.defaultFont || 'Arial',
   });
 
   template = shallowRef(TplDefault);
@@ -109,7 +116,17 @@ export class CoPic {
     if (!this.exif.value) {
       this.exif.value = await getExif(this.file);
       this.state.exif = this.exif.value;
-      // this.imgInfo = toImgInfo(this.exif)
+      this.state.settings.outputs = this.state.settings.outputs.map((output) => {
+        if (output.isOriginal) {
+          const { ImageWidth, ImageHeight } = this.state.exif;
+          return {
+            ...output,
+            width: +(ImageWidth || output.width),
+            height: +(ImageHeight || output.height),
+          };
+        }
+        return output;
+      });
     }
     console.log(this.exif.value);
 

@@ -7,12 +7,12 @@
 
     <div v-if="expanded" class="inputs">
       <div class="grid-inputs">
-        <div class="label">
+        <!-- <div class="label">
           内阴影：
         </div>
         <div class="input">
           <input v-model="inset" type="checkbox">
-        </div>
+        </div> -->
         <div class="label">
           X 偏移：
         </div>
@@ -49,7 +49,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
 import CoColorInput from './co-color-input.vue';
 import CoInput from './index.vue';
 
@@ -99,54 +98,55 @@ watch([inset, x, y, blur, spread, color], () => {
 
 <style lang="scss" scoped>
   .co-shadow-input {
+  width: 100%;
+  font-size: 14px;
+  color: #fff;
+}
+
+.preview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.preview-box {
+  width: 20px;
+  height: 20px;
+  border: 1px solid #ccc;
+}
+
+.shadow-string {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inputs {
+  margin-top: 12px;
+
+  .grid-inputs {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 4px 4px;
     width: 100%;
-    font-size: 14px;
-    color: #fff;
-  }
 
-  .preview {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    cursor: pointer;
-  }
+    .label {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      white-space: nowrap;
+      font-size: 12px;
+      color: #ccc;
+    }
 
-  .preview-box {
-    width: 20px;
-    height: 20px;
-    border: 1px solid #ccc;
-  }
-
-  .shadow-string {
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .inputs {
-    margin-top: 12px;
-
-    .grid-inputs {
-        display: grid;
-        grid-template-columns: max-content 1fr;
-        gap: 4px 4px;
+    .input {
+      display: flex;
+      input {
         width: 100%;
-
-        .label {
-            display: flex;
-            align-items: center;
-            white-space: nowrap;
-            font-size: 12px;
-            color: #ccc;
-        }
-
-        .input {
-            display: flex;
-            input {
-                width: 100%;
-            }
-        }
+      }
     }
   }
+}
 </style>

@@ -68,9 +68,8 @@ import { DisabledByDefault, Image, Palette } from '@/components/co-icon';
 import CoInput from '@/components/co-input/index.vue';
 import CoRadioGroup from '@/components/co-radio-group/index.vue';
 import CoSettingsPanel from '@/components/co-settings-panel/index.vue';
-import { injectCoPic } from '@renderer/uses/co-pic';
+import { injectCoPic } from '@/uses/co-pic';
 import { cloneDeep } from 'lodash';
-import { ref, watch } from 'vue';
 
 const { currentCoPic, list } = injectCoPic();
 
@@ -78,17 +77,17 @@ const settings = ref<Settings['background']>();
 
 let isPicChange = false;
 watch(
-  currentCoPic,
-  () => {
-    if (currentCoPic.value) {
+  () => currentCoPic.value?.state.settings.background,
+  (background) => {
+    if (background) {
       isPicChange = true;
-      settings.value = cloneDeep(currentCoPic.value.state.settings.background);
+      settings.value = cloneDeep(background);
     }
     else {
       settings.value = undefined;
     }
   },
-  { immediate: true },
+  { immediate: true, deep: true },
 );
 
 watch(
@@ -153,7 +152,7 @@ const filterMap = {
   /* 关键代码：第一列宽度自适应内容，第二列自动填充 */
   grid-template-columns: max-content 1fr;
   /* 行/列间距 */
-  gap: 8px 16px;
+  gap: 8px 8px;
   margin-top: 12px;
 
   .label {

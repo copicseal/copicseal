@@ -5,10 +5,11 @@
       :key="opt.value"
       :title="opt.label"
       class="co-radio-group-item"
-      :class="{ 'is-icon': !!opt.icon, 'is-select': modelValue === opt.value }"
+      :class="{ 'is-icon': !!(opt.icon || opt.iconClass), 'is-select': modelValue === opt.value }"
       @click="emit('update:modelValue', opt.value)"
     >
       <component :is="opt.icon" v-if="opt.icon" />
+      <span v-else-if="opt.iconClass" class="icon-class" :class="opt.iconClass" />
       <span v-else>{{ opt.label }}</span>
     </div>
   </div>
@@ -19,6 +20,7 @@ import type { Component } from 'vue';
 
 export interface Option {
   icon?: Component;
+  iconClass?: string;
   label?: string;
   value?: string | number;
 }

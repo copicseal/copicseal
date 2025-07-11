@@ -86,7 +86,24 @@ export function apiPolyfill() {
         return {
           currentVersion: '1.0.0',
           latestVersion: '1.0.0',
+          changelog: '',
           downloadLink: 'https://copicseal.kohai.top/',
+        };
+      },
+      getSysFonts: async () => {
+        return ['Arial'];
+      },
+      getStorage() {
+        return {
+          async get(key) {
+            return JSON.parse(localStorage.getItem(key) || 'null');
+          },
+          async set(key, value) {
+            return localStorage.setItem(key, JSON.stringify(value));
+          },
+          async delete(key) {
+            return localStorage.removeItem(key);
+          },
         };
       },
     };

@@ -1,10 +1,14 @@
 import type { Tags as RawTags } from 'exifreader';
+import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
+
 // import Exif from 'exif-js'
 import ExifReader from 'exifreader';
 // import piexif from 'piexifjs';
 export { type ExifDict, ImageIFD, TAGS } from 'piexifjs';
 // export type ExifDict = piexif.ExifDict
 
+dayjs.extend(customParseFormat);
 // window.n = window.n ?? undefined
 
 export async function getExif(file: File) {
@@ -57,6 +61,11 @@ const exifKeyFormatter: Record<keyof RawTags, (exif: RawTags) => Tags> = {
       FocalLength: exif.FocalLength?.description.replace(' ', ''),
     };
   },
+  'DateTimeOriginal': (exif) => {
+    return {
+      DateTimeOriginal: dayjs(exif.DateTimeOriginal?.description, 'YYYY:MM:DD HH:mm:ss').format('YYYY-MM-DD HH:mm:ss'),
+    };
+  },
 };
 
 export const exifPrimaryKeys = [
@@ -65,7 +74,7 @@ export const exifPrimaryKeys = [
   'Make',
   'Model',
   'Software',
-  'DateTime',
+  'DateTimeOriginal',
   'LensModel',
   'FocalLength',
   'FNumber',

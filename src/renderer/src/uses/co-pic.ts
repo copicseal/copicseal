@@ -3,7 +3,7 @@ import type { Settings } from '../types';
 import type { CoPic } from '../utils/co-pic';
 import { cloneDeep } from 'lodash';
 import { computed, inject, provide, ref, shallowRef } from 'vue';
-import { storage } from '../utils/storage';
+import { useConfig } from './config';
 
 const CoPicInjectionKey: InjectionKey<ReturnType<typeof getCoPicList>>
   = Symbol('CoPicInjectionKey');
@@ -59,6 +59,8 @@ function getCoPicList() {
 }
 
 function getDefaultSettings(): Settings {
+  const { config } = useConfig();
+
   return {
     background: {
       mode: 'image',
@@ -82,15 +84,16 @@ function getDefaultSettings(): Settings {
       },
       padding: [0.2, 0.2],
     },
-    outputs: [
+    outputs: cloneDeep(config.value.output.presets ?? [
       {
         scale: 1,
         width: 1920,
         height: 1080,
         type: 'jpeg',
+        isOriginal: true,
       },
-    ],
-    outputPath: storage.getItem('defaultOutputPath') || '',
+    ]),
+    outputPath: config.value.output.defaultPath ?? '',
   };
 }
 
@@ -98,7 +101,7 @@ export const primaryExif = [
   { name: '相机厂商', key: 'Make' },
   { name: '相机型号', key: 'Model' },
   { name: '软件', key: 'Software' },
-  { name: '拍摄日期', key: 'DateTime' },
+  { name: '拍摄日期', key: 'DateTimeOriginal' },
   { name: '镜头型号', key: 'LensModel' },
   { name: '焦距', key: 'FocalLength' },
   { name: '光圈', key: 'FNumber' },

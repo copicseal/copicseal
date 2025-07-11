@@ -3,6 +3,12 @@ const logos = import.meta.glob<string>('../assets/logos/*.svg', {
   import: 'default',
 });
 
+const logoSvg = import.meta.glob<string>('../assets/logos/*.auto.svg', {
+  eager: true,
+  import: 'default',
+  query: 'raw',
+});
+
 const logoMap = Object.keys(logos).reduce(
   (map, path) => {
     const key = path.split('/').pop()?.split('.')[0];
@@ -14,9 +20,21 @@ const logoMap = Object.keys(logos).reduce(
   {} as Record<string, string>,
 );
 
+const logoSvgMap = Object.keys(logoSvg).reduce(
+  (map, path) => {
+    const key = path.split('/').pop()?.split('.')[0];
+    if (key)
+      map[key.toUpperCase()] = logoSvg[path]; // .replace(/(fill[=:]\s*"?)#\w+/g, '$1currentColor');
+
+    return map;
+  },
+  {} as Record<string, string>,
+);
+
 export const renderUtils = {
   getMakeName,
   getMakeLogo,
+  getMakeLogoSvg,
   getModelName,
 };
 
@@ -37,6 +55,7 @@ function getModelName(model?: string) {
     'NIKON Z ': 'ℤ',
     'Canon': -1,
     'Digital Camera': -1,
+    'PENTAX': -1,
   };
 
   const matchKey = Object.keys(modelFormatMap).find((key) => {
@@ -63,12 +82,16 @@ function getMakeName(make?: string) {
   if (!make)
     return '';
 
+  make = make.trim();
+
   const makeMap: { [key: string]: string } = {
     SONY: 'Sony',
     Leica: 'Leica',
     OM: 'Olympus',
     NIKON: 'Nikon',
     Panasonic: 'Lumix',
+    PENTAX: 'PENTAX',
+    RICOH: 'RICOH',
   };
 
   if (makeMap[make])
@@ -83,6 +106,18 @@ function getMakeName(make?: string) {
   return make;
 }
 
-function getMakeLogo(make?: string) {
-  return make && logoMap[getMakeName(make).toUpperCase()];
+function getMakeLogo<T extends { Make: string; Model: string }>(exif?: string | T) {
+  if (typeof exif === 'string') {
+    return logoMap[getMakeName(exif).toUpperCase()];
+  }
+  return logoMap[getMakeName(exif?.Model).toUpperCase()]
+    || logoMap[getMakeName(exif?.Make).toUpperCase()];
+}
+
+function getMakeLogoSvg<T extends { Make: string; Model: string }>(exif?: string | T) {
+  if (typeof exif === 'string') {
+    return logoSvgMap[getMakeName(exif).toUpperCase()];
+  }
+  return logoSvgMap[getMakeName(exif?.Model).toUpperCase()]
+    || logoSvgMap[getMakeName(exif?.Make).toUpperCase()];
 }

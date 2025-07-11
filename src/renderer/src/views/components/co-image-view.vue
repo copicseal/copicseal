@@ -13,10 +13,9 @@
 </template>``
 
 <script lang="ts" setup>
+import type { ElScrollbar } from 'element-plus';
+import { injectCoPic } from '@/uses/co-pic';
 import TplDefault from '@/views/tpls/tpl-default.vue';
-import { injectCoPic } from '@renderer/uses/co-pic';
-import { ElScrollbar } from 'element-plus';
-import { computed } from 'vue';
 import CoRender from './co-render.vue';
 
 const { currentCoPic } = injectCoPic();

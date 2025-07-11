@@ -1,1 +1,1 @@
-export const storage = localStorage;
+export const storage = window.api.getStorage();

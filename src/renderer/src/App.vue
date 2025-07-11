@@ -40,6 +40,11 @@ select {
     outline: none;
     border-color: #999;
   }
+
+  &:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+  }
 }
 
 select {

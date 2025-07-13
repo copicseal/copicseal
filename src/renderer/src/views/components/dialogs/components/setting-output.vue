@@ -8,6 +8,11 @@
           <span v-else>{{ row.width }} x {{ row.height }}</span>
         </template>
       </el-table-column>
+      <el-table-column prop="quality" label="画质">
+        <template #default="{ row }">
+          {{ Math.round(row.quality * 100) }}%
+        </template>
+      </el-table-column>
       <el-table-column prop="type" label="类型" />
       <el-table-column prop="actions" label="操作">
         <template #default="{ $index }">

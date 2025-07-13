@@ -2,8 +2,8 @@
   <CoSettingsPanel v-if="currentCoPic" title="输出">
     <div class="camera-info">
       <div>宽 * 高：</div>
-      <!-- <div>倍数：</div> -->
       <div>类型：</div>
+      <div>画质：</div>
       <div class="btn">
         <el-dropdown trigger="click" size="small" :popper-options="popperOptions" @command="handleAdd">
           <CoButton icon>
@@ -26,19 +26,15 @@
           </div>
           <input v-model="item.height" type="text" :disabled="item.isOriginal">
         </div>
-        <!-- <div>
-          <select v-model="item.scale">
-            <option v-for="option in scaleOptions" :key="option" :value="option">
-              {{ option }}x
-            </option>
-          </select>
-        </div> -->
         <div>
           <select v-model="item.type">
             <option v-for="option in typeOptions" :key="option" :value="option">
               {{ option }}
             </option>
           </select>
+        </div>
+        <div>
+          <CoInput v-if="item.type !== 'png'" v-model="item.quality!" mode="percent" :min="0" :max="100" />
         </div>
         <div class="btn">
           <CoButton v-show="outputs.length > 1" icon @click="handleDel(index)">
@@ -94,6 +90,9 @@ watch(() => currentCoPic.value?.state.settings, (settings) => {
   if (settings) {
     outputs.value = settings.outputs;
     outputPath.value = settings.outputPath || '';
+    outputs.value.forEach((item) => {
+      item.quality = item.quality ?? 1;
+    });
   }
 }, { deep: true });
 
@@ -118,6 +117,7 @@ function handleAdd(cmd: number) {
     outputs.value.push({
       scale: 1,
       type: 'jpeg',
+      quality: 1,
       ...opt.value,
       width: +(ImageWidth || opt.value.width),
       height: +(ImageHeight || opt.value.height),
@@ -187,7 +187,7 @@ function handleSaveAsDefault() {
 <style lang="scss" scoped>
 .camera-info {
   display: grid;
-  grid-template-columns: 2fr 56px 16px;
+  grid-template-columns: 2fr 56px 40px 16px;
   /* 行/列间距 */
   gap: 4px 8px;
 

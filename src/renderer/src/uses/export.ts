@@ -49,6 +49,7 @@ export function useExport() {
     });
     const res = await window.api.captureDOM({
       html,
+      dpi: Number(currentCoPic.value.state.exif.XResolution ?? 0),
       output: [
         ...outputs.map((output, index) => {
           output = { ...output };

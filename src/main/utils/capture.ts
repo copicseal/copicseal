@@ -2,6 +2,7 @@ import type { Page } from 'puppeteer-core';
 import path, { join } from 'node:path';
 import { is } from '@electron-toolkit/utils';
 import { app, BrowserWindow } from 'electron';
+import { exiftool } from 'exiftool-vendored';
 import puppeteer from 'puppeteer-core';
 import pie from 'puppeteer-in-electron';
 
@@ -17,13 +18,14 @@ interface Output {
 
 export interface CaptureOptions {
   html: string;
+  dpi?: number;
   output: Output[] | Output;
 }
 
 let mainWindow: BrowserWindow | null = null;
 let page: Page | null = null;
 let timer: ReturnType<typeof setTimeout> | null = null;
-export async function handleCapture({ html, output }: CaptureOptions, retry = 1) {
+export async function handleCapture({ html, output, dpi }: CaptureOptions, retry = 1) {
   if (!Array.isArray(output)) {
     output = [output];
   }
@@ -73,6 +75,13 @@ export async function handleCapture({ html, output }: CaptureOptions, retry = 1)
       type: currentOutput.type,
       quality: currentOutput.type !== 'png' ? Math.max(0, Math.min(100, Math.round((currentOutput.quality ?? 1) * 100))) : undefined,
     });
+    if (dpi) {
+      await exiftool.write(outputPath, {
+        XResolution: dpi,
+        YResolution: dpi,
+        ResolutionUnit: 'inches',
+      }, { writeArgs: ['-overwrite_original'] });
+    }
     page.setViewport(vp);
     console.log('截图完成', outputPath);
     timer = setTimeout(() => {
@@ -84,7 +93,7 @@ export async function handleCapture({ html, output }: CaptureOptions, retry = 1)
     }, 10 * 1000);
     console.timeEnd('capture-div');
 
-    return [outputPath, ...(await handleCapture({ html, output: output.slice(1) }))].filter(
+    return [outputPath, ...(await handleCapture({ html, output: output.slice(1), dpi }))].filter(
       Boolean,
     );
   }

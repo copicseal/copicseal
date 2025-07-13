@@ -38,6 +38,9 @@ importers:
       exifreader:
         specifier: ^4.25.0
         version: 4.25.0
+      exiftool-vendored:
+        specifier: ^30.3.0
+        version: 30.3.0
       font-list:
         specifier: ^1.5.1
         version: 1.5.1
@@ -896,6 +899,9 @@ packages:
     resolution: {integrity: sha512-HNjmfLQEVRZmHRET336f20H/8kOozUGwk7yajvsonjNxbj2wBTK1WsQuHkD5yYh9RxFGL2EyDHryOihOwUoKDA==}
     engines: {node: '>= 10.0.0'}
 
+  '@photostructure/tz-lookup@11.2.0':
+    resolution: {integrity: sha512-DwrvodcXHNSdGdeSF7SBL5o8aBlsaeuCuG7633F04nYsL3hn5Hxe3z/5kCqxv61J1q7ggKZ27GPylR3x0cPNXQ==}
+
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
@@ -1086,6 +1092,9 @@ packages:
 
   '@types/lodash@4.17.13':
     resolution: {integrity: sha512-lfx+dftrEZcdBPczf9d0Qv0x+j/rfNCMuC6OcfXmO8gkfeNAY88PgKUbvG56whcN23gc27yenwF6oJZXGFpYxg==}
+
+  '@types/luxon@3.6.2':
+    resolution: {integrity: sha512-R/BdP7OxEMc44l2Ex5lSXHoIXTB2JLNa3y2QISIbr58U/YcsffyQrYW//hZSdrfxrjRZj3GcUoxMPGdO8gSYuw==}
 
   '@types/mdast@4.0.4':
     resolution: {integrity: sha512-kGaNbPh1k7AFzgpud/gMdvIm5xuECykRR+JnWKQno9TAXVa6WIVCGTPvYGekIDL4uwCZQSYbUxNBSb1aUo79oA==}
@@ -1651,6 +1660,10 @@ packages:
   basic-ftp@5.0.5:
     resolution: {integrity: sha512-4Bcg1P8xhUuqcii/S0Z9wiHIrQVPMermM1any+MX5GeGD7faD3/msQUDGLol9wOcz4/jbg/WJnGqoJF6LiBdtg==}
     engines: {node: '>=10.0.0'}
+
+  batch-cluster@14.0.0:
+    resolution: {integrity: sha512-tymryLKMSho+WAaYiVQCMQ9SNHOrNDKO+J8l89RyICkSwK05XknrILAPUz6ABWa8MZOoTbLpIxFCFfyBTZGrIA==}
+    engines: {node: '>=20'}
 
   binary-extensions@2.3.0:
     resolution: {integrity: sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw==}
@@ -2393,6 +2406,19 @@ packages:
   exifreader@4.25.0:
     resolution: {integrity: sha512-lPyPXWTUuYgoKdKf3rw2EDoE9Zl7xHoy/ehPNeQ4gFVNLzfLyNMP4oEI+sP0/Czp5r/2i7cFhqg5MHsl4FYtyw==}
 
+  exiftool-vendored.exe@13.31.0:
+    resolution: {integrity: sha512-SjL+8N1dvLwJdxj5yviboAGfiPmyD6yssnmy9aqDDkJG/ffl/BKvw45ObjVnVD679PRPXs9x2uMTz4P4eHUlEw==}
+    os: [win32]
+
+  exiftool-vendored.pl@13.31.0:
+    resolution: {integrity: sha512-xaCzPLKkJD50znV5KCvNQMCgknPEfHQZQeO20JPgGt2S+MLSmpCBxSr9QYe4gycQN/BZPae9B5pY4Bo86dtO/A==}
+    os: ['!win32']
+    hasBin: true
+
+  exiftool-vendored@30.3.0:
+    resolution: {integrity: sha512-rkuivrunbckFFvUbk7aohOAk2nAqErB0XNIYU7Bip7L4FtBDfKz0Ka24VGXHTpUpxES3SEUi21wRwP+Wp+t7yQ==}
+    engines: {node: '>=20.0.0'}
+
   exsolve@1.0.5:
     resolution: {integrity: sha512-pz5dvkYYKQ1AHVrgOzBKWeP4u4FRb3a6DNK2ucr0OoNwYIU4QWsJ+NM36LLzORT+z845MzKHHhpXiUF5nvQoJg==}
 
@@ -2927,6 +2953,10 @@ packages:
 
   lru-cache@7.18.3:
     resolution: {integrity: sha512-jumlc0BIUrS3qJGgIkWZsyfAM7NCWiBcCDhnd+3NNM5KbBmLTgHVfWBcg6W+rLUsIpzpERPsvwUP7CckAQSOoA==}
+    engines: {node: '>=12'}
+
+  luxon@3.7.1:
+    resolution: {integrity: sha512-RkRWjA926cTvz5rAb1BqyWkKbbjzCGchDUIKMCUvNi17j6f6j8uHGDV82Aqcqtzd+icoYpELmG3ksgGiFNNcNg==}
     engines: {node: '>=12'}
 
   magic-string@0.30.12:
@@ -4147,7 +4177,7 @@ snapshots:
       '@eslint-community/eslint-plugin-eslint-comments': 4.4.1(eslint@8.57.1)
       '@eslint/markdown': 6.2.2
       '@stylistic/eslint-plugin': 4.0.0-beta.1(eslint@8.57.1)(typescript@5.6.3)
-      '@typescript-eslint/eslint-plugin': 8.23.0(@typescript-eslint/parser@8.23.0(eslint@8.57.1)(typescript@5.6.3))(eslint@8.57.1)(typescript@5.6.3)
+      '@typescript-eslint/eslint-plugin': 8.23.0(@typescript-eslint/parser@7.18.0(eslint@8.57.1)(typescript@5.6.3))(eslint@8.57.1)(typescript@5.6.3)
       '@typescript-eslint/parser': 8.23.0(eslint@8.57.1)(typescript@5.6.3)
       '@vitest/eslint-plugin': 1.1.27(@typescript-eslint/utils@8.32.1(eslint@8.57.1)(typescript@5.6.3))(eslint@8.57.1)(typescript@5.6.3)
       eslint: 8.57.1
@@ -4847,6 +4877,8 @@ snapshots:
       '@parcel/watcher-win32-ia32': 2.4.1
       '@parcel/watcher-win32-x64': 2.4.1
 
+  '@photostructure/tz-lookup@11.2.0': {}
+
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
@@ -5001,6 +5033,8 @@ snapshots:
 
   '@types/lodash@4.17.13': {}
 
+  '@types/luxon@3.6.2': {}
+
   '@types/mdast@4.0.4':
     dependencies:
       '@types/unist': 3.0.3
@@ -5074,10 +5108,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/eslint-plugin@8.23.0(@typescript-eslint/parser@8.23.0(eslint@8.57.1)(typescript@5.6.3))(eslint@8.57.1)(typescript@5.6.3)':
+  '@typescript-eslint/eslint-plugin@8.23.0(@typescript-eslint/parser@7.18.0(eslint@8.57.1)(typescript@5.6.3))(eslint@8.57.1)(typescript@5.6.3)':
     dependencies:
       '@eslint-community/regexpp': 4.12.1
-      '@typescript-eslint/parser': 8.23.0(eslint@8.57.1)(typescript@5.6.3)
+      '@typescript-eslint/parser': 7.18.0(eslint@8.57.1)(typescript@5.6.3)
       '@typescript-eslint/scope-manager': 8.23.0
       '@typescript-eslint/type-utils': 8.23.0(eslint@8.57.1)(typescript@5.6.3)
       '@typescript-eslint/utils': 8.23.0(eslint@8.57.1)(typescript@5.6.3)
@@ -5803,6 +5837,8 @@ snapshots:
   base64-js@1.5.1: {}
 
   basic-ftp@5.0.5: {}
+
+  batch-cluster@14.0.0: {}
 
   binary-extensions@2.3.0: {}
 
@@ -6615,7 +6651,7 @@ snapshots:
     dependencies:
       eslint: 8.57.1
     optionalDependencies:
-      '@typescript-eslint/eslint-plugin': 8.23.0(@typescript-eslint/parser@8.23.0(eslint@8.57.1)(typescript@5.6.3))(eslint@8.57.1)(typescript@5.6.3)
+      '@typescript-eslint/eslint-plugin': 8.23.0(@typescript-eslint/parser@7.18.0(eslint@8.57.1)(typescript@5.6.3))(eslint@8.57.1)(typescript@5.6.3)
 
   eslint-plugin-vue@9.30.0(eslint@8.57.1):
     dependencies:
@@ -6748,6 +6784,23 @@ snapshots:
   exifreader@4.25.0:
     optionalDependencies:
       '@xmldom/xmldom': 0.9.5
+
+  exiftool-vendored.exe@13.31.0:
+    optional: true
+
+  exiftool-vendored.pl@13.31.0:
+    optional: true
+
+  exiftool-vendored@30.3.0:
+    dependencies:
+      '@photostructure/tz-lookup': 11.2.0
+      '@types/luxon': 3.6.2
+      batch-cluster: 14.0.0
+      he: 1.2.0
+      luxon: 3.7.1
+    optionalDependencies:
+      exiftool-vendored.exe: 13.31.0
+      exiftool-vendored.pl: 13.31.0
 
   exsolve@1.0.5: {}
 
@@ -7289,6 +7342,8 @@ snapshots:
       yallist: 4.0.0
 
   lru-cache@7.18.3: {}
+
+  luxon@3.7.1: {}
 
   magic-string@0.30.12:
     dependencies:

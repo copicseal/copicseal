@@ -39,6 +39,7 @@
     "electron-updater": "^6.3.9",
     "element-plus": "^2.9.10",
     "exifreader": "^4.25.0",
+    "exiftool-vendored": "^30.3.0",
     "font-list": "^1.5.1",
     "lodash-es": "^4.17.21",
     "marked": "^15.0.12",

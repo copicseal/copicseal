@@ -12,6 +12,7 @@
     "copicseal",
     "exif",
     "exifreader",
+    "exiftool",
     "piexif",
     "piexifjs"
   ],

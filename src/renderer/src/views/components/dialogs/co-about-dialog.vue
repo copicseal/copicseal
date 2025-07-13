@@ -39,7 +39,7 @@
           </a>
         </el-tooltip>
         <el-popover title="QQ交流群" width="200">
-          <img style="width: 100%;" src="https://copicseal-s0.kohai.top/assets/images/qq_group_qrcode.jpg" alt="">
+          <img style="width: 100%;" :src="`https://copicseal-s0.kohai.top/assets/images/qq_group_qrcode.jpg?t=${t}`" alt="QQ交流群">
           <template #reference>
             <a href="https://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=2oA3p4PkON0BqPOQ8YmDfEEEFs3O-Qec&authKey=y7Wh6li8APK%2Bk5s3dkXTrdA%2FSZM1Q8eSIIE%2BlmEXd62YCjdfdQJOhNjnKIWo2%2BSH&noverify=0&group_code=1038047655" target="_blank">
               <img class="icon" src="@/assets/qq.svg" alt="QQ">
@@ -47,7 +47,7 @@
           </template>
         </el-popover>
         <el-popover title="微信交流群" width="200">
-          <img style="width: 100%;" src="https://copicseal-s0.kohai.top/assets/images/wechat_group_qrcode.jpg" alt="">
+          <img style="width: 100%;" :src="`https://copicseal-s0.kohai.top/assets/images/wechat_group_qrcode.jpg?t=${t}`" alt="微信交流群">
           <template #reference>
             <a href="#">
               <img class="icon" src="@/assets/wechat.svg" alt="微信">
@@ -72,6 +72,8 @@
 </template>
 
 <script lang="ts" setup>
+const t = Date.now();
+
 const appVersion = ref({
   currentVersion: '',
   latestVersion: '',

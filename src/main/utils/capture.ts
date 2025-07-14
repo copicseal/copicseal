@@ -76,11 +76,21 @@ export async function handleCapture({ html, output, dpi }: CaptureOptions, retry
       quality: currentOutput.type !== 'png' ? Math.max(0, Math.min(100, Math.round((currentOutput.quality ?? 1) * 100))) : undefined,
     });
     if (dpi) {
-      await exiftool.write(outputPath, {
-        XResolution: dpi,
-        YResolution: dpi,
-        ResolutionUnit: 'inches',
-      }, { writeArgs: ['-overwrite_original'] });
+      if (currentOutput.type === 'png') {
+        const PixelsPerUnitX = Math.round(dpi * (11811 / 300));
+        await exiftool.write(outputPath, {
+          PixelsPerUnitX,
+          PixelsPerUnitY: PixelsPerUnitX,
+          PixelUnits: 'meters',
+        } as any, { writeArgs: ['-overwrite_original'] });
+      }
+      else {
+        await exiftool.write(outputPath, {
+          XResolution: dpi,
+          YResolution: dpi,
+          ResolutionUnit: 'inches',
+        }, { writeArgs: ['-overwrite_original'] });
+      }
     }
     page.setViewport(vp);
     console.log('截图完成', outputPath);

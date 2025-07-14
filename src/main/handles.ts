@@ -56,7 +56,7 @@ export function mainHandles() {
         if (!index) {
           ret.latestVersion = item.name.replace('v', '');
         }
-        if (semver.gt(item.name, ret.currentVersion)) {
+        if (semver.gte(item.name, ret.currentVersion)) {
           ret.changelog += `${item.body}\n`;
         }
       });

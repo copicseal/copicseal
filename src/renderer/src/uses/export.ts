@@ -1,5 +1,6 @@
 import type { Output } from '@renderer/types';
 import { injectCoPic } from '@renderer/uses/co-pic';
+import { coMessage } from '@renderer/utils/element';
 import { nextTick } from 'vue';
 import { injectProgress } from './progress';
 
@@ -83,17 +84,19 @@ export function useExport() {
     console.log(res);
   }
 
-  function checkOutputPath() {
-    const { outputPath } = currentCoPic.value.getSettings();
+  function checkOutputConfig() {
+    const { outputPath, outputs } = currentCoPic.value.getSettings();
     if (!outputPath) {
-      // eslint-disable-next-line no-alert
-      return void alert('请先设置【输出】-【导出目录】');
+      return void coMessage('请前往【输出】设置导出目录', { type: 'warning' });
+    }
+    if (!outputs.length) {
+      return void coMessage('请前往【输出】设置至少一种导出尺寸', { type: 'warning' });
     }
     return true;
   }
 
   async function handleExport() {
-    if (!checkOutputPath())
+    if (!checkOutputConfig())
       return;
     progress.value.visible = true;
     progress.value.current = 0;
@@ -105,7 +108,7 @@ export function useExport() {
   }
 
   async function handleExportAll() {
-    if (!checkOutputPath())
+    if (!checkOutputConfig())
       return;
     console.time('exportAll');
     progress.value.visible = true;

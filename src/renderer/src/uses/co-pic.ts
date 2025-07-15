@@ -84,15 +84,18 @@ function getDefaultSettings(): Settings {
       },
       padding: [0.2, 0.2],
     },
-    outputs: cloneDeep(config.value.output.presets ?? [
-      {
-        scale: 1,
-        width: 1920,
-        height: 1080,
-        type: 'jpeg',
-        isOriginal: true,
-      },
-    ]),
+    outputs: cloneDeep(config.value.output.presets.length
+      ? config.value.output.presets
+      : [
+          {
+            scale: 1,
+            width: 1920,
+            height: 1080,
+            type: 'jpeg',
+            quality: 0.8,
+            isOriginal: true,
+          },
+        ]),
     outputPath: config.value.output.defaultPath ?? '',
   };
 }

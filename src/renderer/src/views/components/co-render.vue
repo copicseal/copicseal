@@ -31,6 +31,9 @@ export default defineComponent({
       type: Object as PropType<Tags>,
       required: true,
     },
+    fontFamily: {
+      type: String,
+    },
   },
   setup(props) {
     const isHorizontal = ref(true);
@@ -130,6 +133,7 @@ export default defineComponent({
           utils={renderUtils}
           info={info}
           imgUrl={props.imgUrl}
+          fontFamily={props.fontFamily}
         />
       );
     }

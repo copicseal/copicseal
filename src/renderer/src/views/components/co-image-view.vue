@@ -7,6 +7,7 @@
       :img-url="currentCoPic.imgUrl"
       :settings="currentCoPic.state.settings"
       :exif="outputExif"
+      :font-family="currentCoPic.state.fontFamily"
     />
     <!-- <component :is="currentCoPic.update()" v-if="currentCoPic" /> -->
   </ElScrollbar>

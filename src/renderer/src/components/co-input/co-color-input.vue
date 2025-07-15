@@ -8,8 +8,6 @@
 </template>
 
 <script lang="ts" setup>
-import CoInput from './index.vue';
-
 interface Props {
   modelValue: string;
 }
@@ -20,11 +18,16 @@ const emit = defineEmits<{
 
 const hex = ref('#000000');
 const alpha = ref(1);
+const rgba = ref('');
 
 // 初始化：解析 rgba()
 watch(
   () => props.modelValue,
   (val) => {
+    if (val === rgba.value) {
+      return;
+    }
+
     if (val.startsWith('#')) {
       const { r, g, b, a } = hexToRgba(val);
       hex.value = rgbToHex(r, g, b);
@@ -42,13 +45,14 @@ watch(
   { immediate: true },
 );
 
-const rgba = computed(() => {
-  const { r, g, b } = hexToRgba(hex.value);
-  return `rgba(${r}, ${g}, ${b}, ${alpha.value})`;
-});
-
-watch(rgba, (val) => {
-  emit('update:modelValue', val);
+let t: ReturnType<typeof setTimeout>;
+watch(() => [hex.value, alpha.value], () => {
+  clearTimeout(t);
+  t = setTimeout(() => {
+    const { r, g, b } = hexToRgba(hex.value);
+    rgba.value = `rgba(${r}, ${g}, ${b}, ${alpha.value})`;
+    emit('update:modelValue', rgba.value);
+  }, 500);
 });
 
 // utils

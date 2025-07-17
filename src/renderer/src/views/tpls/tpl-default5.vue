@@ -1,9 +1,10 @@
 <template>
   <div
     class="tpl-card"
-    :class="{ 'is-logo-shadow': logoShadow }"
+    :class="{ 'is-logo-shadow': logoShadow, 'is-horizontal': layout === 'H' }"
     :style="{
       '--font-scale': fontScale,
+      '--gap-scale': gapScale,
       '--text-color': textColor,
     }"
   >
@@ -19,22 +20,26 @@
       class="detail-info"
       :style="datetimeStyle"
     >
-      <div class="make-logo">
-        <div v-if="logoColorAuto && utils.getMakeLogoSvg(info)" class="svg-logo" v-html="utils.getMakeLogoSvg(info)" />
-        <img v-else-if="utils.getMakeLogo(info)" :src="utils.getMakeLogo(info)" alt="">
-        <span v-else>{{ info.Make }}</span>
+      <div class="part1">
+        <div class="make-logo">
+          <div v-if="logoColorAuto && utils.getMakeLogoSvg(info)" class="svg-logo" v-html="utils.getMakeLogoSvg(info)" />
+          <img v-else-if="utils.getMakeLogo(info)" :src="utils.getMakeLogo(info)" alt="">
+          <span v-else>{{ info.Make }}</span>
+        </div>
       </div>
-      <div class="model-name">
-        {{ utils.getModelName(info.Model) }}
-      </div>
-      <div class="basie-info">
-        <span>{{ info.FocalLength }}</span>
-        <span>{{ info.FNumber }}</span>
-        <span v-if="info.ExposureTime">{{ info.ExposureTime }}s</span>
-        <span v-if="info.ISOSpeedRatings">ISO{{ info.ISOSpeedRatings }}</span>
-      </div>
-      <div class="date-time">
-        {{ datetime }}
+      <div class="part2">
+        <div class="model-name">
+          {{ utils.getModelName(info.Model) }}
+        </div>
+        <div class="basie-info">
+          <span>{{ info.FocalLength }}</span>
+          <span>{{ info.FNumber }}</span>
+          <span v-if="info.ExposureTime">{{ info.ExposureTime }}s</span>
+          <span v-if="info.ISOSpeedRatings">ISO{{ info.ISOSpeedRatings }}</span>
+        </div>
+        <div class="date-time">
+          {{ datetime }}
+        </div>
       </div>
     </div>
   </div>
@@ -60,12 +65,31 @@ const props = defineProps({
     type: Object,
     default: () => ({}),
   },
+  layout: {
+    type: String,
+    default: 'V',
+    __co: {
+      label: '布局排列',
+      enums: [
+        { label: '垂直', value: 'V' },
+        { label: '水平', value: 'H' },
+      ],
+    },
+  },
+  gapScale: {
+    type: Number,
+    default: 1,
+    __co: {
+      label: '布局间距',
+    },
+  },
   dateFormat: {
     type: String,
     default: 'YYYY-MM-DD HH:mm:ss',
     __co: {
       label: '日期格式',
       description: 'YYYY-年份，MM-月份，DD-日期，HH-时，mm-分，ss-秒',
+      when: props => props.layout === 'V',
     },
   },
   fontScale: {
@@ -186,7 +210,9 @@ const datetimeStyle = computed(() => {
 <style lang="scss" scoped>
 .tpl-card {
   --font-scale: 1;
+  --gap-scale: 1;
   --text-color: #000;
+  --calc-gap-scale: calc(var(--font-scale) * var(--gap-scale));
   position: relative;
   color: var(--text-color);
 
@@ -194,6 +220,42 @@ const datetimeStyle = computed(() => {
     .detail-info .make-logo {
       > img {
         filter: drop-shadow(0 0 0.02rem var(--text-color)) drop-shadow(0 0 0.02rem var(--text-color));
+      }
+    }
+  }
+
+  &.is-horizontal {
+    .detail-info {
+      display: flex;
+      align-items: center;
+
+      .part1,
+      .part2 {
+        align-items: flex-start;
+      }
+
+      .part2 {
+        position: relative;
+        margin-left: calc(var(--calc-gap-scale) * 0.08rem);
+        padding-left: calc(var(--calc-gap-scale) * 0.08rem);
+
+        &::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: calc(var(--font-scale) * 0.05rem);
+          bottom: calc(var(--font-scale) * 0.05rem);
+          width: calc(var(--font-scale) * 0.005rem);
+          background-color: var(--text-color);
+        }
+      }
+
+      .model-name {
+        margin-top: 0;
+      }
+
+      .date-time {
+        display: none;
       }
     }
   }
@@ -206,9 +268,13 @@ const datetimeStyle = computed(() => {
 
   .detail-info {
     position: absolute;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+
+    .part1,
+    .part2 {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
 
     .make-logo {
       display: flex;
@@ -234,6 +300,7 @@ const datetimeStyle = computed(() => {
     .model-name {
       display: flex;
       align-items: flex-end;
+      margin-top: calc(var(--calc-gap-scale) * 0.01rem);
       font-size: calc(var(--font-scale) * 0.1rem);
     }
 
@@ -241,10 +308,11 @@ const datetimeStyle = computed(() => {
       display: flex;
       align-items: flex-end;
       gap: 0.5em;
+      margin-top: calc(var(--calc-gap-scale) * 0.01rem);
       font-size: calc(var(--font-scale) * 0.1rem);
     }
     .date-time {
-      margin-top: calc(var(--font-scale) * 0.02rem);
+      margin-top: calc(var(--calc-gap-scale) * 0.02rem);
       font-size: calc(var(--font-scale) * 0.08rem);
       text-align: center;
       color: color-mix(in srgb, var(--text-color) 50%, transparent);

@@ -52,14 +52,19 @@ export function mainHandles() {
       .then(r => r.json() as Promise<{ name: string; body: string }[]>)
       .catch(() => []);
     if (res && res.length) {
-      res.forEach((item, index) => {
-        if (!index) {
+      const changlog: string[] = [];
+      res.forEach((item) => {
+        if (semver.gt(item.name, ret.latestVersion)) {
           ret.latestVersion = item.name.replace('v', '');
         }
         if (semver.gte(item.name, ret.currentVersion)) {
-          ret.changelog += `${item.body}\n`;
+          changlog.push(item.body);
         }
       });
+      if (changlog.length > 1) {
+        changlog.pop();
+      }
+      ret.changelog = changlog.join('\n---\n') || '暂无更新信息';
     }
 
     ret.downloadLink = `https://copicseal-updater.kohai.top/download?version=v${ret.latestVersion}&platform=${process.platform}`;

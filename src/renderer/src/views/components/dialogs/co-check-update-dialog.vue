@@ -7,11 +7,11 @@
   >
     <div v-if="isLoaded" class="content">
       <!-- 更新标题 -->
-      <div v-if="version.latestVersion !== version.currentVersion" class="title">
-        🎉 新版本：v{{ version.currentVersion }} {{ '->' }} v{{ version.latestVersion }}
+      <div v-if="appVersion.latestVersion !== appVersion.currentVersion" class="title">
+        🎉 新版本：v{{ appVersion.currentVersion }} {{ '->' }} v{{ appVersion.latestVersion }}
       </div>
       <div v-else class="title">
-        🎉 已是最新版本：v{{ version.currentVersion }}
+        🎉 已是最新版本：v{{ appVersion.currentVersion }}
       </div>
 
       <!-- 更新内容 -->
@@ -28,7 +28,7 @@
     </div>
 
     <template #footer>
-      <div v-if="version.latestVersion !== version.currentVersion" class="footer-buttons">
+      <div v-if="appVersion.latestVersion !== appVersion.currentVersion" class="footer-buttons">
         <CoButton outline @click="handleClose">
           稍后再说
         </CoButton>
@@ -47,6 +47,7 @@
 
 <script lang="ts" setup>
 import { Loading } from '@element-plus/icons-vue';
+import { appVersion, getAppVersion } from '@renderer/uses/common';
 import { marked } from 'marked';
 
 const renderer = new marked.Renderer();
@@ -61,22 +62,11 @@ renderer.link = function ({ href, text }) {
 
 const visible = defineModel({ default: false });
 
-const isLoaded = ref(false);
-const version = ref({
-  currentVersion: '',
-  latestVersion: '',
-  changelog: '',
-  downloadLink: '',
-});
+const isLoaded = computed(() => !!appVersion.value.currentVersion);
 
 const changelog = computed(() => {
-  return marked(version.value.changelog, { renderer });
+  return marked(appVersion.value.changelog, { renderer });
 });
-
-async function getAppVersion() {
-  version.value = await window.api.getAppVersion();
-  isLoaded.value = true;
-}
 
 watch(visible, (newVal) => {
   if (newVal) {
@@ -87,7 +77,7 @@ watch(visible, (newVal) => {
 const handleClose = () => (visible.value = false);
 
 function gotoDownload() {
-  window.open(version.value.downloadLink, '_blank');
+  window.open(appVersion.value.downloadLink, '_blank');
   visible.value = false;
 }
 </script>

@@ -72,17 +72,10 @@
 </template>
 
 <script lang="ts" setup>
+import { appVersion, getAppVersion } from '@renderer/uses/common';
+
 const t = Date.now();
 
-const appVersion = ref({
-  currentVersion: '',
-  latestVersion: '',
-  downloadLink: '',
-});
-
-async function getAppVersion() {
-  appVersion.value = await window.api.getAppVersion();
-}
 getAppVersion();
 
 const visible = defineModel({ default: false });

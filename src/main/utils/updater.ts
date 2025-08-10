@@ -1,6 +1,10 @@
 import type { BrowserWindow } from 'electron';
 import { app, dialog } from 'electron';
 import { autoUpdater } from 'electron-updater';
+import semver from 'semver';
+import { getMachineId } from './storage.ts';
+
+const UPDATER_BASE_URL = 'https://copicseal-updater.kohai.top';
 
 export function checkForUpdates(win: BrowserWindow) {
   if (process.platform === 'darwin') {
@@ -50,4 +54,42 @@ export function checkForUpdates(win: BrowserWindow) {
   autoUpdater.checkForUpdates().then((res) => {
     console.log('检查更新结果:', res);
   });
+}
+
+export async function getAppVersion() {
+  const ret = {
+    currentVersion: app.getVersion(),
+    latestVersion: app.getVersion(),
+    downloadLink: '',
+    changelog: '',
+  };
+  const machineId = getMachineId();
+  const res = await fetch(`${UPDATER_BASE_URL}/${ret.currentVersion.includes('beta') ? 'beta' : 'stable'}`, {
+    headers: {
+      'App-Version': ret.currentVersion,
+      'Machine-ID': machineId,
+      'User-Agent': `Copicseal/${ret.currentVersion} (${process.platform}/${machineId})`,
+    },
+  })
+    .then(r => r.json() as Promise<{ name: string; body: string }[]>)
+    .catch(() => []);
+  if (res && res.length) {
+    const changlog: string[] = [];
+    res.forEach((item) => {
+      if (semver.gt(item.name, ret.latestVersion)) {
+        ret.latestVersion = item.name.replace('v', '');
+      }
+      if (semver.gte(item.name, ret.currentVersion)) {
+        changlog.push(item.body);
+      }
+    });
+    if (changlog.length > 1) {
+      changlog.pop();
+    }
+    ret.changelog = changlog.join('\n---\n') || '暂无更新信息';
+  }
+
+  ret.downloadLink = `${UPDATER_BASE_URL}/download?version=v${ret.latestVersion}&platform=${process.platform}&utm_source=Copicseal_${ret.currentVersion}`;
+
+  return ret;
 }

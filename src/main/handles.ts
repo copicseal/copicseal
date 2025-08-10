@@ -1,10 +1,10 @@
 import type { MenuItemConstructorOptions } from 'electron';
-import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron';
-import semver from 'semver';
+import { BrowserWindow, dialog, ipcMain, Menu } from 'electron';
 import { handleCapture } from './utils/capture.ts';
 import { openTargetPath } from './utils/file.ts';
 import { getSysFonts } from './utils/font.ts';
 import { store } from './utils/storage.ts';
+import { getAppVersion } from './utils/updater.ts';
 
 export function mainHandles() {
   ipcMain.handle('captureDOM', async (_event, options) => {
@@ -42,34 +42,7 @@ export function mainHandles() {
   });
 
   ipcMain.handle('getAppVersion', async () => {
-    const ret = {
-      currentVersion: app.getVersion(),
-      latestVersion: app.getVersion(),
-      downloadLink: '',
-      changelog: '',
-    };
-    const res = await fetch(`https://copicseal-updater.kohai.top/${ret.currentVersion.includes('beta') ? 'beta' : 'stable'}`)
-      .then(r => r.json() as Promise<{ name: string; body: string }[]>)
-      .catch(() => []);
-    if (res && res.length) {
-      const changlog: string[] = [];
-      res.forEach((item) => {
-        if (semver.gt(item.name, ret.latestVersion)) {
-          ret.latestVersion = item.name.replace('v', '');
-        }
-        if (semver.gte(item.name, ret.currentVersion)) {
-          changlog.push(item.body);
-        }
-      });
-      if (changlog.length > 1) {
-        changlog.pop();
-      }
-      ret.changelog = changlog.join('\n---\n') || '暂无更新信息';
-    }
-
-    ret.downloadLink = `https://copicseal-updater.kohai.top/download?version=v${ret.latestVersion}&platform=${process.platform}`;
-
-    return ret;
+    return getAppVersion();
   });
 
   ipcMain.handle('config:get', (_e, key, defaultValue) => {

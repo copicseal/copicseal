@@ -8,7 +8,10 @@
       @click="handleClickItem(i)"
       @contextmenu="handleClickItemCtxMenu(i)"
     >
-      <img :src="item.imgUrl" alt="">
+      <img v-if="item.state.isLoaded" :src="item.imgUrl" alt="">
+      <div v-else class="co-image-list-item__loading">
+        加载中...
+      </div>
     </div>
     <CoFileInput mini @change="handleFileChange" />
   </ElScrollbar>
@@ -118,6 +121,17 @@ function handleScroll(e: WheelEvent) {
     img {
       height: 100%;
       pointer-events: none;
+    }
+
+    .co-image-list-item__loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      aspect-ratio: 1 / 1;
+      color: #ccc;
+      font-size: 12px;
+      white-space: nowrap;
     }
 
     &.active {

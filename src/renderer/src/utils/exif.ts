@@ -56,6 +56,20 @@ const exifKeyFormatter: Record<keyof RawTags, (exif: RawTags) => Tags> = {
     }
     return { ImageHeight: val };
   },
+  'PixelXDimension': (exif) => {
+    const val = +(exif['Image Width']?.value || exif.PixelXDimension?.value || 0);
+    if (exif.Orientation?.value && +exif.Orientation.value > 4) {
+      return { ImageHeight: val };
+    }
+    return { ImageWidth: val };
+  },
+  'PixelYDimension': (exif) => {
+    const val = +(exif['Image Height']?.value || exif.PixelYDimension?.value || 0);
+    if (exif.Orientation?.value && +exif.Orientation.value > 4) {
+      return { ImageWidth: val };
+    }
+    return { ImageHeight: val };
+  },
   'FocalLength': (exif) => {
     return {
       FocalLength: exif.FocalLength?.description.replace(' ', ''),

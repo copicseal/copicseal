@@ -41,6 +41,7 @@
     "exifreader": "^4.25.0",
     "exiftool-vendored": "^30.3.0",
     "font-list": "^1.5.1",
+    "heic-to": "^1.2.2",
     "lodash-es": "^4.17.21",
     "marked": "^15.0.12",
     "piexifjs": "^1.0.6",

@@ -2,6 +2,7 @@ import type { Settings } from '@/types';
 import type { Tags } from './exif';
 import TplDefault from '@/views/tpls/tpl-default.vue';
 import { useConfig } from '@renderer/uses/config';
+import { heicTo, isHeic } from 'heic-to';
 import { computed, reactive, ref, shallowRef } from 'vue';
 import { getExif } from './exif';
 
@@ -99,7 +100,11 @@ export class CoPic {
   }
 
   private async init() {
-    this.initPromise = Promise.all([this.loadExif(), this.getColorPalette()]);
+    this.initPromise = Promise.all([
+      this.loadExif(),
+      this.getColorPalette(),
+      getImageUrl(this.file).then((url) => { this.imgUrl = url; }),
+    ]);
     return this.initPromise;
   }
 
@@ -145,4 +150,15 @@ export class CoPic {
     // }
     console.warn('getColorPalette');
   }
+}
+
+async function getImageUrl(file: File) {
+  if (await isHeic(file)) {
+    const png = await heicTo({
+      blob: file,
+      type: 'image/png',
+    });
+    return URL.createObjectURL(png);
+  }
+  return URL.createObjectURL(file);
 }

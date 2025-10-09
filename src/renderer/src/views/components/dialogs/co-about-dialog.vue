@@ -72,11 +72,9 @@
 </template>
 
 <script lang="ts" setup>
-import { appVersion, getAppVersion } from '@renderer/uses/common';
+import { appVersion } from '@renderer/uses/common';
 
 const t = Date.now();
-
-getAppVersion();
 
 const visible = defineModel({ default: false });
 const open = () => (visible.value = true);

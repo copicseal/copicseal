@@ -1,0 +1,46 @@
+name: Beta CI
+
+on:
+  push:
+    branches:
+      - beta
+      - develop
+  workflow_dispatch:
+
+jobs:
+  build-beta:
+    name: 内测打包（不发布）
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            script: build:mac
+            label: mac
+            ext: dmg
+          - platform: windows-latest
+            script: build:win
+            label: win
+            ext: exe
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: 检出仓库代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 安装 pnpm
+        run: npm install -g pnpm
+
+      - name: 安装依赖
+        run: pnpm install
+
+      - name: 执行构建脚本（内测）
+        run: pnpm run ${{ matrix.script }}
+
+      - name: 查看生成的文件
+        run: ls -lh dist

@@ -42,11 +42,15 @@ jobs:
       - name: 执行构建脚本（内测）
         run: pnpm run ${{ matrix.script }}
 
-      - name: 查看生成的文件
-        run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            dir dist
-          else
-            ls -lh dist
-          fi
-        shell: bash
+      # 上传构建产物供后续使用
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: copicseal-${{ matrix.label }}
+          path: |
+            dist/*.${{ matrix.ext }}
+            dist/*.yml
+            dist/*.blockmap
+            dist/*.zip
+            !dist/builder-debug.yml
+            !dist/builder-effective-config.yaml

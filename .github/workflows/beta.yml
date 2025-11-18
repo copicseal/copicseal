@@ -14,16 +14,28 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # -------- macOS 架构 --------
           - platform: macos-latest
-            script: build:mac
-            label: mac
+            script: build:mac:x64
+            label: mac-x64
             ext: dmg
+          - platform: macos-latest
+            script: build:mac:arm64
+            label: mac-arm64
+            ext: dmg
+
+          # -------- Windows 架构 --------
           - platform: windows-latest
-            script: build:win
-            label: win
+            script: build:win:x64
+            label: win-x64
+            ext: exe
+          - platform: windows-latest
+            script: build:win:arm64
+            label: win-arm64
             ext: exe
 
     runs-on: ${{ matrix.platform }}
+
     steps:
       - name: 检出仓库代码
         uses: actions/checkout@v4
@@ -42,7 +54,6 @@ jobs:
       - name: 执行构建脚本（内测）
         run: pnpm run ${{ matrix.script }}
 
-      # 上传构建产物供后续使用
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:

@@ -2,11 +2,13 @@ import type { Output } from '@renderer/types';
 import { injectCoPic } from '@renderer/uses/co-pic';
 import { coMessage } from '@renderer/utils/element';
 import { nextTick } from 'vue';
+import { useConfig } from './config';
 import { injectProgress } from './progress';
 
 export function useExport() {
   const { currentCoPic, currentIndex, list } = injectCoPic();
   const progress = injectProgress();
+  const { config } = useConfig();
 
   async function exportToImage() {
     const filename = currentCoPic.value.name;
@@ -51,6 +53,8 @@ export function useExport() {
     const res = await window.api.captureDOM({
       html,
       dpi: Number(currentCoPic.value.state.exif.XResolution ?? 0),
+      exif: currentCoPic.value.getExif(),
+      retainExif: config.value.output.retainExif,
       output: [
         ...outputs.map((output, index) => {
           output = { ...output };

@@ -32,6 +32,12 @@
       <div>导出目录：（<span class="change-btn" @click="handleOutputFolder">更换</span>）</div>
       <span @click="handleOpenOutputFolder">{{ output.defaultPath }}</span>
     </div>
+    <div class="retain-exif">
+      <div>保留 EXIF 信息</div>
+      <div>
+        <el-switch v-model="output.retainExif" />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -103,6 +109,10 @@ function handleOpenOutputFolder() {
         word-break: break-word;
       }
     }
+  }
+
+  .retain-exif {
+    margin-top: 16px;
   }
 }
 </style>

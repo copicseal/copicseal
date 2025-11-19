@@ -19,13 +19,15 @@ interface Output {
 export interface CaptureOptions {
   html: string;
   dpi?: number;
+  exif?: Record<string, any>;
+  retainExif?: boolean;
   output: Output[] | Output;
 }
 
 let mainWindow: BrowserWindow | null = null;
 let page: Page | null = null;
 let timer: ReturnType<typeof setTimeout> | null = null;
-export async function handleCapture({ html, output, dpi }: CaptureOptions, retry = 1) {
+export async function handleCapture({ html, output, dpi, exif, retainExif }: CaptureOptions, retry = 1) {
   if (!Array.isArray(output)) {
     output = [output];
   }
@@ -75,21 +77,67 @@ export async function handleCapture({ html, output, dpi }: CaptureOptions, retry
       type: currentOutput.type,
       quality: currentOutput.type !== 'png' ? Math.max(0, Math.min(100, Math.round((currentOutput.quality ?? 1) * 100))) : undefined,
     });
-    if (dpi) {
-      if (currentOutput.type === 'png') {
-        const PixelsPerUnitX = Math.round(dpi * (11811 / 300));
-        await exiftool.write(outputPath, {
-          PixelsPerUnitX,
-          PixelsPerUnitY: PixelsPerUnitX,
-          PixelUnits: 'meters',
-        } as any, { writeArgs: ['-overwrite_original'] });
+    if (dpi || exif) {
+      const exifData: Record<string, any> = {};
+
+      // 保留原图的 EXIF 信息
+      if (retainExif && exif) {
+        // 复制所有原图的 EXIF 数据
+        Object.assign(exifData, exif);
+
+        const exifKeyMap = {
+          ISO: 'ISOSpeedRatings',
+        };
+
+        Object.keys(exifKeyMap).forEach(key => exifData[key] = exif[exifKeyMap[key]]);
+
+        // 只移除尺寸、方向、缩略图这类不应写入的字段
+        const removeExifKeys = [
+          // 尺寸类
+          'ImageWidth',
+          'ImageHeight',
+          'ExifImageWidth',
+          'ExifImageHeight',
+          'PixelXDimension',
+          'PixelYDimension',
+
+          // 方向（避免旋转错误）
+          'Orientation',
+
+          // 缩略图（避免体积增大或写入错误）
+          'ThumbnailImage',
+          'ThumbnailLength',
+          'ThumbnailOffset',
+
+          // 某些解析器会把 JPEG 图片尺寸冗余放在这里
+          'JPEGInterchangeFormat',
+          'JPEGInterchangeFormatLength',
+        ];
+
+        removeExifKeys.forEach(k => delete exifData[k]);
       }
-      else {
-        await exiftool.write(outputPath, {
-          XResolution: dpi,
-          YResolution: dpi,
-          ResolutionUnit: 'inches',
-        }, { writeArgs: ['-overwrite_original'] });
+      if (dpi) {
+        if (currentOutput.type === 'png') {
+          const PixelsPerUnitX = Math.round(dpi * (11811 / 300));
+          exifData.PixelsPerUnitX = PixelsPerUnitX;
+          exifData.PixelsPerUnitY = PixelsPerUnitX;
+          exifData.PixelUnits = 'meters';
+        }
+        else {
+          exifData.XResolution = dpi;
+          exifData.YResolution = dpi;
+          exifData.ResolutionUnit = 'inches';
+        }
+      }
+
+      // 一次性写入所有 EXIF 数据
+      if (Object.keys(exifData).length > 0) {
+        try {
+          await exiftool.write(outputPath, exifData as any, { writeArgs: ['-overwrite_original'] });
+        }
+        catch (e) {
+          console.log(e);
+        }
       }
     }
     page.setViewport(vp);
@@ -103,7 +151,7 @@ export async function handleCapture({ html, output, dpi }: CaptureOptions, retry
     }, 10 * 1000);
     console.timeEnd('capture-div');
 
-    return [outputPath, ...(await handleCapture({ html, output: output.slice(1), dpi }))].filter(
+    return [outputPath, ...(await handleCapture({ html, output: output.slice(1), dpi, exif, retainExif }))].filter(
       Boolean,
     );
   }
@@ -115,7 +163,7 @@ export async function handleCapture({ html, output, dpi }: CaptureOptions, retry
     page?.close().catch(() => {});
     page = null;
     if (retry > 0) {
-      return handleCapture({ html, output }, retry - 1);
+      return handleCapture({ html, output, dpi, exif, retainExif }, retry - 1);
     }
   }
   return [];

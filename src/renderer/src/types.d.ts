@@ -81,6 +81,7 @@ export interface AppConfig {
   output: {
     presets: Output[]; // 用户配置的常用导出尺寸
     defaultPath: string; // 默认导出路径
+    retainExif?: boolean; // 保留 EXIF
   };
   templatePresets: TemplatePreset[];
   fonts: {

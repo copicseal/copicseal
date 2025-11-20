@@ -5,6 +5,7 @@ import { app, BrowserWindow } from 'electron';
 import { exiftool } from 'exiftool-vendored';
 import puppeteer from 'puppeteer-core';
 import pie from 'puppeteer-in-electron';
+import { mergeExif } from './exif.ts';
 
 interface Output {
   path: string;
@@ -82,39 +83,7 @@ export async function handleCapture({ html, output, dpi, exif, retainExif }: Cap
 
       // 保留原图的 EXIF 信息
       if (retainExif && exif) {
-        // 复制所有原图的 EXIF 数据
-        Object.assign(exifData, exif);
-
-        const exifKeyMap = {
-          ISO: 'ISOSpeedRatings',
-        };
-
-        Object.keys(exifKeyMap).forEach(key => exifData[key] = exif[exifKeyMap[key]]);
-
-        // 只移除尺寸、方向、缩略图这类不应写入的字段
-        const removeExifKeys = [
-          // 尺寸类
-          'ImageWidth',
-          'ImageHeight',
-          'ExifImageWidth',
-          'ExifImageHeight',
-          'PixelXDimension',
-          'PixelYDimension',
-
-          // 方向（避免旋转错误）
-          'Orientation',
-
-          // 缩略图（避免体积增大或写入错误）
-          'ThumbnailImage',
-          'ThumbnailLength',
-          'ThumbnailOffset',
-
-          // 某些解析器会把 JPEG 图片尺寸冗余放在这里
-          'JPEGInterchangeFormat',
-          'JPEGInterchangeFormatLength',
-        ];
-
-        removeExifKeys.forEach(k => delete exifData[k]);
+        mergeExif(exifData, exif);
       }
       if (dpi) {
         if (currentOutput.type === 'png') {

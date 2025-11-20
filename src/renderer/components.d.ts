@@ -18,6 +18,7 @@ declare module 'vue' {
     CoRadioGroup: typeof import('./src/components/co-radio-group/index.vue')['default']
     CoSettingsPanel: typeof import('./src/components/co-settings-panel/index.vue')['default']
     CoShadowInput: typeof import('./src/components/co-input/co-shadow-input.vue')['default']
+    CoVarsInput: typeof import('./src/components/co-vars-input/index.vue')['default']
     ElBadge: typeof import('element-plus/es')['ElBadge']
     ElCollapse: typeof import('element-plus/es')['ElCollapse']
     ElCollapseItem: typeof import('element-plus/es')['ElCollapseItem']

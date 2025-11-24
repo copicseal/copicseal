@@ -2,7 +2,7 @@
   <div class="co-vars-input">
     <Editor
       v-model="valueHtml"
-      style="height: 200px; overflow-y: hidden;"
+      style="overflow-y: hidden;"
       :default-config="editorConfig"
       mode="simple"
       @on-created="handleCreated"
@@ -10,18 +10,16 @@
       @on-change="handleChange"
     />
     <div class="vars-list">
-      可用变量：
+      插入：
       <span
         v-for="item in vars"
         :key="item.value"
         class="var-item"
         @click="insertVariable(item)"
       >
-        {{ item.label }},
+        {{ item.label }}
       </span>
     </div>
-    {{ valueHtml }}
-    {{ modelValue }}
   </div>
 </template>
 
@@ -32,7 +30,7 @@ import { Editor } from '@wangeditor/editor-for-vue';
 import '@/components/co-vars-input/editor-plugin-vars/index';
 import '@wangeditor/editor/dist/css/style.css';
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     vars?: { value: string; label: string }[];
   }>(),
@@ -44,7 +42,7 @@ const editorRef = shallowRef();
 const valueHtml = ref('<p></p>');
 
 const editorConfig = {
-  placeholder: '请输入内容...',
+  placeholder: '',
   MENU_CONF: {
     hoverbar: {
       show: false, // 彻底关闭 hoverbar
@@ -74,10 +72,10 @@ onBeforeUnmount(() => {
   editor.destroy();
 });
 
-function handleCreated(editor) {
+function handleCreated(editor: IDomEditor) {
   editorRef.value = editor; // 记录 editor 实例，重要！
   editor.getEditableContainer().addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
+    if ((e as KeyboardEvent).key === 'Enter') {
       e.preventDefault();
     }
   });
@@ -88,10 +86,15 @@ watch(modelValue, (val) => {
   if (val === innerValue) {
     return;
   }
-  valueHtml.value = `<p>${(val || '').replace(/\{([^{]+)\}/g, (v, v2) => {
-    return `<span data-w-e-type="vars" data-value="${v}">${v2}</span>`;
-  })}</p>`;
+  valueHtml.value = modelValueToHtml(val);
 }, { immediate: true });
+
+function modelValueToHtml(val?: string) {
+  return `<p>${(val || '').replace(/\{([^{]+)\}/g, (v, v2) => {
+    const label = props.vars.find(item => item.value === v)?.label || v2;
+    return `<span data-w-e-type="vars" data-value="${v}">${label}</span>`;
+  })}</p>`;
+}
 
 function handleChange(editor: IDomEditor) {
   const treeToValue = (list: any[]) => {
@@ -134,25 +137,56 @@ function insertVariable({ label, value }: { value: string; label: string }) {
 
 <style lang="scss" scoped>
 .co-vars-input {
-  .input-element {
-    min-height: 100px;
-    border: 1px solid #dcdfe6;
-    border-radius: 4px;
-    padding: 8px;
-    line-height: 2;
-    outline: none;
-    &:focus {
-      border-color: #409eff;
-    }
+  :deep(.w-e-text-container) {
+    [data-slate-editor] {
+      min-height: 100px;
+      padding: 2px 4px 20px;
+      line-height: 20px;
+      color: #eee;
+      background-color: #3e3e3e;
+      border: 1px solid #666;
+      transition: border-color 0.2s;
 
-    :deep(.variable-tag) {
-      /* border: 1px solid #409eff; */
-      border-radius: 3px;
-      padding: 0px 4px;
-      color: #409eff;
-      user-select: all;
+      &:focus {
+        outline: none;
+        border-color: #999;
+      }
+      p {
+        margin: 0;
+        line-height: 24px;
+      }
+      .vars-tag {
+        border: 1px solid #68bbff;
+        border-radius: 2px;
+        padding: 0 4px;
+        color: #68bbff;
+        white-space: nowrap;
+        word-break: break-all;
+        line-height: 10px;
+
+        &.is-active {
+          outline: 2px solid #fff;
+        }
+      }
+    }
+  }
+  .vars-list {
+    margin-top: 4px;
+    font-size: 10px;
+
+    .var-item {
+      --color: #ccc;
+      margin-right: 4px;
+      padding: 0 4px;
+      border: 1px solid var(--color);
+      border-radius: 2px;
+      color: var(--color);
       white-space: nowrap;
-      text-decoration: underline;
+      cursor: pointer;
+
+      &:hover {
+        --color: #68bbff;
+      }
     }
   }
 }

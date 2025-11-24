@@ -18,6 +18,7 @@ body {
   padding: 0;
   color: #eee;
   font-size: initial;
+  user-select: none;
 
   .el-scrollbar {
     --el-scrollbar-bg-color: white;

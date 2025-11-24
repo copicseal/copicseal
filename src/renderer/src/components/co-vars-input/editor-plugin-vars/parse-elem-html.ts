@@ -6,7 +6,6 @@ function parseHtml(
 ): SlateElement {
   const value = (elem as HTMLSpanElement).dataset.value || '';
   const label = elem.textContent || '';
-  console.log(elem, { value, label });
 
   return {
     type: 'vars',

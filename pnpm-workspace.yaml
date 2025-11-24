@@ -1,0 +1,7 @@
+onlyBuiltDependencies:
+  - electron
+  - es5-ext
+  - esbuild
+  - exifreader
+  - sharp
+  - vue-demi

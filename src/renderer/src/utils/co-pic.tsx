@@ -133,7 +133,7 @@ export class CoPic {
         return output;
       });
     }
-    console.log(this.exif.value);
+    console.log(`${this.name} exif ->`, this.exif.value);
 
     // return this.exif
   }

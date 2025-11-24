@@ -21,18 +21,11 @@ function renderVars(elem: SlateElement, children: VNode[] | null, editor: IDomEd
       dataset: {
         value,
       },
-      style: {
-        display: 'inline-block', // inline
-        marginLeft: '3px',
-        marginRight: '3px',
-        border:
-          selected && !isDisabled
-            ? '2px solid var(--w-e-textarea-selected-border-color)' // wangEditor 提供了 css var https://www.wangeditor.com/v5/theme.html
-            : '2px solid transparent',
-        borderRadius: '3px',
-        padding: '0 3px',
-        backgroundColor: '#f1f1f1',
-        cursor: isDisabled ? 'pointer' : 'inherit',
+      attrs: {
+        class: [
+          'vars-tag',
+          selected && !isDisabled ? 'is-active' : '',
+        ].join(' '),
       },
     },
     [

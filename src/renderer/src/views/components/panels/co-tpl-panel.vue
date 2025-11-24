@@ -41,6 +41,7 @@
             v-else-if="item.type === Boolean" v-model="currentCoPic.state.templateProps[item.key]"
             size="small"
           />
+          <CoVarsInput v-else-if="item.__co.type === 'vars-input'" v-model="currentCoPic.state.templateProps[item.key]" :vars="vars" />
           <input v-else v-model="currentCoPic.state.templateProps[item.key]" type="text">
         </div>
       </template>
@@ -152,6 +153,19 @@ loadFonts(false);
 function handleFontChange() {
   config.value.fonts.defaultFont = currentCoPic.value.state.fontFamily;
 }
+
+const vars = ref([
+  { value: 'Make', label: '制造商' },
+  { value: 'Model', label: '型号' },
+  { value: 'FocalLength', label: '焦段' },
+  { value: 'FNumber', label: '光圈' },
+  { value: 'ExposureTime', label: '曝光' },
+  { value: 'ISOSpeedRatings', label: 'ISO' },
+  { value: 'DateTimeOriginal', label: '拍摄时间' },
+].map(item => ({
+  value: `{${item.value}}`,
+  label: item.label,
+})));
 </script>
 
 <style lang="scss" scoped>

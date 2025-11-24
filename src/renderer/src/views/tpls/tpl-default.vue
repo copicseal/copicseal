@@ -30,13 +30,14 @@
       </div>
       <div class="details-info">
         <div class="basie-info">
-          <span>{{ info.FocalLength }}</span>
+          {{ utils.replaceTextVars(text1, info) }}
+          <!-- <span>{{ info.FocalLength }}</span>
           <span>{{ info.FNumber }}</span>
           <span v-if="info.ExposureTime">{{ info.ExposureTime }}s</span>
-          <span v-if="info.ISOSpeedRatings">ISO{{ info.ISOSpeedRatings }}</span>
+          <span v-if="info.ISOSpeedRatings">ISO{{ info.ISOSpeedRatings }}</span> -->
         </div>
         <div class="date-time">
-          <span>{{ info.DateTimeOriginal }}</span>
+          <span>{{ utils.replaceTextVars(text2, info) || info.DateTimeOriginal }}</span>
         </div>
       </div>
     </div>
@@ -132,6 +133,22 @@ const props = defineProps({
     __co: {
       label: '阴影',
       type: 'shadow',
+    },
+  },
+  text1: {
+    type: String,
+    default: '{FocalLength} {FNumber} {ExposureTime}s ISO{ISOSpeedRatings}',
+    __co: {
+      type: 'vars-input',
+      label: '文本 1',
+    },
+  },
+  text2: {
+    type: String,
+    default: '{DateTimeOriginal}',
+    __co: {
+      type: 'vars-input',
+      label: '文本 2',
     },
   },
 });

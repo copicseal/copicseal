@@ -36,6 +36,7 @@ export const renderUtils = {
   getMakeLogo,
   getMakeLogoSvg,
   getModelName,
+  replaceTextVars,
 };
 
 function getModelName(model?: string) {
@@ -120,4 +121,14 @@ function getMakeLogoSvg<T extends { Make: string; Model: string }>(exif?: string
   }
   return logoSvgMap[getMakeName(exif?.Model).toUpperCase()]
     || logoSvgMap[getMakeName(exif?.Make).toUpperCase()];
+}
+
+function replaceTextVars<T = any>(text?: string, exif?: T) {
+  if (!text || !exif) {
+    return text;
+  }
+
+  return text.replace(/\{([^}]+)\}/g, (match, key) => {
+    return exif[key] || match;
+  });
 }

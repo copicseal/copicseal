@@ -27,6 +27,11 @@
           <SettingGeneral :config="localConfig" @directory-change="handleDirectoryChange" />
         </el-scrollbar>
       </el-tab-pane>
+      <el-tab-pane label="用户设备">
+        <el-scrollbar>
+          <SettingUserDevices :config="localConfig" />
+        </el-scrollbar>
+      </el-tab-pane>
       <!-- <el-tab-pane label="模板">
         模板
       </el-tab-pane>
@@ -51,6 +56,7 @@ import { cloneDeep } from 'lodash-es';
 import SettingGeneral from './components/setting-general.vue';
 import SettingOutput from './components/setting-output.vue';
 import SettingTemplatePresets from './components/setting-template-presets.vue';
+import SettingUserDevices from './components/setting-user-devices.vue';
 
 const modelValue = defineModel({ default: false });
 

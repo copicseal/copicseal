@@ -29,6 +29,7 @@ const api: WindowAPI = {
   openTargetPath: targetPath => ipcRenderer.invoke('openTargetPath', targetPath),
   getAppVersion: () => ipcRenderer.invoke('getAppVersion'),
   getSysFonts: () => ipcRenderer.invoke('getSysFonts'),
+  manageSaveDirectory: (newDir?: string, oldDir?: string) => ipcRenderer.invoke('manageSaveDirectory', newDir, oldDir),
   getStorage,
 };
 

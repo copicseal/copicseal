@@ -21,6 +21,12 @@
           <SettingOutput :config="localConfig" />
         </el-scrollbar>
       </el-tab-pane>
+      <el-tab-pane label="通用">
+        <el-scrollbar>
+          <div>通用设置</div>
+          <SettingGeneral :config="localConfig" @directory-change="handleDirectoryChange" />
+        </el-scrollbar>
+      </el-tab-pane>
       <!-- <el-tab-pane label="模板">
         模板
       </el-tab-pane>
@@ -42,6 +48,7 @@
 <script lang="ts" setup>
 import { useConfig } from '@renderer/uses/config';
 import { cloneDeep } from 'lodash-es';
+import SettingGeneral from './components/setting-general.vue';
 import SettingOutput from './components/setting-output.vue';
 import SettingTemplatePresets from './components/setting-template-presets.vue';
 
@@ -51,6 +58,9 @@ const { config } = useConfig();
 
 const localConfig = ref(cloneDeep(config.value));
 
+// 存储目录变更信息
+const directoryChange = ref<{ oldDir: string; newDir: string } | null>(null);
+
 watch(config, () => {
   localConfig.value = cloneDeep(config.value);
 });
@@ -58,10 +68,31 @@ watch(config, () => {
 watch(modelValue, (val) => {
   if (val) {
     localConfig.value = cloneDeep(config.value);
+    // 重置目录变更信息
+    directoryChange.value = null;
   }
 });
 
-function handleSave() {
+// 处理目录变更事件
+function handleDirectoryChange(oldDir: string, newDir: string) {
+  directoryChange.value = { oldDir, newDir };
+}
+
+async function handleSave() {
+  // 如果有目录变更，执行移动操作
+  if (directoryChange.value) {
+    try {
+      const { oldDir, newDir } = directoryChange.value;
+      // 调用API移动目录内容
+      await window.api.manageSaveDirectory(newDir, oldDir);
+    }
+    catch (error) {
+      console.error('Failed to move directory contents:', error);
+      // 即使移动失败，仍然更新配置
+    }
+  }
+
+  // 更新配置
   config.value = cloneDeep(localConfig.value);
   modelValue.value = false;
 }

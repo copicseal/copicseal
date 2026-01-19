@@ -98,4 +98,5 @@ export interface AppConfig {
     remoteRegistry: string[]; // 模板远程仓库地址（支持多个）
   };
   userDevices: UserDevice[];
+  saveDirectory?: string; // 程序保存目录
 }

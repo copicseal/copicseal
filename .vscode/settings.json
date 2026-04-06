@@ -64,5 +64,8 @@
     "scss",
     "pcss",
     "postcss"
+  ],
+  "iconify.excludes": [
+    "el"
   ]
 }

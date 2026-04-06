@@ -1,7 +1,6 @@
 <template>
   <div class="setting-user-devices">
     <div class="setting-header">
-      <div>用户设备管理</div>
       <el-button type="primary" size="small" @click="handleAddDevice">
         添加设备
       </el-button>
@@ -9,15 +8,19 @@
 
     <el-table v-if="userDevices.length" :data="userDevices" size="small" border style="margin-top: 16px;">
       <el-table-column type="index" label="序号" width="60" />
-      <el-table-column prop="name" label="设备名称" />
+      <el-table-column prop="name" label="设备名称" width="100" />
       <el-table-column prop="type" label="设备类型" width="100">
         <template #default="{ row }">
           <el-tag :type="row.type === 'camera' ? 'primary' : 'success'">
-            {{ row.type === 'camera' ? '相机' : '镜头' }}
+            <div class="device-icon">
+              <div v-if="row.type === 'camera'" class="i-solar-camera-outline" />
+              <div v-else class="i-solar-round-graph-linear" />
+              {{ row.type === 'camera' ? '相机' : '镜头' }}
+            </div>
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="exif" label="EXIF信息" width="400">
+      <el-table-column prop="exif" label="EXIF信息">
         <template #default="{ row }">
           <div class="exif-info">
             <div v-for="(value, key) in row.exif" :key="key" class="exif-item">
@@ -29,12 +32,14 @@
       </el-table-column>
       <el-table-column label="操作" width="120" fixed="right">
         <template #default="{ row, $index }">
-          <el-button size="small" type="primary" link @click="handleEditDevice(row, $index)">
-            编辑
-          </el-button>
-          <el-button size="small" type="danger" link @click="handleDeleteDevice($index)">
-            删除
-          </el-button>
+          <div class="operation-buttons">
+            <el-link underline="never" @click="handleEditDevice(row, $index)">
+              <div class="i-solar-pen-new-square-broken" />
+            </el-link>
+            <el-link type="danger" underline="never" @click="handleDeleteDevice($index)">
+              <div class="i-solar-trash-bin-minimalistic-2-broken" />
+            </el-link>
+          </div>
         </template>
       </el-table-column>
     </el-table>
@@ -49,18 +54,14 @@
     >
       <el-form :model="formData" label-width="80px">
         <el-form-item label="设备名称" required>
-          <el-input v-model="formData.name" placeholder="请输入设备名称" />
+          <input v-model="formData.name" type="text" placeholder="请输入设备名称">
         </el-form-item>
 
         <el-form-item label="设备类型">
-          <el-radio-group v-model="formData.type">
-            <el-radio label="camera">
-              相机
-            </el-radio>
-            <el-radio label="lens">
-              镜头
-            </el-radio>
-          </el-radio-group>
+          <CoRadioGroup
+            v-model="formData.type"
+            :options="[{ label: '相机', value: 'camera' }, { label: '镜头', value: 'lens' }]"
+          />
         </el-form-item>
 
         <el-form-item label="EXIF信息">
@@ -68,29 +69,19 @@
             <!-- 已添加的EXIF字段 -->
             <div v-if="exifFields.length" class="added-exif-fields">
               <div v-for="(field, index) in exifFields" :key="index" class="exif-field-item">
-                <el-select
-                  v-model="field.key"
-                  placeholder="选择EXIF键名"
-                  style="width: 150px; margin-right: 8px;"
-                  size="small"
-                  filterable
-                  allow-create
-                  :filter-method="handleFilterExifField"
-                >
-                  <!-- 显示所有可能的EXIF字段（包括已选的） -->
-                  <el-option
-                    v-for="exifField in availableExifFields"
-                    :key="exifField.value"
-                    :label="exifField.label"
-                    :value="exifField.value"
-                  />
-                </el-select>
-                <el-input
+                <select v-model="field.key">
+                  <option disabled value="">
+                    -- 请选择参数 --
+                  </option>
+                  <option v-for="(item) in availableExifFields" :key="item.value" :value="item.value">
+                    {{ item.label }}
+                  </option>
+                </select>
+                <input
                   v-model="field.value"
                   placeholder="EXIF值"
                   style="flex: 1; margin-right: 8px;"
-                  size="small"
-                />
+                >
                 <el-button
                   type="danger"
                   size="small"
@@ -129,7 +120,6 @@
 
 <script lang="ts" setup>
 import type { AppConfig, UserDevice } from '@renderer/types';
-import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{
   config: AppConfig;
@@ -138,20 +128,17 @@ const props = defineProps<{
 // 常见的EXIF字段列表，按设备类型分类
 const commonExifFields = [
   // 相机和镜头通用
-  { label: 'Make (制造商)', value: 'Make', type: ['camera', 'lens'] },
-  { label: 'Model (型号)', value: 'Model', type: ['camera', 'lens'] },
 
   // 相机专用
-  { label: 'ISOSpeedRatings (ISO)', value: 'ISOSpeedRatings', type: ['camera'] },
-  { label: 'ExposureTime (曝光时间)', value: 'ExposureTime', type: ['camera'] },
-  { label: 'FNumber (光圈)', value: 'FNumber', type: ['camera'] },
+  { label: 'Make (制造商)', value: 'Make', type: ['camera'] },
+  { label: 'Model (型号)', value: 'Model', type: ['camera'] },
   { label: 'Manufacturer (制造商)', value: 'Manufacturer', type: ['camera'] },
-  { label: 'CameraModelName (相机型号)', value: 'CameraModelName', type: ['camera'] },
 
   // 镜头专用
   { label: 'LensMake (镜头制造商)', value: 'LensMake', type: ['lens'] },
   { label: 'LensModel (镜头型号)', value: 'LensModel', type: ['lens'] },
   { label: 'FocalLength (焦距)', value: 'FocalLength', type: ['lens'] },
+  { label: 'FNumber (光圈)', value: 'FNumber', type: ['lens'] },
 ];
 
 // 相机专用EXIF字段
@@ -193,12 +180,6 @@ const exifFields = ref<{ key: string; value: string }[]>([]);
 
 // 选中的EXIF字段
 const selectedExifField = ref<string>('');
-
-// EXIF字段搜索过滤
-function handleFilterExifField(query: string, option: any) {
-  return option.label.toLowerCase().includes(query.toLowerCase())
-    || option.value.toLowerCase().includes(query.toLowerCase());
-}
 
 // 监听配置变化
 watch(() => props.config.userDevices, (newDevices) => {
@@ -294,6 +275,18 @@ function updateConfig() {
   --el-border-color-lighter: #666;
   --el-fill-color-blank: rgba(0, 0, 0, 0);
 
+  :deep(.el-table) {
+    font-size: 12px;
+
+    .el-link {
+      font-size: 20px;
+
+      + .el-link {
+        margin-left: 8px;
+      }
+    }
+  }
+
   .setting-header {
     display: flex;
     justify-content: space-between;
@@ -301,13 +294,14 @@ function updateConfig() {
     margin-top: 12px;
   }
 
+  .device-icon {
+    display: flex;
+    gap: 4px;
+  }
+
   .exif-info {
     max-height: 120px;
     overflow-y: auto;
-  }
-
-  .exif-item {
-    margin-bottom: 4px;
     font-size: 12px;
   }
 
@@ -332,6 +326,11 @@ function updateConfig() {
       display: flex;
       align-items: center;
       margin-bottom: 8px;
+
+      select {
+        width: 150px;
+        margin-right: 8px;
+      }
     }
   }
 }

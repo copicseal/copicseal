@@ -6,7 +6,7 @@
       <div class="desc">
         或从您的电脑中<span class="link">选择一项或多项<input
           type="file"
-          accept=".heic,.heif,image/*"
+          accept=".heic,.heif,.hif,image/*"
           multiple
           @change="handleChange"
         ></span>并开始使用。

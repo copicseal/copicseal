@@ -1,10 +1,14 @@
 import type { Tags as RawTags } from 'exifreader';
+import { ZeroPerl } from '@6over3/zeroperl-ts';
+import zeroperl from '@6over3/zeroperl-ts/zeroperl.wasm?url';
+// import piexif from 'piexifjs';
+import { parseMetadata } from '@uswriting/exiftool';
 import dayjs from 'dayjs';
-import customParseFormat from 'dayjs/plugin/customParseFormat';
 
+import customParseFormat from 'dayjs/plugin/customParseFormat';
 // import Exif from 'exif-js'
 import ExifReader from 'exifreader';
-// import piexif from 'piexifjs';
+
 export { type ExifDict, ImageIFD, TAGS } from 'piexifjs';
 // export type ExifDict = piexif.ExifDict
 
@@ -12,36 +16,57 @@ dayjs.extend(customParseFormat);
 // window.n = window.n ?? undefined
 
 export async function getExif(file: File) {
-  // console.log(ExifReader.load(file))
-  // console.log(piexif.load(Buffer.from(await file.arrayBuffer()).toString('binary')))
-
-  // const reader = new FileReader()
-  // // return new Promise<piexif.ExifDict>((resolve) => {
-  //   reader.onload = (e) => {
-  //     const data = e.target!.result as string
-  //     // console.log(data)
-
-  //     const exifData = piexif.load(data)
-  //     // resolve(exifData)
-  //     console.log(exifData);
-
-  //   }
-  //   reader.readAsDataURL(file)
-  // })
-  return formatExif(await ExifReader.load(file));
-
-  // return new Promise<Metadata | undefined>((resolve) => {
-  //   const res = Exif.getData(file as any, function () {
-  //     // eslint-disable-next-line ts/ban-ts-comment
-  //     // @ts-expect-error
-  //     const res = Exif.getAllTags(this)
-  //     resolve(res)
-  //   })
-  //   !res && resolve(undefined)
-  // })
+  try {
+    await ZeroPerl.create({
+      fetch: () => fetch(zeroperl),
+      stdout: data => console.log(data),
+    });
+    // 暂时注释掉 ExifTool，使用 ExifReader 确保应用正常运行
+    const result = await parseMetadata(file, {
+      args: ['-json', '-n'],
+      transform: data => JSON.parse(data),
+    });
+    console.log(result);
+    if (result.success) {
+      const exifData = result.data[0]; // ExifTool returns an array
+      return formatExifFromExifTool(exifData);
+    }
+    else {
+      console.error('Error reading EXIF with ExifTool:', result.error);
+      // Fallback to ExifReader if ExifTool fails
+      return formatExif(await ExifReader.load(file));
+    }
+  }
+  catch (error) {
+    console.error('Error reading EXIF:', error);
+    // Fallback to ExifReader if any error occurs
+    return formatExif(await ExifReader.load(file));
+  }
 }
 
-const exifKeyFormatter: Record<keyof RawTags, (exif: RawTags) => Tags> = {
+export async function getExifWithExifTool(file: File) {
+  const result = await parseMetadata(file, {
+    args: ['-json', '-n'],
+    transform: data => JSON.parse(data),
+  });
+
+  console.log(result);
+
+  if (result.success) {
+    return result.data;
+  }
+  else {
+    console.error('Error reading EXIF with ExifTool:', result.error);
+    return null;
+  }
+}
+
+const exifKeyFormatter: Record<keyof RawTags, (exif: any) => Tags> = {
+  'CameraOrientation': (exif) => {
+    return {
+      Orientation: exif.CameraOrientation || 0,
+    };
+  },
   'Image Width': (exif) => {
     const val = +(exif['Image Width']?.value || 0);
     if (exif.Orientation?.value && +exif.Orientation.value > 4) {
@@ -126,6 +151,39 @@ function formatExif(exif: RawTags): Tags {
   for (const key in exif) {
     if (exifKeyFormatter[key]) {
       Object.assign(tags, exifKeyFormatter[key](exif));
+    }
+  }
+
+  return tags;
+}
+
+function formatExifFromExifTool(exifData: any): Tags {
+  const tags: Tags = {
+    ...exifData,
+  };
+
+  // 映射 ExifTool 返回的字段到我们的 Tags 格式
+  if (exifData) {
+    // 日期时间
+    if (exifData.DateTimeOriginal) {
+      tags.DateTimeOriginal = dayjs(exifData.DateTimeOriginal, 'YYYY:MM:DD HH:mm:ss').format('YYYY-MM-DD HH:mm:ss');
+    }
+    if (exifData.FocalLength)
+      tags.FocalLength = `${exifData.FocalLength}mm`;
+
+    tags.ISOSpeedRatings = exifData.ISO;
+    tags.FNumber = `f/${exifData.FNumber}`;
+    tags.Orientation = exifData.Orientation || exifData.CameraOrientation || 0;
+    if (Number(tags.ExposureTime) < 1) {
+      tags.ExposureTime = `1/${1 / Number(tags.ExposureTime)}`;
+    }
+
+    // 处理方向
+    if (tags.Orientation && +tags.Orientation > 4) {
+      // 交换宽高
+      const temp = tags.ImageWidth;
+      tags.ImageWidth = tags.ImageHeight;
+      tags.ImageHeight = temp;
     }
   }
 

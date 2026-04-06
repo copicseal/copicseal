@@ -29,6 +29,7 @@
       </el-tab-pane>
       <el-tab-pane label="用户设备">
         <el-scrollbar>
+          <div>用户设备设置</div>
           <SettingUserDevices :config="localConfig" />
         </el-scrollbar>
       </el-tab-pane>

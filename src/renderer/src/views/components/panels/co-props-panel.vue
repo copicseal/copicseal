@@ -1,37 +1,33 @@
 <template>
   <CoSettingsPanel v-if="currentCoPic" title="参数" @undo="() => currentCoPic.resetModifiedExif()">
-    <!-- 设备选择区域 -->
-    <div class="device-selector">
-      <el-dropdown trigger="click" @command="(command) => handleDeviceChange('camera', command)">
-        <span class="el-dropdown-link">
-          相机
-          <i class="el-icon-arrow-down el-icon--right" />
-        </span>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item v-for="camera in cameras" :key="camera.id" :command="camera.id">
-              {{ camera.name }}
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
-
-      <el-dropdown trigger="click" @command="(command) => handleDeviceChange('lens', command)">
-        <span class="el-dropdown-link">
-          镜头
-          <i class="el-icon-arrow-down el-icon--right" />
-        </span>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item v-for="lens in lenses" :key="lens.id" :command="lens.id">
-              {{ lens.name }}
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
-    </div>
-
     <div class="camera-info">
+      <div class="label">
+        快速填充:
+      </div>
+      <div class="value">
+        <!-- 设备选择区域 -->
+        <div v-if="allDevices.length" class="device-selector">
+          <el-dropdown trigger="click" @command="(command) => handleDeviceChange(command)">
+            <span class="el-dropdown-link">
+              选择设备
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item v-for="device in allDevices" :key="device.id" :command="device.id">
+                  <div class="device-icon">
+                    <div v-if="device.type === 'camera'" class="i-solar-camera-outline" />
+                    <div v-else class="i-solar-round-graph-linear" />
+                    {{ device.name }}
+                  </div>
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
+        <div v-else>
+          暂无设备(前往设置添加)
+        </div>
+      </div>
       <template v-for="key in usedExifKeys" :key="key">
         <div class="label">
           {{ getExifName(key) }}:
@@ -71,13 +67,9 @@ import { computed, ref } from 'vue';
 const { currentCoPic } = injectCoPic();
 const { config } = useConfig();
 
-// 获取相机和镜头列表
-const cameras = computed(() => {
-  return config.value.userDevices?.filter(device => device.type === 'camera') ?? [];
-});
-
-const lenses = computed(() => {
-  return config.value.userDevices?.filter(device => device.type === 'lens') ?? [];
+// 获取所有设备列表
+const allDevices = computed(() => {
+  return config.value.userDevices ?? [];
 });
 
 // 选中的设备
@@ -96,28 +88,27 @@ function getDeviceById(id: string) {
 }
 
 // 处理设备选择变化
-function handleDeviceChange(type: 'camera' | 'lens', deviceId: string) {
+function handleDeviceChange(deviceId: string) {
   if (!currentCoPic.value)
     return;
 
-  // 更新选中的设备ID
-  if (type === 'camera') {
+  const device = getDeviceById(deviceId);
+  if (!device)
+    return;
+
+  // 根据设备类型更新选中的设备ID
+  if (device.type === 'camera') {
     selectedCamera.value = deviceId;
   }
   else {
     selectedLens.value = deviceId;
   }
 
-  // 如果选择了设备，显示确认弹框
-  if (deviceId) {
-    const device = getDeviceById(deviceId);
-    if (device) {
-      selectedDeviceType.value = type;
-      selectedDeviceId.value = deviceId;
-      selectedDeviceName.value = device.name;
-      confirmDialogVisible.value = true;
-    }
-  }
+  // 显示确认弹框
+  selectedDeviceType.value = device.type;
+  selectedDeviceId.value = deviceId;
+  selectedDeviceName.value = device.name;
+  confirmDialogVisible.value = true;
 }
 
 // 应用设备的EXIF信息
@@ -163,9 +154,6 @@ const usedExifKeys = computed(() => {
 
 <style lang="scss" scoped>
 .device-selector {
-  margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #333;
   display: flex;
   gap: 20px;
   flex-wrap: wrap;
@@ -208,6 +196,17 @@ const usedExifKeys = computed(() => {
     input {
       width: 100%;
     }
+  }
+}
+</style>
+
+<style lang="scss">
+.el-dropdown-menu__item {
+  .device-icon {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
   }
 }
 </style>

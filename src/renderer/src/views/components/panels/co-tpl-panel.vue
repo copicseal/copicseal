@@ -161,6 +161,7 @@ const vars = ref([
   { value: 'FNumber', label: '光圈' },
   { value: 'ExposureTime', label: '曝光' },
   { value: 'ISOSpeedRatings', label: 'ISO' },
+  { value: 'LensModel', label: '镜头型号' },
   { value: 'DateTimeOriginal', label: '拍摄时间' },
 ].map(item => ({
   value: `{${item.value}}`,

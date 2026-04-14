@@ -224,6 +224,10 @@ const isHorizontal = computed(() => {
   }
 
   .details-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+
     .basie-info {
       display: flex;
       align-items: flex-end;

@@ -168,14 +168,27 @@ function formatExifFromExifTool(exifData: any): Tags {
     if (exifData.DateTimeOriginal) {
       tags.DateTimeOriginal = dayjs(exifData.DateTimeOriginal, 'YYYY:MM:DD HH:mm:ss').format('YYYY-MM-DD HH:mm:ss');
     }
-    if (exifData.FocalLength)
-      tags.FocalLength = `${exifData.FocalLength}mm`;
+    if (exifData.FocalLength) {
+      // 避免浮点尾差（如 35.0000001），统一保留到合理展示精度
+      tags.FocalLength = `${parseFloat(Number(exifData.FocalLength).toFixed(2))}mm`;
+    }
+    if (exifData.ISO) {
+      tags.ISOSpeedRatings = exifData.ISO;
+    }
+    if (exifData.FNumber) {
+      // 光圈值同样做精度收敛，防止出现超长小数
+      tags.FNumber = `f/${parseFloat(Number(exifData.FNumber).toFixed(2))}`;
+    }
 
-    tags.ISOSpeedRatings = exifData.ISO;
-    tags.FNumber = `f/${exifData.FNumber}`;
     tags.Orientation = exifData.Orientation || exifData.CameraOrientation || 0;
-    if (Number(tags.ExposureTime) < 1) {
-      tags.ExposureTime = `1/${1 / Number(tags.ExposureTime)}`;
+
+    if (tags.ExposureTime && Number(tags.ExposureTime) < 1) {
+      // 小于 1 秒的快门使用 1/x 形式，并对分母做精度收敛
+      const denominator = 1 / Number(tags.ExposureTime);
+      tags.ExposureTime = `1/${parseFloat(denominator.toFixed(2))}`;
+    } else if (tags.ExposureTime) {
+      // 大于等于 1 秒时按秒数输出，避免浮点噪声
+      tags.ExposureTime = parseFloat(Number(tags.ExposureTime).toFixed(2)).toString();
     }
 
     // 处理方向

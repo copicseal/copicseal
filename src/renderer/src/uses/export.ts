@@ -107,7 +107,10 @@ export function useExport() {
     progress.value.total = 1;
     progress.value.filename = currentCoPic.value.name;
     console.log(progress.value);
-    await exportToImage();
+    await exportToImage().catch((err) => {
+      // eslint-disable-next-line no-alert
+      alert(err);
+    });
     progress.value.current = 1;
   }
 
@@ -126,7 +129,10 @@ export function useExport() {
       progress.value.filename = currentCoPic.value.name;
       await new Promise(r => setTimeout(r, 300));
       await nextTick();
-      await exportToImage();
+      await exportToImage().catch((err) => {
+        // eslint-disable-next-line no-alert
+        alert(err);
+      });
       progress.value.current += 1;
     }, Promise.resolve());
     console.timeEnd('exportAll');

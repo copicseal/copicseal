@@ -3,6 +3,7 @@ import type { Tags } from './exif';
 import TplDefault from '@/views/tpls/tpl-default.vue';
 import { useConfig } from '@renderer/uses/config';
 import { heicTo, isHeic } from 'heic-to';
+import { cloneDeep } from 'lodash-es';
 import { computed, reactive, ref, shallowRef } from 'vue';
 import { getExif } from './exif';
 
@@ -79,7 +80,7 @@ export class CoPic {
   }
 
   getExif() {
-    return this.outputExif.value || {};
+    return cloneDeep(this.outputExif.value || {});
   }
 
   usedExifKeys = ref<string[]>([]);

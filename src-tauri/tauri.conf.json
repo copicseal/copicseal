@@ -13,12 +13,14 @@
     "windows": [
       {
         "title": "Copicseal",
-        "width": 800,
-        "height": 600
+        "width": 900,
+        "height": 670,
+        "minWidth": 700,
+        "minHeight": 500
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; img-src 'self' asset: https: data:; style-src 'self' 'unsafe-inline'; script-src 'self'"
     }
   },
   "bundle": {
@@ -31,5 +33,14 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "PENDING_RELEASE_KEY",
+      "endpoints": ["https://updates.copicseal.com/{{target}}/{{arch}}/{{current_version}}"],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

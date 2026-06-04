@@ -1,0 +1,74 @@
+import { createContext, type FC, type ReactNode, useCallback, useContext, useState } from 'react';
+import { processDroppedFiles, selectPhotosViaDialog } from '@/lib/import-photo';
+import type { ImportedPhoto } from '@/lib/photo';
+
+interface PhotoContextValue {
+  photos: ImportedPhoto[];
+  currentIndex: number;
+  currentPhoto: ImportedPhoto | null;
+  addPhotos: (photos: ImportedPhoto[]) => void;
+  removePhoto: (id: string) => void;
+  setCurrentIndex: (index: number) => void;
+  importViaDialog: () => Promise<void>;
+  importViaDrop: (files: FileList | File[]) => Promise<void>;
+}
+
+const PhotoContext = createContext<PhotoContextValue | null>(null);
+
+export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
+  const [photos, setPhotos] = useState<ImportedPhoto[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const addPhotos = useCallback((newPhotos: ImportedPhoto[]) => {
+    setPhotos((prev) => [...prev, ...newPhotos]);
+  }, []);
+
+  const removePhoto = useCallback((id: string) => {
+    setPhotos((prev) => {
+      const idx = prev.findIndex((p) => p.id === id);
+      const next = prev.filter((p) => p.id !== id);
+      if (idx !== -1 && next.length > 0) {
+        setCurrentIndex(Math.min(idx, next.length - 1));
+      }
+      return next;
+    });
+  }, []);
+
+  const importViaDialog = useCallback(async () => {
+    const result = await selectPhotosViaDialog();
+    if (result.length) addPhotos(result);
+  }, [addPhotos]);
+
+  const importViaDrop = useCallback(
+    async (files: FileList | File[]) => {
+      const result = await processDroppedFiles(files);
+      if (result.length) addPhotos(result);
+    },
+    [addPhotos],
+  );
+
+  const currentPhoto = photos[currentIndex] ?? null;
+
+  return (
+    <PhotoContext.Provider
+      value={{
+        photos,
+        currentIndex,
+        currentPhoto,
+        addPhotos,
+        removePhoto,
+        setCurrentIndex,
+        importViaDialog,
+        importViaDrop,
+      }}
+    >
+      {children}
+    </PhotoContext.Provider>
+  );
+};
+
+export function usePhotos() {
+  const ctx = useContext(PhotoContext);
+  if (!ctx) throw new Error('usePhotos must be used within PhotoProvider');
+  return ctx;
+}

@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "copicseal-tauri",
+  "productName": "Copicseal",
   "version": "0.1.0",
   "identifier": "com.copicseal.app",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "copicseal-tauri",
+        "title": "Copicseal",
         "width": 800,
         "height": 600
       }

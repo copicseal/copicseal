@@ -1,5 +1,6 @@
 import { ImageIcon } from 'lucide-react';
 import { CoDropZone, CoFileInput } from '@/components/CoDropZone';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { PhotoProvider, usePhotos } from '@/hooks/usePhotos';
 import './App.css';
 
@@ -27,7 +28,7 @@ function AppLayout() {
         </CoDropZone>
       ) : (
         /* 有照片时显示编辑器 */
-        <div className="flex flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col">
           {/* 顶部工具栏 */}
           <div className="flex items-center gap-2 border-b p-2">
             <CoFileInput
@@ -42,34 +43,36 @@ function AppLayout() {
           </div>
 
           {/* 主编辑区 */}
-          <div className="flex flex-1">
+          <div className="flex min-h-0 flex-1 overflow-hidden">
             {/* 左侧照片列表 */}
-            <div className="w-48 overflow-y-auto border-r p-2">
-              {photos.map((photo, index) => (
-                <button
-                  type="button"
-                  key={photo.id}
-                  className={`group mb-2 w-full cursor-pointer overflow-hidden rounded-md border-2 text-left transition-colors ${
-                    index === (currentPhoto ? photos.indexOf(currentPhoto) : 0)
-                      ? 'border-primary'
-                      : 'border-transparent hover:border-muted-foreground/30'
-                  }`}
-                  onClick={() => setCurrentIndex(index)}
-                >
-                  <img
-                    src={photo.previewUrl}
-                    alt={photo.name}
-                    className="aspect-square w-full object-cover"
-                  />
-                  <div className="p-1 text-[10px] leading-tight text-muted-foreground truncate">
-                    {photo.name}
-                  </div>
-                </button>
-              ))}
-            </div>
+            <ScrollArea className="w-32 shrink-0 border-r min-h-0">
+              <div className="p-2">
+                {photos.map((photo, index) => (
+                  <button
+                    type="button"
+                    key={photo.id}
+                    className={`group mb-2 w-full cursor-pointer overflow-hidden rounded-md border-2 text-left transition-colors ${
+                      index === (currentPhoto ? photos.indexOf(currentPhoto) : 0)
+                        ? 'border-primary'
+                        : 'border-transparent hover:border-muted-foreground/30'
+                    }`}
+                    onClick={() => setCurrentIndex(index)}
+                  >
+                    <img
+                      src={photo.previewUrl}
+                      alt={photo.name}
+                      className="w-full max-h-32 object-cover"
+                    />
+                    <div className="p-1 text-[10px] leading-tight text-muted-foreground truncate">
+                      {photo.name}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </ScrollArea>
 
             {/* 中央预览区 */}
-            <div className="flex flex-1 items-center justify-center bg-muted/30 p-4">
+            <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-muted/30 p-4">
               {currentPhoto ? (
                 <img
                   src={currentPhoto.previewUrl}

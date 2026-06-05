@@ -1,9 +1,10 @@
-import { type DragEvent, type FC, useRef, useState } from 'react';
+import { type DragEvent, type FC, type ReactNode, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface CoDropZoneProps {
   onFilesDrop: (files: FileList | File[]) => void;
   className?: string;
+  children?: React.ReactNode;
 }
 
 export const CoDropZone: FC<CoDropZoneProps> = ({ onFilesDrop, className, children }) => {
@@ -14,7 +15,7 @@ export const CoDropZone: FC<CoDropZoneProps> = ({ onFilesDrop, className, childr
     e.preventDefault();
     e.stopPropagation();
     dragCounter.current += 1;
-    if (e.dataTransfer.items?.length) {
+    if (e.dataTransfer.types.includes('Files')) {
       setIsDragging(true);
     }
   };
@@ -75,6 +76,7 @@ interface CoFileInputProps {
   accept?: string;
   multiple?: boolean;
   className?: string;
+  children?: ReactNode;
 }
 
 export const CoFileInput: FC<CoFileInputProps> = ({

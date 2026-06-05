@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { type ImportedPhoto, SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_IMAGE_TYPES } from '@/lib/photo';
 
@@ -45,6 +45,33 @@ export async function selectPhotosViaDialog(): Promise<ImportedPhoto[]> {
       size: meta.size,
       mimeType: meta.mime_type,
       previewUrl: `asset://localhost/${encodeURIComponent(meta.path)}`,
+      isHeic: meta.ext === 'heic',
+    });
+  }
+
+  return photos;
+}
+
+/** 通过 Tauri 拖拽事件的文件路径导入（替代 HTML5 drag-drop） */
+export async function importPhotosViaPaths(filePaths: string[]): Promise<ImportedPhoto[]> {
+  const photos: ImportedPhoto[] = [];
+
+  for (const filePath of filePaths) {
+    const meta = await invoke<{
+      name: string;
+      path: string;
+      size: number;
+      ext: string;
+      mime_type: string;
+    }>('read_image_file', { path: filePath });
+
+    photos.push({
+      id: photoId(meta.name),
+      name: meta.name,
+      path: meta.path,
+      size: meta.size,
+      mimeType: meta.mime_type,
+      previewUrl: convertFileSrc(meta.path),
       isHeic: meta.ext === 'heic',
     });
   }

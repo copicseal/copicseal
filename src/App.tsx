@@ -46,7 +46,7 @@ function AppLayout() {
           <div className="flex min-h-0 flex-1 overflow-hidden">
             {/* 左侧照片列表 */}
             <ScrollArea className="w-32 shrink-0 border-r min-h-0">
-              <div className="p-2">
+              <div className="py-2 pl-2 pr-3">
                 {photos.map((photo, index) => (
                   <button
                     type="button"

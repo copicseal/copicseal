@@ -1,4 +1,4 @@
-import { convertFileSrc, invoke } from '@tauri-apps/api/core';
+import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { type ImportedPhoto, SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_IMAGE_TYPES } from '@/lib/photo';
 
@@ -71,7 +71,7 @@ export async function importPhotosViaPaths(filePaths: string[]): Promise<Importe
       path: meta.path,
       size: meta.size,
       mimeType: meta.mime_type,
-      previewUrl: convertFileSrc(meta.path),
+      previewUrl: `asset://localhost/${encodeURIComponent(meta.path)}`,
       isHeic: meta.ext === 'heic',
     });
   }

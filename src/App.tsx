@@ -1,6 +1,5 @@
 import { ImageIcon } from 'lucide-react';
 import { CoDropZone, CoFileInput } from '@/components/CoDropZone';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { PhotoProvider, usePhotos } from '@/hooks/usePhotos';
 import './App.css';
 
@@ -45,31 +44,29 @@ function AppLayout() {
           {/* 主编辑区 */}
           <div className="flex min-h-0 flex-1 overflow-hidden">
             {/* 左侧照片列表 */}
-            <ScrollArea className="w-32 shrink-0 border-r min-h-0">
-              <div className="py-2 pl-2 pr-3">
-                {photos.map((photo, index) => (
-                  <button
-                    type="button"
-                    key={photo.id}
-                    className={`group mb-2 w-full cursor-pointer overflow-hidden rounded-md border-2 text-left transition-colors ${
-                      index === (currentPhoto ? photos.indexOf(currentPhoto) : 0)
-                        ? 'border-primary'
-                        : 'border-transparent hover:border-muted-foreground/30'
-                    }`}
-                    onClick={() => setCurrentIndex(index)}
-                  >
-                    <img
-                      src={photo.previewUrl}
-                      alt={photo.name}
-                      className="w-full max-h-32 object-cover"
-                    />
-                    <div className="p-1 text-[10px] leading-tight text-muted-foreground truncate">
-                      {photo.name}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </ScrollArea>
+            <div className="w-32 shrink-0 overflow-y-auto border-r p-2 min-h-0 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-track]:bg-transparent">
+              {photos.map((photo, index) => (
+                <button
+                  type="button"
+                  key={photo.id}
+                  className={`group mb-2 w-full cursor-pointer overflow-hidden rounded-md border-2 text-left transition-colors ${
+                    index === (currentPhoto ? photos.indexOf(currentPhoto) : 0)
+                      ? 'border-primary'
+                      : 'border-transparent hover:border-muted-foreground/30'
+                  }`}
+                  onClick={() => setCurrentIndex(index)}
+                >
+                  <img
+                    src={photo.previewUrl}
+                    alt={photo.name}
+                    className="w-full max-h-32 object-cover"
+                  />
+                  <div className="p-1 text-[10px] leading-tight text-muted-foreground truncate">
+                    {photo.name}
+                  </div>
+                </button>
+              ))}
+            </div>
 
             {/* 中央预览区 */}
             <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-muted/30 p-4">

@@ -31,15 +31,23 @@ export function CollageEditor() {
     setSlots(Array(l.cols * l.rows).fill(null));
   };
 
-  const setSlot = (index: number, photoId: string | null) => {
+  const handlePhotoClick = (photoId: string) => {
     setSlots((prev) => {
+      const idx = prev.findIndex((s) => s === null);
+      if (idx === -1) return prev;
       const next = [...prev];
-      next[index] = photoId;
+      next[idx] = photoId;
       return next;
     });
   };
 
-  const clearSlot = (index: number) => setSlot(index, null);
+  const clearSlot = (index: number) => {
+    setSlots((prev) => {
+      const next = [...prev];
+      next[index] = null;
+      return next;
+    });
+  };
 
   const handleExport = async () => {
     if (!canvasRef.current) return;
@@ -59,7 +67,9 @@ export function CollageEditor() {
     }
   };
 
-  const gridStyle = {
+  const anyPhoto = slots.some((s) => s !== null);
+
+  const gridStyle: React.CSSProperties = {
     display: 'grid',
     gridTemplateColumns: `repeat(${layout.cols}, 1fr)`,
     gridTemplateRows: `repeat(${layout.rows}, 1fr)`,
@@ -72,7 +82,7 @@ export function CollageEditor() {
         ? '1'
         : layout.cols > layout.rows
           ? `${layout.cols}/${layout.rows}`
-          : undefined,
+          : `${layout.rows}/${layout.cols}`,
     maxHeight: '70vh',
   };
 
@@ -107,7 +117,7 @@ export function CollageEditor() {
             size="xs"
             className="h-6 gap-1 text-[10px]"
             onClick={handleExport}
-            disabled={exporting || slots.every((s) => s === null)}
+            disabled={exporting || !anyPhoto}
           >
             {exporting ? (
               <Loader2 className="size-3 animate-spin" />
@@ -155,19 +165,18 @@ export function CollageEditor() {
       <div className="flex items-center gap-1.5 border-t p-2 overflow-x-auto">
         {photos.map((photo) => {
           const used = slots.includes(photo.id);
-          const firstEmpty = slots.findIndex((s) => s === null);
           return (
             <button
               key={photo.id}
               type="button"
-              disabled={used || firstEmpty === -1}
-              className="relative shrink-0 overflow-hidden rounded border-2 transition-opacity disabled:opacity-20"
+              disabled={used}
+              className="relative shrink-0 overflow-hidden rounded border-2 transition-opacity disabled:pointer-events-none disabled:opacity-20"
               style={{
                 width: 48,
                 height: 48,
                 borderColor: used ? 'var(--color-primary)' : 'transparent',
               }}
-              onClick={() => firstEmpty !== -1 && setSlot(firstEmpty, photo.id)}
+              onClick={() => handlePhotoClick(photo.id)}
             >
               <img src={photo.previewUrl} alt={photo.name} className="h-full w-full object-cover" />
             </button>

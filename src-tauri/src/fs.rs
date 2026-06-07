@@ -10,6 +10,11 @@ pub struct ImageMeta {
     pub mime_type: String,
 }
 
+#[tauri::command]
+pub async fn write_file(path: String, contents: Vec<u8>) -> Result<(), String> {
+    std::fs::write(&path, contents).map_err(|e| format!("写入文件失败: {}", e))
+}
+
 /// 支持的图片格式
 const SUPPORTED_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "heic", "webp"];
 

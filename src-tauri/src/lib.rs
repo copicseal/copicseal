@@ -12,6 +12,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             fs::read_image_file,
+            fs::write_file,
             config::get_config,
             config::update_config,
             exif::read_exif,

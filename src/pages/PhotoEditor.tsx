@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { type ExifData, readExif } from '@/api';
 import type { ControlPanelTab } from '@/components/CoControlPanel';
 import { ControlPanel } from '@/components/CoControlPanel';
-import { CoDropZone, CoFileInput } from '@/components/CoDropZone';
+import { CoDropZone } from '@/components/CoDropZone';
 import { CoBackgroundPanel } from '@/components/panels/CoBackgroundPanel';
 import { CoExifPanel } from '@/components/panels/CoExifPanel';
 import { CoExportPanel } from '@/components/panels/CoExportPanel';
@@ -16,7 +16,7 @@ import { type ExportOptions, exportSingle } from '@/lib/export-photo';
 import { getTemplateById } from '@/templates';
 
 export function PhotoEditor() {
-  const { photos, currentPhoto, importViaDrop, setCurrentIndex } = usePhotos();
+  const { photos, currentPhoto, importViaDialog, setCurrentIndex } = usePhotos();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [templateId, setTemplateId] = useState<string | null>(null);
@@ -102,32 +102,28 @@ export function PhotoEditor() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
       {photos.length === 0 ? (
-        <CoDropZone onFilesDrop={importViaDrop} className="m-4 flex-1">
+        <CoDropZone onFilesDrop={importViaDialog} className="m-4 flex-1">
           <div className="flex flex-col items-center gap-4 text-muted-foreground">
             <ImageIcon className="size-16 opacity-30" />
             <p className="text-lg font-medium">拖拽照片到此处</p>
             <p className="text-sm">或</p>
-            <CoFileInput
-              onFilesSelect={importViaDrop}
-              accept="image/jpeg,image/png,image/heic,image/heif,image/webp"
-              multiple
+            <Button
+              onClick={() => importViaDialog()}
               className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
               选择文件
-            </CoFileInput>
+            </Button>
           </div>
         </CoDropZone>
       ) : (
         <div className="flex min-h-0 flex-1 flex-col">
           <div className="flex items-center gap-2 border-b p-2">
-            <CoFileInput
-              onFilesSelect={importViaDrop}
-              accept="image/jpeg,image/png,image/heic,image/heif,image/webp"
-              multiple
+            <Button
+              onClick={() => importViaDialog()}
               className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
             >
               添加照片
-            </CoFileInput>
+            </Button>
             <span className="flex-1 text-sm text-muted-foreground">{photos.length} 张照片</span>
             <Button
               variant="ghost"

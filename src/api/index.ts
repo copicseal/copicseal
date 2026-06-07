@@ -27,6 +27,7 @@ export interface AppConfig {
   language: string;
   theme: string;
   save_directory: string;
+  font_favorites: string[];
 }
 
 export interface AppVersion {
@@ -52,4 +53,8 @@ export function updateConfig(config: AppConfig): Promise<void> {
 
 export function getAppInfo(): Promise<AppVersion> {
   return invoke<AppVersion>('get_app_info');
+}
+
+export function getDeviceId(): Promise<string> {
+  return invoke<string>('get_device_id');
 }

@@ -1,6 +1,7 @@
-import { Camera, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 import type { ExifData } from '@/api';
 import { usePhotos } from '@/hooks/usePhotos';
+import { getBrandColors, getBrandInitial } from '@/lib/brand-logo';
 
 function ExifField({
   label,
@@ -35,6 +36,8 @@ interface CoExifPanelProps {
 export function CoExifPanel({ exif, loading }: CoExifPanelProps) {
   const { currentPhoto } = usePhotos();
   const hasAnyField = exif && Object.values(exif).some((v) => v != null);
+  const brandColors = getBrandColors(exif?.make ?? null);
+  const brandInitial = exif?.make ? getBrandInitial(exif.make) : null;
 
   return (
     <div className="space-y-3 p-3 text-xs">
@@ -58,9 +61,18 @@ export function CoExifPanel({ exif, loading }: CoExifPanelProps) {
       ) : (
         <>
           <div className="flex flex-col items-center gap-1.5 py-2">
-            <div className="flex size-10 items-center justify-center rounded-full bg-muted/50">
-              <Camera className="size-5 text-muted-foreground" />
-            </div>
+            {brandColors && brandInitial ? (
+              <div
+                className="flex size-10 items-center justify-center rounded-full text-sm font-bold"
+                style={{ backgroundColor: brandColors.bg, color: brandColors.fg }}
+              >
+                {brandInitial}
+              </div>
+            ) : (
+              <div className="flex size-10 items-center justify-center rounded-full bg-muted/50">
+                <Info className="size-5 text-muted-foreground" />
+              </div>
+            )}
             <span className="text-[10px] font-medium">{currentPhoto.name}</span>
           </div>
 

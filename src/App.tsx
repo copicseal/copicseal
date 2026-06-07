@@ -23,7 +23,9 @@ function App() {
     <div className="flex h-screen overflow-hidden bg-background">
       <CoSidebar mode={mode} onModeChange={setMode} onOpenSettings={openSettings} />
       <div className="min-w-0 flex-1">
-        <PhotoProvider>{mode === 'border' ? <PhotoEditor /> : <CollageEditor />}</PhotoProvider>
+        <PhotoProvider key={mode}>
+          {mode === 'border' ? <PhotoEditor /> : <CollageEditor />}
+        </PhotoProvider>
       </div>
       <CoSettingsDialog
         open={settingsOpen}

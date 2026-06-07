@@ -13,7 +13,7 @@ const LAYOUTS = [
 ] as const;
 
 export function CollageEditor() {
-  const { photos } = usePhotos();
+  const { photos, importViaDialog } = usePhotos();
   const canvasRef = useRef<HTMLDivElement>(null);
   const [layoutId, setLayoutId] = useState<string>('horizontal');
   const [slots, setSlots] = useState<(string | null)[]>(() => Array(2).fill(null));
@@ -90,6 +90,14 @@ export function CollageEditor() {
     <div className="flex h-full flex-col overflow-hidden bg-background">
       <div className="flex items-center gap-2 border-b p-2">
         <span className="text-sm font-medium text-foreground">拼图</span>
+        <Button
+          size="xs"
+          variant="outline"
+          className="h-6 text-[10px]"
+          onClick={() => importViaDialog()}
+        >
+          添加照片
+        </Button>
         <div className="flex items-center gap-1">
           {LAYOUTS.map((l) => (
             <Button
@@ -184,7 +192,7 @@ export function CollageEditor() {
           );
         })}
         {photos.length === 0 && (
-          <p className="px-2 text-xs text-muted-foreground">请先在边框模式中添加照片</p>
+          <p className="px-2 text-xs text-muted-foreground">点击上方「添加照片」导入图片</p>
         )}
       </div>
     </div>

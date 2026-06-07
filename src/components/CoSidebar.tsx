@@ -1,5 +1,5 @@
 import { check } from '@tauri-apps/plugin-updater';
-import { Grid3x3, Info, LayoutTemplate, Menu, RefreshCw, Settings } from 'lucide-react';
+import { Grid3x3, Info, LayoutTemplate, Menu, RefreshCw, Settings, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -9,11 +9,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+type AppMode = 'border' | 'collage';
+
 interface CoSidebarProps {
+  mode: AppMode;
+  onModeChange: (mode: AppMode) => void;
   onOpenSettings?: (tab?: string) => void;
 }
 
-export function CoSidebar({ onOpenSettings }: CoSidebarProps) {
+export function CoSidebar({ mode, onModeChange, onOpenSettings }: CoSidebarProps) {
   const handleCheckUpdate = async () => {
     const tid = toast.loading('检查中...');
     try {
@@ -33,23 +37,24 @@ export function CoSidebar({ onOpenSettings }: CoSidebarProps) {
       <div className="flex flex-col items-center gap-1">
         <Avatar className="mb-2 size-9">
           <AvatarFallback className="bg-muted-foreground/15 text-muted-foreground text-[10px]">
-            <Settings className="size-5" />
+            <User className="size-5" />
           </AvatarFallback>
         </Avatar>
 
         <button
           type="button"
           title="边框"
-          className="flex size-9 items-center justify-center rounded-lg transition-colors hover:bg-muted"
+          onClick={() => onModeChange('border')}
+          className={`flex size-9 items-center justify-center rounded-lg transition-colors hover:bg-muted ${mode === 'border' ? 'bg-muted' : ''}`}
         >
           <LayoutTemplate className="size-5 text-muted-foreground" />
         </button>
 
         <button
           type="button"
-          title="拼图（即将推出）"
-          onClick={() => toast('即将推出')}
-          className="flex size-9 items-center justify-center rounded-lg opacity-30 transition-colors hover:bg-muted"
+          title="拼图"
+          onClick={() => onModeChange('collage')}
+          className={`flex size-9 items-center justify-center rounded-lg transition-colors hover:bg-muted ${mode === 'collage' ? 'bg-muted' : ''}`}
         >
           <Grid3x3 className="size-5 text-muted-foreground" />
         </button>

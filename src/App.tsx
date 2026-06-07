@@ -3,12 +3,16 @@ import { CoSidebar } from '@/components/CoSidebar';
 import { CoSettingsDialog } from '@/components/settings/CoSettingsDialog';
 import { Toaster } from '@/components/ui/toaster';
 import { PhotoProvider } from '@/hooks/usePhotos';
+import { CollageEditor } from '@/pages/CollageEditor';
 import { PhotoEditor } from '@/pages/PhotoEditor';
 import './App.css';
+
+type AppMode = 'border' | 'collage';
 
 function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<string | undefined>();
+  const [mode, setMode] = useState<AppMode>('border');
 
   const openSettings = (tab?: string) => {
     setSettingsTab(tab);
@@ -17,11 +21,9 @@ function App() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <CoSidebar onOpenSettings={openSettings} />
+      <CoSidebar mode={mode} onModeChange={setMode} onOpenSettings={openSettings} />
       <div className="min-w-0 flex-1">
-        <PhotoProvider>
-          <PhotoEditor />
-        </PhotoProvider>
+        <PhotoProvider>{mode === 'border' ? <PhotoEditor /> : <CollageEditor />}</PhotoProvider>
       </div>
       <CoSettingsDialog
         open={settingsOpen}

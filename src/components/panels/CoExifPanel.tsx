@@ -1,4 +1,6 @@
 import { Camera, Info } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { type ExifData, readExif } from '@/api';
 import { usePhotos } from '@/hooks/usePhotos';
 
 function ExifField({
@@ -12,7 +14,7 @@ function ExifField({
 }) {
   return (
     <div className="flex items-center justify-between gap-2 py-1">
-      <span className="text-[10px] text-muted-foreground shrink-0">{label}</span>
+      <span className="shrink-0 text-[10px] text-muted-foreground">{label}</span>
       <span
         className={`truncate text-right text-[10px] tabular-nums ${
           editable
@@ -28,6 +30,30 @@ function ExifField({
 
 export function CoExifPanel() {
   const { currentPhoto } = usePhotos();
+  const [exif, setExif] = useState<ExifData | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const loadExif = useCallback(async (path: string) => {
+    setLoading(true);
+    try {
+      const data = await readExif(path);
+      setExif(data);
+    } catch {
+      setExif(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentPhoto?.path) {
+      loadExif(currentPhoto.path);
+    } else {
+      setExif(null);
+    }
+  }, [currentPhoto, loadExif]);
+
+  const hasAnyField = exif && Object.values(exif).some((v) => v != null);
 
   return (
     <div className="space-y-3 p-3 text-xs">
@@ -37,6 +63,16 @@ export function CoExifPanel() {
         <div className="flex flex-col items-center gap-2 py-4 text-muted-foreground">
           <Info className="size-8 opacity-20" />
           <p className="text-[10px]">请选择一张照片</p>
+        </div>
+      ) : loading ? (
+        <div className="flex flex-col items-center gap-2 py-4 text-muted-foreground">
+          <div className="size-5 animate-spin rounded-full border-2 border-muted-foreground/20 border-t-muted-foreground" />
+          <p className="text-[10px]">读取中...</p>
+        </div>
+      ) : !hasAnyField ? (
+        <div className="flex flex-col items-center gap-2 py-4 text-muted-foreground">
+          <Info className="size-8 opacity-20" />
+          <p className="text-[10px]">未读取到 EXIF 信息</p>
         </div>
       ) : (
         <>
@@ -51,28 +87,28 @@ export function CoExifPanel() {
             <div className="mb-1 border-b pb-1">
               <span className="text-[10px] font-medium text-muted-foreground">设备</span>
             </div>
-            <ExifField label="相机型号" editable />
-            <ExifField label="镜头型号" editable />
+            <ExifField label="相机型号" value={exif.make ?? exif.model ?? undefined} editable />
+            <ExifField label="镜头型号" value={exif.lens_model ?? undefined} editable />
           </div>
 
           <div className="space-y-0.5">
             <div className="mb-1 border-b pb-1">
               <span className="text-[10px] font-medium text-muted-foreground">拍摄参数</span>
             </div>
-            <ExifField label="光圈" />
-            <ExifField label="快门速度" />
-            <ExifField label="ISO" />
-            <ExifField label="焦距" />
-            <ExifField label="曝光补偿" />
+            <ExifField label="光圈" value={exif.aperture ?? undefined} />
+            <ExifField label="快门速度" value={exif.shutter_speed ?? undefined} />
+            <ExifField label="ISO" value={exif.iso ?? undefined} />
+            <ExifField label="焦距" value={exif.focal_length ?? undefined} />
+            <ExifField label="曝光补偿" value={exif.exposure_compensation ?? undefined} />
           </div>
 
           <div className="space-y-0.5">
             <div className="mb-1 border-b pb-1">
               <span className="text-[10px] font-medium text-muted-foreground">其他</span>
             </div>
-            <ExifField label="拍摄时间" />
-            <ExifField label="白平衡" />
-            <ExifField label="测光模式" />
+            <ExifField label="拍摄时间" value={exif.date_taken ?? undefined} />
+            <ExifField label="白平衡" value={exif.white_balance ?? undefined} />
+            <ExifField label="测光模式" value={exif.metering_mode ?? undefined} />
           </div>
         </>
       )}

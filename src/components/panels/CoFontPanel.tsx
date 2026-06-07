@@ -1,42 +1,34 @@
 import { Search, Star } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { type FontInfo, listSystemFonts } from '@/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
-const MOCK_FONTS = [
-  'Inter',
-  'Helvetica Neue',
-  'PingFang SC',
-  'Hiragino Sans GB',
-  'Microsoft YaHei',
-  'Noto Sans SC',
-  'Source Han Sans',
-  'Fira Code',
-  'JetBrains Mono',
-  'SF Mono',
-  'Menlo',
-  'Georgia',
-  'Times New Roman',
-  'Baskerville',
-  'Palatino',
-];
-
 export function CoFontPanel() {
+  const [fonts, setFonts] = useState<FontInfo[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
-  const toggleFavorite = (font: string) => {
+  useEffect(() => {
+    listSystemFonts()
+      .then((result) => setFonts(result))
+      .catch(() => setFonts([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const toggleFavorite = useCallback((font: string) => {
     setFavorites((prev) => {
       const next = new Set(prev);
       if (next.has(font)) next.delete(font);
       else next.add(font);
       return next;
     });
-  };
+  }, []);
 
-  const filtered = MOCK_FONTS.filter((f) => f.toLowerCase().includes(search.toLowerCase()));
+  const filtered = fonts.filter((f) => f.family.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="flex min-h-0 flex-col space-y-2 p-3 text-xs">
@@ -55,36 +47,46 @@ export function CoFontPanel() {
       </div>
 
       <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-track]:bg-transparent">
-        {filtered.map((font) => (
-          <div key={font} className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setSelected(font)}
-              className={cn(
-                'flex-1 truncate rounded px-1.5 py-1 text-left text-[10px] transition-colors hover:bg-muted/50',
-                selected === font && 'bg-muted/30 font-medium text-foreground',
-              )}
-              style={{ fontFamily: font }}
-            >
-              {font}
-            </button>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              className="shrink-0"
-              onClick={() => toggleFavorite(font)}
-            >
-              <Star
-                className={cn(
-                  'size-3',
-                  favorites.has(font) ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground',
-                )}
-              />
-            </Button>
+        {loading ? (
+          <div className="flex items-center justify-center py-4">
+            <div className="size-5 animate-spin rounded-full border-2 border-muted-foreground/20 border-t-muted-foreground" />
           </div>
-        ))}
-        {filtered.length === 0 && (
-          <p className="py-2 text-center text-[10px] text-muted-foreground">无匹配字体</p>
+        ) : (
+          <>
+            {filtered.map((font) => (
+              <div key={font.family} className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setSelected(font.family)}
+                  className={cn(
+                    'flex-1 truncate rounded px-1.5 py-1 text-left text-[10px] transition-colors hover:bg-muted/50',
+                    selected === font.family && 'bg-muted/30 font-medium text-foreground',
+                  )}
+                  style={{ fontFamily: font.family }}
+                >
+                  {font.family}
+                </button>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="shrink-0"
+                  onClick={() => toggleFavorite(font.family)}
+                >
+                  <Star
+                    className={cn(
+                      'size-3',
+                      favorites.has(font.family)
+                        ? 'fill-yellow-400 text-yellow-400'
+                        : 'text-muted-foreground',
+                    )}
+                  />
+                </Button>
+              </div>
+            ))}
+            {filtered.length === 0 && !loading && (
+              <p className="py-2 text-center text-[10px] text-muted-foreground">无匹配字体</p>
+            )}
+          </>
         )}
       </div>
     </div>

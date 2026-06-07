@@ -1,8 +1,9 @@
-import { ImagePlus, X } from 'lucide-react';
-import { useState } from 'react';
+import { Download, ImagePlus, Loader2, X } from 'lucide-react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { usePhotos } from '@/hooks/usePhotos';
+import { exportSingle } from '@/lib/export-photo';
 
 const LAYOUTS = [
   { id: 'horizontal', label: '左右', cols: 2, rows: 1 },
@@ -13,9 +14,11 @@ const LAYOUTS = [
 
 export function CollageEditor() {
   const { photos } = usePhotos();
+  const canvasRef = useRef<HTMLDivElement>(null);
   const [layoutId, setLayoutId] = useState<string>('horizontal');
   const [slots, setSlots] = useState<(string | null)[]>(() => Array(2).fill(null));
   const [gap, setGap] = useState(8);
+  const [exporting, setExporting] = useState(false);
   const bg = '#ffffff';
   const radius = 0;
 
@@ -37,6 +40,24 @@ export function CollageEditor() {
   };
 
   const clearSlot = (index: number) => setSlot(index, null);
+
+  const handleExport = async () => {
+    if (!canvasRef.current) return;
+    setExporting(true);
+    try {
+      await exportSingle(canvasRef.current, {
+        format: 'jpeg',
+        quality: 90,
+        dpi: 72,
+        scale: 1,
+        preserveExif: false,
+      });
+    } catch (err) {
+      console.error('导出拼图失败:', err);
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const gridStyle = {
     display: 'grid',
@@ -82,12 +103,25 @@ export function CollageEditor() {
             step={1}
             className="w-20"
           />
+          <Button
+            size="xs"
+            className="h-6 gap-1 text-[10px]"
+            onClick={handleExport}
+            disabled={exporting || slots.every((s) => s === null)}
+          >
+            {exporting ? (
+              <Loader2 className="size-3 animate-spin" />
+            ) : (
+              <Download className="size-3" />
+            )}
+            导出
+          </Button>
         </div>
       </div>
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <div className="flex min-h-0 flex-1 items-center justify-center bg-muted/30 p-4">
-          <div style={gridStyle} className="w-full max-w-2xl">
+          <div ref={canvasRef} style={gridStyle} className="w-full max-w-2xl">
             {Array.from({ length: slotCount }).map((_, i) => {
               const pid = slots[i];
               const photo = pid ? photos.find((p) => p.id === pid) : null;

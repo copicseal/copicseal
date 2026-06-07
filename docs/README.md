@@ -1,7 +1,7 @@
 # Copicseal 架构设计书
 
 > **项目**：Copicseal — 摄影后期批处理桌面工具
-> **重构**：Electron + Vue 3 → Tauri + React
+> **技术**：Tauri 2 + React 19 + TypeScript
 > **版本**：v0.2.0（架构设计阶段）
 > **日期**：2026-06-04
 
@@ -18,6 +18,7 @@
 | 05 | [数据模型与配置](./05-data-models.md) | 照片对象、模板、预设、全局配置、设备数据 |
 | 06 | [系统集成与存储](./06-system-integration.md) | 文件系统、目录管理、配置持久化、字体、窗口、更新 |
 | 07 | [EXIF 元数据与相机信息](./07-exif-metadata.md) | EXIF 字段、品牌映射、编辑、设备数据库、文本变量 |
+| 08 | [产品需求规格](./08-product-requirements.md) | 完整功能需求清单（UI、交互、数据模型） |
 
 ---
 

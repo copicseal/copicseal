@@ -16,6 +16,7 @@
 | [docs/05-data-models.md](docs/05-data-models.md) | 数据模型与配置 |
 | [docs/06-system-integration.md](docs/06-system-integration.md) | 系统集成与存储 |
 | [docs/07-exif-metadata.md](docs/07-exif-metadata.md) | EXIF 元数据处理 |
+| [docs/08-product-requirements.md](docs/08-product-requirements.md) | 产品需求规格 |
 | [docs/TODO.md](docs/TODO.md) | 开发待办清单 |
 
 ## 项目结构
@@ -45,6 +46,9 @@ commitlint.config.js  # Commit 规范
 2. 遵循 `biome.json` 中的代码风格（单引号、分号、2空格缩进）
 3. 提交格式遵循 Conventional Commits（`chore:`, `feat:`, `fix:`, `docs:` 等）
 4. 提交前自动执行 `biome check` + `rustfmt` + `clippy`
+5. **不要自动提交代码**：除非用户明确要求，否则只修改不提交
+6. **需求文档规范**：只描述新产品需要实现的功能，不提及旧项目（Electron/Vue3）的实现细节
+7. **大型改动前先让用户审阅**：涉及架构、需求文档、TODO 的变更，先交给用户审阅再执行
 
 ## 代码编写规范
 

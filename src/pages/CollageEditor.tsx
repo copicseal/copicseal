@@ -33,7 +33,7 @@ export function CollageEditor() {
 
   const handlePhotoClick = (photoId: string) => {
     setSlots((prev) => {
-      const idx = prev.findIndex((s) => s === null);
+      const idx = prev.indexOf(null);
       if (idx === -1) return prev;
       const next = [...prev];
       next[idx] = photoId;
@@ -169,12 +169,13 @@ export function CollageEditor() {
             <button
               key={photo.id}
               type="button"
-              disabled={used}
-              className="relative shrink-0 overflow-hidden rounded border-2 transition-opacity disabled:pointer-events-none disabled:opacity-20"
+              className={`relative shrink-0 cursor-pointer overflow-hidden rounded border-2 transition-opacity ${
+                used ? 'pointer-events-none opacity-20' : 'hover:border-primary/50'
+              }`}
               style={{
                 width: 48,
                 height: 48,
-                borderColor: used ? 'var(--color-primary)' : 'transparent',
+                borderColor: used ? 'var(--color-primary)' : 'var(--color-border)',
               }}
               onClick={() => handlePhotoClick(photo.id)}
             >

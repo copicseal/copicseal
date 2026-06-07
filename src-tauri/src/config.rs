@@ -10,6 +10,10 @@ pub struct AppConfig {
     pub language: String,
     pub theme: String,
     pub save_directory: String,
+    #[serde(default)]
+    pub font_favorites: Vec<String>,
+    #[serde(default)]
+    pub device_id: String,
 }
 
 impl Default for AppConfig {
@@ -24,6 +28,8 @@ impl Default for AppConfig {
             language: "zh-CN".to_string(),
             theme: "system".to_string(),
             save_directory: save,
+            font_favorites: Vec::new(),
+            device_id: String::new(),
         }
     }
 }
@@ -62,4 +68,14 @@ pub fn get_config(app: tauri::AppHandle) -> Result<AppConfig, String> {
 #[tauri::command]
 pub fn update_config(app: tauri::AppHandle, config: AppConfig) -> Result<(), String> {
     save_to_disk(&app, &config)
+}
+
+#[tauri::command]
+pub fn get_device_id(app: tauri::AppHandle) -> Result<String, String> {
+    let mut config = load_from_disk(&app)?;
+    if config.device_id.is_empty() {
+        config.device_id = uuid::Uuid::new_v4().to_string();
+        save_to_disk(&app, &config)?;
+    }
+    Ok(config.device_id.clone())
 }

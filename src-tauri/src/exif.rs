@@ -58,6 +58,43 @@ fn srational_to_f64(r: &exif::SRational) -> f64 {
     r.num as f64 / r.denom as f64
 }
 
+fn normalize_brand(raw: &str) -> String {
+    let lower = raw.trim().to_lowercase();
+    match lower.as_str() {
+        s if s.starts_with("sony") => "Sony".into(),
+        s if s.starts_with("canon") => "Canon".into(),
+        s if s.starts_with("nikon") => "Nikon".into(),
+        s if s.starts_with("fujifilm") => "Fujifilm".into(),
+        s if s.starts_with("olympus") => "Olympus".into(),
+        s if s.starts_with("panasonic") => "Panasonic".into(),
+        s if s.starts_with("leica") => "Leica".into(),
+        s if s.starts_with("ricoh") => "Ricoh".into(),
+        s if s.starts_with("pentax") => "Pentax".into(),
+        s if s.starts_with("sigma") => "Sigma".into(),
+        s if s.starts_with("hasselblad") => "Hasselblad".into(),
+        s if s.starts_with("samsung") => "Samsung".into(),
+        s if s.starts_with("apple") => "Apple".into(),
+        s if s.starts_with("google") => "Google".into(),
+        s if s.starts_with("huawei") => "Huawei".into(),
+        s if s.starts_with("xiaomi") => "Xiaomi".into(),
+        s if s.starts_with("dji") => "DJI".into(),
+        s if s.starts_with("gopro") => "GoPro".into(),
+        s if s.starts_with("insta360") => "Insta360".into(),
+        s if s.starts_with("oneplus") => "OnePlus".into(),
+        s if s.starts_with("oppo") => "OPPO".into(),
+        s if s.starts_with("vivo") => "vivo".into(),
+        s if s.starts_with("nokia") => "Nokia".into(),
+        s if s.starts_with("zeiss") => "Zeiss".into(),
+        _ => {
+            let mut chars = raw.trim().chars();
+            match chars.next() {
+                None => raw.to_string(),
+                Some(c) => c.to_uppercase().to_string() + chars.as_str(),
+            }
+        }
+    }
+}
+
 #[tauri::command]
 pub fn read_exif(path: String) -> Result<ExifData, String> {
     let path = Path::new(&path);
@@ -87,7 +124,7 @@ pub fn read_exif(path: String) -> Result<ExifData, String> {
                 let val = field.display_value().to_string();
                 if !val.is_empty() {
                     match field.tag {
-                        exif::Tag::Make => data.make = Some(val),
+                        exif::Tag::Make => data.make = Some(normalize_brand(&val)),
                         exif::Tag::Model => data.model = Some(val),
                         exif::Tag::LensModel => data.lens_model = Some(val),
                         exif::Tag::DateTimeOriginal => data.date_taken = Some(val),

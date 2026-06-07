@@ -15,6 +15,7 @@ pub fn run() {
             fs::write_file,
             config::get_config,
             config::update_config,
+            config::get_device_id,
             exif::read_exif,
             font::list_system_fonts,
             system::get_app_info,

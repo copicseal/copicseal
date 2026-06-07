@@ -66,23 +66,24 @@ function LayoutThumbnail({ layout, active }: { layout: CollageLayout; active: bo
   const areaNames = new Set(layout.areas.match(/[A-Z]/g) || []);
   return (
     <div
-      className={`flex items-center justify-center rounded border-2 p-0.5 transition-colors ${
+      className={`overflow-hidden rounded border-2 transition-colors ${
         active ? 'border-primary' : 'border-transparent hover:border-muted-foreground/30'
       }`}
+      style={{ width: 40, height: (40 / cols) * rows }}
     >
       <div
-        className="grid w-full gap-px"
+        className="grid h-full w-full"
         style={{
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
           gridTemplateRows: `repeat(${rows}, 1fr)`,
           gridTemplateAreas: layout.areas,
-          aspectRatio: `${cols}/${rows}`,
+          gap: 1,
         }}
       >
         {Array.from(areaNames)
           .sort()
           .map((name) => (
-            <div key={name} className="bg-muted-foreground/20" style={{ gridArea: name }} />
+            <div key={name} className="bg-muted-foreground/25" style={{ gridArea: name }} />
           ))}
       </div>
     </div>

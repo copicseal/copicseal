@@ -1,6 +1,8 @@
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Slider } from '@/components/ui/slider';
+import { cn } from '@/lib/utils';
 
 type BgMode = 'none' | 'color' | 'image';
 
@@ -14,6 +16,59 @@ const FILTERS = [
   { key: 'saturate', label: '饱和度', min: 0, max: 200, unit: '%' },
 ];
 
+function CollapsibleSection({ title, children }: { title: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-t pt-2">
+      <button
+        type="button"
+        className="flex w-full items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-foreground"
+        onClick={() => setOpen(!open)}
+      >
+        {open ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
+        {title}
+      </button>
+      <div className={cn('mt-2 space-y-2', !open && 'hidden')}>{children}</div>
+    </div>
+  );
+}
+
+function SceneBgConfig() {
+  const [mode, setMode] = useState<BgMode>('none');
+  return (
+    <>
+      <RadioGroup
+        value={mode}
+        onValueChange={(v) => setMode(v as BgMode)}
+        className="flex gap-4"
+        orientation="horizontal"
+      >
+        {[
+          { value: 'none', label: '无' },
+          { value: 'color', label: '纯色' },
+          { value: 'image', label: '图片' },
+        ].map(({ value, label }) => (
+          <div key={value} className="flex items-center gap-1.5">
+            <RadioGroupItem value={value} id={`scene-${value}`} />
+            <label htmlFor={`scene-${value}`} className="cursor-pointer text-[10px]">
+              {label}
+            </label>
+          </div>
+        ))}
+      </RadioGroup>
+      {mode === 'color' && (
+        <div className="flex items-center gap-2">
+          <div className="size-5 rounded border bg-muted" />
+          <span className="text-[10px] text-muted-foreground">颜色选择器（待实现）</span>
+        </div>
+      )}
+      {mode === 'image' && (
+        <span className="text-[10px] text-muted-foreground">图片背景（待实现）</span>
+      )}
+    </>
+  );
+}
+
 export function CoBackgroundPanel() {
   const [mode, setMode] = useState<BgMode>('none');
   const [filters, setFilters] = useState<Record<string, number>>(
@@ -25,7 +80,7 @@ export function CoBackgroundPanel() {
       <h4 className="font-semibold text-foreground">背景</h4>
 
       <div className="space-y-1.5">
-        <span className="text-muted-foreground">模式</span>
+        <span className="text-[10px] font-medium text-muted-foreground">模式</span>
         <RadioGroup
           value={mode}
           onValueChange={(v) => setMode(v as BgMode)}
@@ -87,6 +142,14 @@ export function CoBackgroundPanel() {
           ))}
         </div>
       )}
+
+      <CollapsibleSection title="暗色模式独立背景">
+        <SceneBgConfig />
+      </CollapsibleSection>
+
+      <CollapsibleSection title="横版模式独立背景">
+        <SceneBgConfig />
+      </CollapsibleSection>
     </div>
   );
 }

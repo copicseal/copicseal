@@ -2,6 +2,7 @@ import { Info } from 'lucide-react';
 import type { ExifData } from '@/api';
 import { usePhotos } from '@/hooks/usePhotos';
 import { getBrandColors, getBrandInitial } from '@/lib/brand-logo';
+import type { ColorPalette } from '@/lib/color-palette';
 
 function ExifField({
   label,
@@ -31,9 +32,10 @@ function ExifField({
 interface CoExifPanelProps {
   exif: ExifData | null;
   loading: boolean;
+  palette?: ColorPalette | null;
 }
 
-export function CoExifPanel({ exif, loading }: CoExifPanelProps) {
+export function CoExifPanel({ exif, loading, palette }: CoExifPanelProps) {
   const { currentPhoto } = usePhotos();
   const hasAnyField = exif && Object.values(exif).some((v) => v != null);
   const brandColors = getBrandColors(exif?.make ?? null);
@@ -103,6 +105,24 @@ export function CoExifPanel({ exif, loading }: CoExifPanelProps) {
             <ExifField label="白平衡" value={exif.white_balance ?? undefined} />
             <ExifField label="测光模式" value={exif.metering_mode ?? undefined} />
           </div>
+
+          {palette && (
+            <div className="space-y-1">
+              <div className="mb-1 border-b pb-1">
+                <span className="text-[10px] font-medium text-muted-foreground">调色板</span>
+              </div>
+              <div className="flex gap-1">
+                {palette.palette.map((color) => (
+                  <div
+                    key={color}
+                    className="size-4 rounded-sm border"
+                    style={{ backgroundColor: color }}
+                    title={color}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

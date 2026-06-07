@@ -13,6 +13,7 @@ import { CoTemplatePanel } from '@/components/panels/CoTemplatePanel';
 import { CoSettingsDialog } from '@/components/settings/CoSettingsDialog';
 import { Button } from '@/components/ui/button';
 import { usePhotos } from '@/hooks/usePhotos';
+import { type ColorPalette, extractColorPalette } from '@/lib/color-palette';
 import { type ExportOptions, exportSingle } from '@/lib/export-photo';
 import { getTemplateById } from '@/templates';
 
@@ -25,7 +26,18 @@ export function PhotoEditor() {
   const [orientation, setOrientation] = useState<'auto' | 'horizontal' | 'vertical'>('auto');
   const [exif, setExif] = useState<ExifData | null>(null);
   const [exifLoading, setExifLoading] = useState(false);
+  const [palette, setPalette] = useState<ColorPalette | null>(null);
   const [baseSize, setBaseSize] = useState(1000);
+
+  useEffect(() => {
+    if (currentPhoto?.previewUrl) {
+      extractColorPalette(currentPhoto.previewUrl)
+        .then(setPalette)
+        .catch(() => setPalette(null));
+    } else {
+      setPalette(null);
+    }
+  }, [currentPhoto?.previewUrl]);
   const templateRef = useRef<HTMLDivElement>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -108,7 +120,7 @@ export function PhotoEditor() {
       id: 'exif',
       label: '照片信息',
       icon: Camera,
-      content: <CoExifPanel exif={exif} loading={exifLoading} />,
+      content: <CoExifPanel exif={exif} loading={exifLoading} palette={palette} />,
     },
     {
       id: 'template',

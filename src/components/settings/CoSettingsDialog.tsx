@@ -11,7 +11,7 @@ import {
   Settings,
   Trash2,
 } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { fetchRemoteTemplates, type RemoteTemplate } from '@/lib/remote-templates';
 import { cn } from '@/lib/utils';
 
 const TABS = [
@@ -158,32 +159,82 @@ function TemplatePresetsTab() {
 }
 
 function TemplateLibraryTab() {
-  const [templates, setTemplates] = useState(MOCK_TEMPLATES);
+  const [remoteTemplates, setRemoteTemplates] = useState<RemoteTemplate[]>([]);
+  const [enabled, setEnabled] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchRemoteTemplates();
+      setRemoteTemplates(data);
+      if (data.length === 0) setError('暂无远程模板');
+    } catch {
+      setError('获取失败');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const toggle = (id: string) =>
-    setTemplates((t) => t.map((tpl) => (tpl.id === id ? { ...tpl, enabled: !tpl.enabled } : tpl)));
+    setEnabled((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const all = [
+    ...MOCK_TEMPLATES.map((t) => ({ ...t, remote: false })),
+    ...remoteTemplates.map((t) => ({ ...t, remote: true })),
+  ];
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <SectionLabel>远程模板</SectionLabel>
-        <Button variant="ghost" size="icon-xs" title="刷新">
-          <RefreshCw className="size-3" />
+        <Button variant="ghost" size="icon-xs" title="刷新" onClick={load} disabled={loading}>
+          <RefreshCw className={loading ? 'size-3 animate-spin' : 'size-3'} />
         </Button>
       </div>
       <div className="space-y-1">
-        {templates.map((tpl) => (
+        {all.map((tpl) => (
           <div
             key={tpl.id}
             className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-muted/50"
           >
-            <div>
-              <span>{tpl.name}</span>
-              <span className="ml-2 text-[10px] text-muted-foreground">{tpl.author}</span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5">
+                <span className="truncate text-[10px]">{tpl.name}</span>
+                {tpl.remote && (
+                  <span className="shrink-0 rounded bg-blue-500/10 px-1 py-0.5 text-[8px] text-blue-500">
+                    远程
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] text-muted-foreground">{tpl.author}</span>
             </div>
-            <Switch checked={tpl.enabled} onCheckedChange={() => toggle(tpl.id)} size="sm" />
+            <Switch
+              checked={enabled.has(tpl.id) || !tpl.remote}
+              onCheckedChange={() => toggle(tpl.id)}
+              size="sm"
+            />
           </div>
         ))}
+        {loading && (
+          <div className="flex justify-center py-2">
+            <div className="size-4 animate-spin rounded-full border-2 border-muted-foreground/20 border-t-muted-foreground" />
+          </div>
+        )}
+        {!loading && error && all.length === 0 && (
+          <p className="py-2 text-center text-[10px] text-muted-foreground">{error}</p>
+        )}
       </div>
     </div>
   );

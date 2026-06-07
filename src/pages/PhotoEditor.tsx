@@ -89,7 +89,7 @@ export function PhotoEditor() {
               )}
             </div>
 
-            <ControlPanel tabs={CONTROL_TABS} defaultOpen="export" className="w-56 shrink-0" />
+            <ControlPanel tabs={CONTROL_TABS} defaultOpen={['export']} className="w-56 shrink-0" />
           </div>
         </div>
       )}

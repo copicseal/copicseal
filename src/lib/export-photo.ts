@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core';
 import { save } from '@tauri-apps/plugin-dialog';
-import { toJpeg, toPng } from 'html-to-image';
+import { snapdom } from '@zumer/snapdom';
 
 export type ExportFormat = 'jpeg' | 'png' | 'webp';
 
@@ -13,65 +13,30 @@ export interface ExportOptions {
   dpi: number;
 }
 
-function dataUrlToBytes(dataUrl: string): Uint8Array {
-  const parts = dataUrl.split(',');
-  const binary = atob(parts[1]);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes;
+async function blobToBytes(blob: Blob): Promise<Uint8Array> {
+  const buf = await blob.arrayBuffer();
+  return new Uint8Array(buf);
 }
 
-async function imageSrcToDataUrl(src: string): Promise<string> {
-  const resp = await fetch(src);
-  const blob = await resp.blob();
-  const bitmap = await createImageBitmap(blob);
-  const canvas = document.createElement('canvas');
-  canvas.width = bitmap.width;
-  canvas.height = bitmap.height;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Failed to get canvas context');
-  ctx.drawImage(bitmap, 0, 0);
-  return canvas.toDataURL();
-}
-
-async function inlineImages(container: HTMLElement): Promise<void> {
-  const images = container.querySelectorAll('img');
-  await Promise.all(
-    Array.from(images).map(async (img) => {
-      if (img.src.startsWith('data:')) return;
-      try {
-        img.src = await imageSrcToDataUrl(img.src);
-      } catch {
-        // ignore — leave original src, html-to-image will handle or skip
-      }
-    }),
-  );
+function toSnapdomFormat(f: ExportFormat): 'png' | 'jpeg' | 'webp' {
+  return f === 'jpeg' ? 'jpeg' : f === 'webp' ? 'webp' : 'png';
 }
 
 async function captureElement(element: HTMLElement, options: ExportOptions): Promise<Uint8Array> {
-  await inlineImages(element);
+  const fmt = toSnapdomFormat(options.format);
+  const scale = options.dpi / 72;
 
-  const pixelRatio = options.dpi / 72;
-  const commonOpts = {
-    pixelRatio,
+  const blob = await snapdom.toBlob(element, {
+    type: fmt,
+    format: fmt,
     quality: options.quality / 100,
-    width: options.width ? options.width * pixelRatio : undefined,
-    height: options.height ? options.height * pixelRatio : undefined,
-  };
+    scale,
+    width: options.width ? options.width * scale : undefined,
+    height: options.height ? options.height * scale : undefined,
+    backgroundColor: fmt !== 'png' ? '#ffffff' : undefined,
+  });
 
-  switch (options.format) {
-    case 'jpeg':
-    case 'webp': {
-      const dataUrl = await toJpeg(element, commonOpts);
-      return dataUrlToBytes(dataUrl);
-    }
-    default: {
-      const dataUrl = await toPng(element, { pixelRatio: commonOpts.pixelRatio });
-      return dataUrlToBytes(dataUrl);
-    }
-  }
+  return blobToBytes(blob);
 }
 
 export async function exportSingle(element: HTMLElement, options: ExportOptions): Promise<void> {

@@ -113,11 +113,13 @@
 
 ### 5.3 导出系统
 
-- [ ] snapdom DOM-to-Image 截图
-- [ ] `--base-size` 两遍渲染尺寸计算
-- [ ] JPEG / PNG / WebP 输出
-- [ ] DPI 写入 + EXIF 保留/移除
-- [ ] 批量导出 + 进度回调
+- [x] snapdom DOM-to-Image 截图（html-to-image）
+- [ ] 模板 `--base-size` 两遍渲染尺寸计算
+- [x] JPEG / PNG / WebP 输出
+- [x] DPI 写入
+- [ ] EXIF 保留/移除
+- [x] 批量导出（基础下载）
+- [ ] 进度回调
 
 ### 5.4 字体系统
 

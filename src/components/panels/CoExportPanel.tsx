@@ -1,5 +1,5 @@
-import { FolderOpen } from 'lucide-react';
-import { useState } from 'react';
+import { FolderOpen, Loader2 } from 'lucide-react';
+import { useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -13,10 +13,14 @@ import {
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
+import type { ExportFormat, ExportOptions } from '@/lib/export-photo';
 
-type ExportFormat = 'jpeg' | 'png' | 'webp';
+interface CoExportPanelProps {
+  onExportSingle?: (options: ExportOptions) => Promise<void>;
+  onExportBatch?: (options: ExportOptions) => Promise<void>;
+}
 
-export function CoExportPanel() {
+export function CoExportPanel({ onExportSingle, onExportBatch }: CoExportPanelProps) {
   const [format, setFormat] = useState<ExportFormat>('jpeg');
   const [width, setWidth] = useState('');
   const [height, setHeight] = useState('');
@@ -25,6 +29,39 @@ export function CoExportPanel() {
   const [quality, setQuality] = useState([80]);
   const [dpi, setDpi] = useState('72');
   const [outputPath] = useState('~/Documents/Copicseal');
+  const [exporting, setExporting] = useState(false);
+
+  const buildOptions = useCallback(
+    (): ExportOptions => ({
+      format,
+      width: isOriginal ? undefined : width ? Number(width) : undefined,
+      height: isOriginal ? undefined : height ? Number(height) : undefined,
+      scale: scale[0],
+      quality: quality[0],
+      dpi: Number(dpi) || 72,
+    }),
+    [format, width, height, isOriginal, scale, quality, dpi],
+  );
+
+  const handleExportSingle = async () => {
+    if (!onExportSingle) return;
+    setExporting(true);
+    try {
+      await onExportSingle(buildOptions());
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportBatch = async () => {
+    if (!onExportBatch) return;
+    setExporting(true);
+    try {
+      await onExportBatch(buildOptions());
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="space-y-4 p-3 text-xs">
@@ -174,10 +211,22 @@ export function CoExportPanel() {
       </div>
 
       <div className="space-y-2 pt-1">
-        <Button className="w-full text-xs" size="sm">
+        <Button
+          className="w-full text-xs"
+          size="sm"
+          onClick={handleExportSingle}
+          disabled={exporting || !onExportSingle}
+        >
+          {exporting ? <Loader2 className="size-3 animate-spin" /> : null}
           导出当前
         </Button>
-        <Button variant="outline" className="w-full text-xs" size="sm">
+        <Button
+          variant="outline"
+          className="w-full text-xs"
+          size="sm"
+          onClick={handleExportBatch}
+          disabled={exporting || !onExportBatch}
+        >
           批量导出全部
         </Button>
       </div>

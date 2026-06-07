@@ -1,5 +1,5 @@
 import { Camera, Download, ImageIcon, LayoutTemplate, Palette, Settings, Type } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { type ExifData, readExif } from '@/api';
 import type { ControlPanelTab } from '@/components/CoControlPanel';
 import { ControlPanel } from '@/components/CoControlPanel';
@@ -12,6 +12,7 @@ import { CoTemplatePanel } from '@/components/panels/CoTemplatePanel';
 import { CoSettingsDialog } from '@/components/settings/CoSettingsDialog';
 import { Button } from '@/components/ui/button';
 import { usePhotos } from '@/hooks/usePhotos';
+import { type ExportOptions, exportSingle } from '@/lib/export-photo';
 import { getTemplateById } from '@/templates';
 
 export function PhotoEditor() {
@@ -23,6 +24,7 @@ export function PhotoEditor() {
   const [orientation, setOrientation] = useState<'auto' | 'horizontal' | 'vertical'>('auto');
   const [exif, setExif] = useState<ExifData | null>(null);
   const [exifLoading, setExifLoading] = useState(false);
+  const templateRef = useRef<HTMLDivElement>(null);
 
   const loadExif = useCallback(async (path: string) => {
     setExifLoading(true);
@@ -46,6 +48,16 @@ export function PhotoEditor() {
 
   const templateEntry = templateId ? getTemplateById(templateId) : undefined;
   const TemplateComp = templateEntry?.component;
+
+  const handleExportSingle = useCallback(async (options: ExportOptions) => {
+    if (templateRef.current) {
+      await exportSingle(templateRef.current, options);
+    }
+  }, []);
+
+  const handleExportBatch = useCallback(async (_options: ExportOptions) => {
+    // TODO: batch export — iterate over all photos applying the same template
+  }, []);
 
   const tabs: ControlPanelTab[] = [
     {
@@ -71,7 +83,14 @@ export function PhotoEditor() {
     },
     { id: 'background', label: '背景', icon: Palette, content: <CoBackgroundPanel /> },
     { id: 'font', label: '字体', icon: Type, content: <CoFontPanel /> },
-    { id: 'export', label: '导出', icon: Download, content: <CoExportPanel /> },
+    {
+      id: 'export',
+      label: '导出',
+      icon: Download,
+      content: (
+        <CoExportPanel onExportSingle={handleExportSingle} onExportBatch={handleExportBatch} />
+      ),
+    },
   ];
 
   return (
@@ -139,7 +158,10 @@ export function PhotoEditor() {
               ))}
             </div>
 
-            <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-muted/30 p-4">
+            <div
+              ref={templateRef}
+              className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-muted/30 p-4"
+            >
               {currentPhoto && TemplateComp ? (
                 <TemplateComp
                   photoUrl={currentPhoto.previewUrl}

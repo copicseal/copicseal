@@ -75,6 +75,7 @@ function LayoutThumbnail({ layout, active }: { layout: CollageLayout; active: bo
         style={{
           gridTemplateColumns: `repeat(${cols}, 1fr)`,
           gridTemplateRows: `repeat(${rows}, 1fr)`,
+          gridTemplateAreas: layout.areas,
           aspectRatio: `${cols}/${rows}`,
         }}
       >
@@ -146,11 +147,13 @@ export function CollageEditor() {
   };
 
   const anyPhoto = slots.some((s) => s !== null);
+  const areaNames = (layout.areas.match(/[A-Z]/g) || []).sort();
 
   const gridStyle: React.CSSProperties = {
     display: 'grid',
     gridTemplateColumns: `repeat(${layout.cols}, 1fr)`,
     gridTemplateRows: `repeat(${layout.rows}, 1fr)`,
+    gridTemplateAreas: layout.areas,
     gap: `${gap}px`,
     backgroundColor: bg,
     padding: `${gap}px`,
@@ -230,11 +233,12 @@ export function CollageEditor() {
             {Array.from({ length: slotCount }).map((_, i) => {
               const pid = slots[i];
               const photo = pid ? photos.find((p) => p.id === pid) : null;
+              const areaName = areaNames[i] ?? String(i);
               return (
                 <div
-                  key={i}
+                  key={areaName}
                   className="relative flex items-center justify-center overflow-hidden bg-muted/50"
-                  style={{ borderRadius: `${radius}px` }}
+                  style={{ borderRadius: `${radius}px`, gridArea: areaName }}
                 >
                   {photo ? (
                     <>

@@ -1,6 +1,6 @@
 import { Search, Star } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
-import { type FontInfo, listSystemFonts } from '@/api';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { type AppConfig, type FontInfo, getConfig, listSystemFonts, updateConfig } from '@/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -11,27 +11,48 @@ export function CoFontPanel() {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const configRef = useRef<AppConfig | null>(null);
 
   useEffect(() => {
-    listSystemFonts()
-      .then((result) => setFonts(result))
-      .catch(() => setFonts([]))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const toggleFavorite = useCallback((font: string) => {
-    setFavorites((prev) => {
-      const next = new Set(prev);
-      if (next.has(font)) next.delete(font);
-      else next.add(font);
-      return next;
+    Promise.all([listSystemFonts(), getConfig().catch(() => null)]).then(([result, config]) => {
+      setFonts(result);
+      if (config) {
+        configRef.current = config;
+        setFavorites(new Set(config.font_favorites));
+      }
+      setLoading(false);
     });
   }, []);
+
+  const saveFavorites = useCallback(async (favs: Set<string>) => {
+    const config = configRef.current;
+    if (!config) return;
+    const updated = { ...config, font_favorites: [...favs] };
+    try {
+      await updateConfig(updated);
+      configRef.current = updated;
+    } catch {
+      // silently fail: favorites stay in-memory
+    }
+  }, []);
+
+  const toggleFavorite = useCallback(
+    (font: string) => {
+      setFavorites((prev) => {
+        const next = new Set(prev);
+        if (next.has(font)) next.delete(font);
+        else next.add(font);
+        saveFavorites(next);
+        return next;
+      });
+    },
+    [saveFavorites],
+  );
 
   const filtered = fonts.filter((f) => f.family.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="flex min-h-0 flex-col space-y-2 p-3 text-xs">
+    <div className="space-y-2 p-3 text-xs">
       <h4 className="font-semibold text-foreground">字体</h4>
 
       <div className="flex items-center gap-1.5">
@@ -46,7 +67,7 @@ export function CoFontPanel() {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-0.5 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-track]:bg-transparent">
+      <div className="max-h-[42vh] space-y-0.5 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-track]:bg-transparent">
         {loading ? (
           <div className="flex items-center justify-center py-4">
             <div className="size-5 animate-spin rounded-full border-2 border-muted-foreground/20 border-t-muted-foreground" />

@@ -15,9 +15,17 @@ import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import type { ExportFormat, ExportOptions } from '@/lib/export-photo';
 
+export interface ExportProgress {
+  current: number;
+  total: number;
+  fileName?: string;
+}
+
+type ProgressCallback = (p: ExportProgress) => void;
+
 interface CoExportPanelProps {
-  onExportSingle?: (options: ExportOptions) => Promise<void>;
-  onExportBatch?: (options: ExportOptions) => Promise<void>;
+  onExportSingle?: (options: ExportOptions, onProgress: ProgressCallback) => Promise<void>;
+  onExportBatch?: (options: ExportOptions, onProgress: ProgressCallback) => Promise<void>;
 }
 
 export function CoExportPanel({ onExportSingle, onExportBatch }: CoExportPanelProps) {
@@ -30,6 +38,7 @@ export function CoExportPanel({ onExportSingle, onExportBatch }: CoExportPanelPr
   const [dpi, setDpi] = useState('72');
   const [outputPath] = useState('~/Documents/Copicseal');
   const [exporting, setExporting] = useState(false);
+  const [progress, setProgress] = useState<ExportProgress | null>(null);
 
   const buildOptions = useCallback(
     (): ExportOptions => ({
@@ -46,8 +55,10 @@ export function CoExportPanel({ onExportSingle, onExportBatch }: CoExportPanelPr
   const handleExportSingle = async () => {
     if (!onExportSingle) return;
     setExporting(true);
+    setProgress({ current: 0, total: 1 });
     try {
-      await onExportSingle(buildOptions());
+      await onExportSingle(buildOptions(), setProgress);
+      setProgress({ current: 1, total: 1 });
     } finally {
       setExporting(false);
     }
@@ -56,12 +67,16 @@ export function CoExportPanel({ onExportSingle, onExportBatch }: CoExportPanelPr
   const handleExportBatch = async () => {
     if (!onExportBatch) return;
     setExporting(true);
+    setProgress({ current: 0, total: 0 });
     try {
-      await onExportBatch(buildOptions());
+      await onExportBatch(buildOptions(), setProgress);
     } finally {
       setExporting(false);
     }
   };
+
+  const pct =
+    progress && progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
 
   return (
     <div className="space-y-4 p-3 text-xs">
@@ -210,6 +225,23 @@ export function CoExportPanel({ onExportSingle, onExportBatch }: CoExportPanelPr
         </div>
       </div>
 
+      {exporting && progress && (
+        <div className="space-y-1.5 rounded-md border bg-muted/20 p-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-muted-foreground">
+              {progress.total > 1 ? `${progress.current} / ${progress.total} 张` : '正在导出...'}
+            </span>
+            <span className="text-[10px] tabular-nums text-muted-foreground">{pct}%</span>
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-300"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="space-y-2 pt-1">
         <Button
           className="w-full text-xs"
@@ -217,7 +249,9 @@ export function CoExportPanel({ onExportSingle, onExportBatch }: CoExportPanelPr
           onClick={handleExportSingle}
           disabled={exporting || !onExportSingle}
         >
-          {exporting ? <Loader2 className="size-3 animate-spin" /> : null}
+          {exporting && progress && progress.total === 1 ? (
+            <Loader2 className="size-3 animate-spin" />
+          ) : null}
           导出当前
         </Button>
         <Button

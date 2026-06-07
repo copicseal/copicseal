@@ -69,13 +69,15 @@ export function PhotoEditor() {
   );
 
   const handleExportSingle = useCallback(
-    async (options: ExportOptions) => {
+    async (options: ExportOptions, onProgress: (p: { current: number; total: number }) => void) => {
       if (!templateRef.current) {
         console.error('导出失败: 未找到模板元素');
         return;
       }
       try {
+        onProgress({ current: 0, total: 1 });
         await exportSingle(templateRef.current, options, adjustBaseSize);
+        onProgress({ current: 1, total: 1 });
       } catch (err) {
         console.error('导出失败:', err);
       }
@@ -83,9 +85,23 @@ export function PhotoEditor() {
     [adjustBaseSize],
   );
 
-  const handleExportBatch = useCallback(async (_options: ExportOptions) => {
-    // TODO: batch export — iterate over all photos applying the same template
-  }, []);
+  const handleExportBatch = useCallback(
+    async (options: ExportOptions, onProgress: (p: { current: number; total: number }) => void) => {
+      if (!templateRef.current) return;
+      const total = photos.length;
+      for (let i = 0; i < total; i++) {
+        setCurrentIndex(i);
+        await new Promise((r) => setTimeout(r, 100));
+        try {
+          await exportSingle(templateRef.current, options, adjustBaseSize);
+        } catch (err) {
+          console.error(`导出第 ${i + 1} 张失败:`, err);
+        }
+        onProgress({ current: i + 1, total });
+      }
+    },
+    [adjustBaseSize, photos.length, setCurrentIndex],
+  );
 
   const tabs: ControlPanelTab[] = [
     {

@@ -1,5 +1,4 @@
 import { Bookmark, ChevronDown } from 'lucide-react';
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -11,38 +10,43 @@ import {
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { cn } from '@/lib/utils';
+import { BUILTIN_TEMPLATES } from '@/templates';
 
-const TEMPLATES = [
-  { id: 'frame-white', name: '框架白边' },
-  { id: 'frameless-round', name: '无框圆角' },
-  { id: 'ps-splash', name: 'PS启动窗' },
-  { id: 'minimal', name: '极简' },
-  { id: 'retro-film', name: '复古胶片' },
-  { id: 'modern', name: '现代' },
-];
+interface CoTemplatePanelProps {
+  selectedId: string | null;
+  onSelectId: (id: string) => void;
+  fontScale: number;
+  onFontScaleChange: (scale: number) => void;
+  orientation: 'auto' | 'horizontal' | 'vertical';
+  onOrientationChange: (o: 'auto' | 'horizontal' | 'vertical') => void;
+}
 
-export function CoTemplatePanel() {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [fontScale, setFontScale] = useState([1]);
-
+export function CoTemplatePanel({
+  selectedId,
+  onSelectId,
+  fontScale,
+  onFontScaleChange,
+  orientation,
+  onOrientationChange,
+}: CoTemplatePanelProps) {
   return (
     <div className="space-y-3 p-3 text-xs">
       <h4 className="font-semibold text-foreground">模板</h4>
 
       <div className="grid grid-cols-2 gap-1.5">
-        {TEMPLATES.map((tpl) => (
+        {BUILTIN_TEMPLATES.map(({ meta }) => (
           <button
-            key={tpl.id}
+            key={meta.id}
             type="button"
-            onClick={() => setSelectedId(tpl.id)}
+            onClick={() => onSelectId(meta.id)}
             className={cn(
               'flex aspect-[4/3] flex-col items-center justify-center rounded-md border text-[10px] transition-colors',
-              selectedId === tpl.id
+              selectedId === meta.id
                 ? 'border-primary bg-primary/5 text-primary'
                 : 'border-border bg-muted/30 text-muted-foreground hover:border-muted-foreground/30',
             )}
           >
-            <span className="line-clamp-2 px-1 text-center">{tpl.name}</span>
+            <span className="line-clamp-2 px-1 text-center">{meta.name}</span>
           </button>
         ))}
       </div>
@@ -58,7 +62,7 @@ export function CoTemplatePanel() {
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-muted-foreground">排版方向</span>
               </div>
-              <Select defaultValue="auto">
+              <Select value={orientation} onValueChange={onOrientationChange}>
                 <SelectTrigger className="h-7 text-[10px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -76,10 +80,16 @@ export function CoTemplatePanel() {
               <div className="flex items-center justify-between">
                 <span className="text-[10px] text-muted-foreground">字体缩放</span>
                 <span className="text-[10px] tabular-nums text-muted-foreground">
-                  {fontScale[0].toFixed(1)}×
+                  {fontScale.toFixed(1)}×
                 </span>
               </div>
-              <Slider value={fontScale} onValueChange={setFontScale} min={0.5} max={2} step={0.1} />
+              <Slider
+                value={[fontScale]}
+                onValueChange={([v]) => onFontScaleChange(v)}
+                min={0.5}
+                max={2}
+                step={0.1}
+              />
             </div>
           </div>
         </>

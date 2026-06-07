@@ -1,6 +1,5 @@
 import { Camera, Info } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
-import { type ExifData, readExif } from '@/api';
+import type { ExifData } from '@/api';
 import { usePhotos } from '@/hooks/usePhotos';
 
 function ExifField({
@@ -28,31 +27,13 @@ function ExifField({
   );
 }
 
-export function CoExifPanel() {
+interface CoExifPanelProps {
+  exif: ExifData | null;
+  loading: boolean;
+}
+
+export function CoExifPanel({ exif, loading }: CoExifPanelProps) {
   const { currentPhoto } = usePhotos();
-  const [exif, setExif] = useState<ExifData | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  const loadExif = useCallback(async (path: string) => {
-    setLoading(true);
-    try {
-      const data = await readExif(path);
-      setExif(data);
-    } catch {
-      setExif(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (currentPhoto?.path) {
-      loadExif(currentPhoto.path);
-    } else {
-      setExif(null);
-    }
-  }, [currentPhoto, loadExif]);
-
   const hasAnyField = exif && Object.values(exif).some((v) => v != null);
 
   return (

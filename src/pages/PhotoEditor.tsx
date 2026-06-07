@@ -1,5 +1,6 @@
 import { Camera, Download, ImageIcon, LayoutTemplate, Palette, Settings, Type } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { type ExifData, readExif } from '@/api';
 import type { ControlPanelTab } from '@/components/CoControlPanel';
 import { ControlPanel } from '@/components/CoControlPanel';
 import { CoDropZone, CoFileInput } from '@/components/CoDropZone';
@@ -11,18 +12,67 @@ import { CoTemplatePanel } from '@/components/panels/CoTemplatePanel';
 import { CoSettingsDialog } from '@/components/settings/CoSettingsDialog';
 import { Button } from '@/components/ui/button';
 import { usePhotos } from '@/hooks/usePhotos';
-
-const CONTROL_TABS: ControlPanelTab[] = [
-  { id: 'exif', label: '照片信息', icon: Camera, content: <CoExifPanel /> },
-  { id: 'template', label: '模板', icon: LayoutTemplate, content: <CoTemplatePanel /> },
-  { id: 'background', label: '背景', icon: Palette, content: <CoBackgroundPanel /> },
-  { id: 'font', label: '字体', icon: Type, content: <CoFontPanel /> },
-  { id: 'export', label: '导出', icon: Download, content: <CoExportPanel /> },
-];
+import { getTemplateById } from '@/templates';
 
 export function PhotoEditor() {
   const { photos, currentPhoto, importViaDrop, setCurrentIndex } = usePhotos();
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const [templateId, setTemplateId] = useState<string | null>(null);
+  const [fontScale, setFontScale] = useState(1);
+  const [orientation, setOrientation] = useState<'auto' | 'horizontal' | 'vertical'>('auto');
+  const [exif, setExif] = useState<ExifData | null>(null);
+  const [exifLoading, setExifLoading] = useState(false);
+
+  const loadExif = useCallback(async (path: string) => {
+    setExifLoading(true);
+    try {
+      const data = await readExif(path);
+      setExif(data);
+    } catch {
+      setExif(null);
+    } finally {
+      setExifLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentPhoto?.path) {
+      loadExif(currentPhoto.path);
+    } else {
+      setExif(null);
+    }
+  }, [currentPhoto, loadExif]);
+
+  const templateEntry = templateId ? getTemplateById(templateId) : undefined;
+  const TemplateComp = templateEntry?.component;
+
+  const tabs: ControlPanelTab[] = [
+    {
+      id: 'exif',
+      label: '照片信息',
+      icon: Camera,
+      content: <CoExifPanel exif={exif} loading={exifLoading} />,
+    },
+    {
+      id: 'template',
+      label: '模板',
+      icon: LayoutTemplate,
+      content: (
+        <CoTemplatePanel
+          selectedId={templateId}
+          onSelectId={setTemplateId}
+          fontScale={fontScale}
+          onFontScaleChange={setFontScale}
+          orientation={orientation}
+          onOrientationChange={setOrientation}
+        />
+      ),
+    },
+    { id: 'background', label: '背景', icon: Palette, content: <CoBackgroundPanel /> },
+    { id: 'font', label: '字体', icon: Type, content: <CoFontPanel /> },
+    { id: 'export', label: '导出', icon: Download, content: <CoExportPanel /> },
+  ];
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
@@ -90,7 +140,19 @@ export function PhotoEditor() {
             </div>
 
             <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-muted/30 p-4">
-              {currentPhoto ? (
+              {currentPhoto && TemplateComp ? (
+                <TemplateComp
+                  photoUrl={currentPhoto.previewUrl}
+                  exif={exif}
+                  orientation={orientation}
+                  margin={1}
+                  fontScale={fontScale}
+                  primaryColor="#1a1a1a"
+                  borderColor="#1a1a1a"
+                  textLine1="{Make} {Model}"
+                  textLine2="{FocalLength}  f/{FNumber}  {ExposureTime}s  ISO{ISO}"
+                />
+              ) : currentPhoto ? (
                 <img
                   src={currentPhoto.previewUrl}
                   alt={currentPhoto.name}
@@ -101,7 +163,7 @@ export function PhotoEditor() {
               )}
             </div>
 
-            <ControlPanel tabs={CONTROL_TABS} defaultOpen={['export']} className="w-56 shrink-0" />
+            <ControlPanel tabs={tabs} defaultOpen={['export']} className="w-56 shrink-0" />
           </div>
         </div>
       )}

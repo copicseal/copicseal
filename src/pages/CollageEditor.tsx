@@ -64,12 +64,14 @@ function LayoutThumbnail({ layout, active }: { layout: CollageLayout; active: bo
   const cols = layout.cols;
   const rows = layout.rows;
   const areaNames = new Set(layout.areas.match(/[A-Z]/g) || []);
+  const w = 40;
+  const h = rows > cols ? 48 : Math.round((w / cols) * rows);
   return (
     <div
       className={`overflow-hidden rounded border-2 transition-colors ${
         active ? 'border-primary' : 'border-transparent hover:border-muted-foreground/30'
       }`}
-      style={{ width: 40, height: (40 / cols) * rows }}
+      style={{ width: w, height: h }}
     >
       <div
         className="grid h-full w-full"
@@ -83,7 +85,11 @@ function LayoutThumbnail({ layout, active }: { layout: CollageLayout; active: bo
         {Array.from(areaNames)
           .sort()
           .map((name) => (
-            <div key={name} className="bg-muted-foreground/25" style={{ gridArea: name }} />
+            <div
+              key={`${layout.id}-${name}`}
+              className="bg-muted-foreground/25"
+              style={{ gridArea: name }}
+            />
           ))}
       </div>
     </div>

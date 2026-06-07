@@ -4,6 +4,7 @@ import { type ExifData, readExif } from '@/api';
 import type { ControlPanelTab } from '@/components/CoControlPanel';
 import { ControlPanel } from '@/components/CoControlPanel';
 import { CoDropZone } from '@/components/CoDropZone';
+import { ContextMenu } from '@/components/ContextMenu';
 import { CoBackgroundPanel } from '@/components/panels/CoBackgroundPanel';
 import { CoExifPanel } from '@/components/panels/CoExifPanel';
 import { CoExportPanel } from '@/components/panels/CoExportPanel';
@@ -16,7 +17,7 @@ import { type ExportOptions, exportSingle } from '@/lib/export-photo';
 import { getTemplateById } from '@/templates';
 
 export function PhotoEditor() {
-  const { photos, currentPhoto, importViaDialog, setCurrentIndex } = usePhotos();
+  const { photos, currentPhoto, importViaDialog, setCurrentIndex, removePhoto } = usePhotos();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [templateId, setTemplateId] = useState<string | null>(null);
@@ -25,6 +26,12 @@ export function PhotoEditor() {
   const [exif, setExif] = useState<ExifData | null>(null);
   const [exifLoading, setExifLoading] = useState(false);
   const templateRef = useRef<HTMLDivElement>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    id: string;
+    name: string;
+  } | null>(null);
 
   const loadExif = useCallback(async (path: string) => {
     setExifLoading(true);
@@ -147,6 +154,10 @@ export function PhotoEditor() {
                       : 'border-transparent hover:border-muted-foreground/30'
                   }`}
                   onClick={() => setCurrentIndex(index)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setContextMenu({ x: e.clientX, y: e.clientY, id: photo.id, name: photo.name });
+                  }}
                 >
                   <img
                     src={photo.previewUrl}
@@ -192,6 +203,19 @@ export function PhotoEditor() {
         </div>
       )}
       <CoSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          items={[
+            {
+              label: `移除 "${contextMenu.name}"`,
+              onClick: () => removePhoto(contextMenu.id),
+            },
+          ]}
+        />
+      )}
     </div>
   );
 }

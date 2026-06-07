@@ -259,21 +259,23 @@ function AboutTab() {
 interface CoSettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaultTab?: string;
 }
 
-export function CoSettingsDialog({ open, onOpenChange }: CoSettingsDialogProps) {
+export function CoSettingsDialog({ open, onOpenChange, defaultTab }: CoSettingsDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="flex max-h-[85vh] flex-col overflow-hidden sm:max-w-2xl p-0 gap-0"
-        showCloseButton={false}
-      >
+      <DialogContent className="flex h-[90vh] flex-col overflow-hidden sm:max-w-2xl p-0 gap-0">
         <DialogHeader className="px-5 pt-5 pb-2">
           <DialogTitle>设置</DialogTitle>
           <DialogDescription>管理应用偏好、预设和设备数据</DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="general" orientation="vertical" className="flex min-h-0 flex-1">
+        <Tabs
+          defaultValue={defaultTab ?? 'general'}
+          orientation="vertical"
+          className="flex min-h-0 flex-1"
+        >
           <TabsList
             variant="line"
             className="w-32 shrink-0 flex-col items-stretch gap-0 rounded-none border-r px-2 py-2"

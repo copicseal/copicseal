@@ -1,4 +1,4 @@
-import { Camera, Download, ImageIcon, LayoutTemplate, Palette, Settings, Type } from 'lucide-react';
+import { Camera, Download, ImageIcon, LayoutTemplate, Palette, Type } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { type ExifData, readExif } from '@/api';
 import type { ControlPanelTab } from '@/components/CoControlPanel';
@@ -10,7 +10,6 @@ import { CoExifPanel } from '@/components/panels/CoExifPanel';
 import { CoExportPanel } from '@/components/panels/CoExportPanel';
 import { CoFontPanel } from '@/components/panels/CoFontPanel';
 import { CoTemplatePanel } from '@/components/panels/CoTemplatePanel';
-import { CoSettingsDialog } from '@/components/settings/CoSettingsDialog';
 import { Button } from '@/components/ui/button';
 import { usePhotos } from '@/hooks/usePhotos';
 import { type ColorPalette, extractColorPalette } from '@/lib/color-palette';
@@ -19,7 +18,6 @@ import { Minimal } from '@/templates';
 
 export function PhotoEditor() {
   const { photos, currentPhoto, importViaDialog, setCurrentIndex, removePhoto } = usePhotos();
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [fontScale, setFontScale] = useState(1);
   const [orientation, setOrientation] = useState<'auto' | 'horizontal' | 'vertical'>('auto');
@@ -145,7 +143,7 @@ export function PhotoEditor() {
   ];
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-background">
+    <div className="flex h-full flex-col overflow-hidden bg-background">
       {photos.length === 0 ? (
         <CoDropZone onFilesDrop={importViaDialog} className="m-4 flex-1">
           <div className="flex flex-col items-center gap-4 text-muted-foreground">
@@ -170,14 +168,6 @@ export function PhotoEditor() {
               添加照片
             </Button>
             <span className="flex-1 text-sm text-muted-foreground">{photos.length} 张照片</span>
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              onClick={() => setSettingsOpen(true)}
-              title="设置"
-            >
-              <Settings className="size-3.5" />
-            </Button>
           </div>
 
           <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -237,7 +227,6 @@ export function PhotoEditor() {
           </div>
         </div>
       )}
-      <CoSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
       {contextMenu && (
         <ContextMenu
           x={contextMenu.x}

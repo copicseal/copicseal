@@ -243,7 +243,7 @@ export function CollageEditor() {
               const areaName = areaNames[i] ?? String(i);
               return (
                 <div
-                  key={areaName}
+                  key={`${layout.id}-${areaName}`}
                   className="relative flex items-center justify-center overflow-hidden bg-muted/50"
                   style={{ borderRadius: `${radius}px`, gridArea: areaName }}
                 >

@@ -39,19 +39,56 @@ async function captureElement(element: HTMLElement, options: ExportOptions): Pro
   return blobToBytes(blob);
 }
 
-export async function exportSingle(element: HTMLElement, options: ExportOptions): Promise<void> {
+function measureContainer(el: HTMLElement): { width: number; height: number } {
+  const inner = el.firstElementChild as HTMLElement | null;
+  if (inner) {
+    const rect = inner.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      return { width: rect.width, height: rect.height };
+    }
+  }
+  const rect = el.getBoundingClientRect();
+  return { width: rect.width, height: rect.height };
+}
+
+export async function exportSingle(
+  element: HTMLElement,
+  options: ExportOptions,
+  setBaseSize?: (v: number) => Promise<void>,
+): Promise<void> {
+  const initialBaseSize = 1000;
+
+  if (setBaseSize && (options.width || options.height)) {
+    const pixelRatio = options.dpi / 72;
+    const targetW = options.width ? options.width * pixelRatio : undefined;
+
+    await setBaseSize(initialBaseSize);
+
+    const measured = measureContainer(element);
+    const measuredW = measured.width;
+
+    if (targetW && measuredW > 0) {
+      const corrected = Math.round((initialBaseSize * targetW) / measuredW);
+      await setBaseSize(corrected);
+    }
+  }
+
   const bytes = await captureElement(element, options);
   const ext = options.format === 'jpeg' ? 'jpg' : options.format;
-  const extLabel = ext.toUpperCase();
 
   const filePath = await save({
     defaultPath: `copicseal-export.${ext}`,
-    filters: [{ name: extLabel, extensions: [ext] }],
+    filters: [{ name: ext.toUpperCase(), extensions: [ext] }],
   });
 
-  if (!filePath) return;
+  if (!filePath) {
+    if (setBaseSize) await setBaseSize(initialBaseSize);
+    return;
+  }
 
   await invoke('write_file', { path: filePath, contents: Array.from(bytes) });
+
+  if (setBaseSize) await setBaseSize(initialBaseSize);
 }
 
 export async function exportBatch(

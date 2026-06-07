@@ -107,14 +107,14 @@
 
 - [x] 6 套内置模板 React 组件实现
 - [x] 模板注册表 + 预览区集成渲染
-- [ ] 模板 `--base-size` CSS 变量适配
+- [x] 模板 `--base-size` CSS 变量适配
 - [ ] 远程模板注册表对接
 - [ ] 远程模板签名验证 + 动态加载
 
 ### 5.3 导出系统
 
 - [x] snapdom DOM-to-Image 截图
-- [ ] 模板 `--base-size` 两遍渲染尺寸计算
+- [x] 模板 `--base-size` 两遍渲染尺寸计算
 - [x] JPEG / PNG / WebP 输出
 - [x] DPI 写入
 - [ ] EXIF 保留/移除

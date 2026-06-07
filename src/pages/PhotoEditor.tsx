@@ -25,6 +25,7 @@ export function PhotoEditor() {
   const [orientation, setOrientation] = useState<'auto' | 'horizontal' | 'vertical'>('auto');
   const [exif, setExif] = useState<ExifData | null>(null);
   const [exifLoading, setExifLoading] = useState(false);
+  const [baseSize, setBaseSize] = useState(1000);
   const templateRef = useRef<HTMLDivElement>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -56,17 +57,31 @@ export function PhotoEditor() {
   const templateEntry = templateId ? getTemplateById(templateId) : undefined;
   const TemplateComp = templateEntry?.component;
 
-  const handleExportSingle = useCallback(async (options: ExportOptions) => {
-    if (!templateRef.current) {
-      console.error('导出失败: 未找到模板元素');
-      return;
-    }
-    try {
-      await exportSingle(templateRef.current, options);
-    } catch (err) {
-      console.error('导出失败:', err);
-    }
-  }, []);
+  const adjustBaseSize = useCallback(
+    (v: number): Promise<void> =>
+      new Promise<void>((resolve) => {
+        setBaseSize(v);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => resolve());
+        });
+      }),
+    [],
+  );
+
+  const handleExportSingle = useCallback(
+    async (options: ExportOptions) => {
+      if (!templateRef.current) {
+        console.error('导出失败: 未找到模板元素');
+        return;
+      }
+      try {
+        await exportSingle(templateRef.current, options, adjustBaseSize);
+      } catch (err) {
+        console.error('导出失败:', err);
+      }
+    },
+    [adjustBaseSize],
+  );
 
   const handleExportBatch = useCallback(async (_options: ExportOptions) => {
     // TODO: batch export — iterate over all photos applying the same template
@@ -174,28 +189,31 @@ export function PhotoEditor() {
             <div
               ref={templateRef}
               className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-muted/30 p-4"
+              style={{ '--base-size': `${baseSize}px` } as React.CSSProperties}
             >
-              {currentPhoto && TemplateComp ? (
-                <TemplateComp
-                  photoUrl={currentPhoto.previewUrl}
-                  exif={exif}
-                  orientation={orientation}
-                  margin={1}
-                  fontScale={fontScale}
-                  primaryColor="#1a1a1a"
-                  borderColor="#1a1a1a"
-                  textLine1="{Make} {Model}"
-                  textLine2="{FocalLength}  f/{FNumber}  {ExposureTime}s  ISO{ISO}"
-                />
-              ) : currentPhoto ? (
-                <img
-                  src={currentPhoto.previewUrl}
-                  alt={currentPhoto.name}
-                  className="max-h-full max-w-full rounded-lg object-contain shadow-lg"
-                />
-              ) : (
-                <p className="text-muted-foreground">请选择一张照片</p>
-              )}
+              <div className="w-[calc(var(--base-size)*1px)] max-w-full">
+                {currentPhoto && TemplateComp ? (
+                  <TemplateComp
+                    photoUrl={currentPhoto.previewUrl}
+                    exif={exif}
+                    orientation={orientation}
+                    margin={1}
+                    fontScale={fontScale}
+                    primaryColor="#1a1a1a"
+                    borderColor="#1a1a1a"
+                    textLine1="{Make} {Model}"
+                    textLine2="{FocalLength}  f/{FNumber}  {ExposureTime}s  ISO{ISO}"
+                  />
+                ) : currentPhoto ? (
+                  <img
+                    src={currentPhoto.previewUrl}
+                    alt={currentPhoto.name}
+                    className="max-h-full max-w-full rounded-lg object-contain shadow-lg"
+                  />
+                ) : (
+                  <p className="text-muted-foreground">请选择一张照片</p>
+                )}
+              </div>
             </div>
 
             <ControlPanel tabs={tabs} defaultOpen={['export']} className="w-56 shrink-0" />

@@ -23,7 +23,36 @@ function dataUrlToBytes(dataUrl: string): Uint8Array {
   return bytes;
 }
 
+async function imageSrcToDataUrl(src: string): Promise<string> {
+  const resp = await fetch(src);
+  const blob = await resp.blob();
+  const bitmap = await createImageBitmap(blob);
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Failed to get canvas context');
+  ctx.drawImage(bitmap, 0, 0);
+  return canvas.toDataURL();
+}
+
+async function inlineImages(container: HTMLElement): Promise<void> {
+  const images = container.querySelectorAll('img');
+  await Promise.all(
+    Array.from(images).map(async (img) => {
+      if (img.src.startsWith('data:')) return;
+      try {
+        img.src = await imageSrcToDataUrl(img.src);
+      } catch {
+        // ignore — leave original src, html-to-image will handle or skip
+      }
+    }),
+  );
+}
+
 async function captureElement(element: HTMLElement, options: ExportOptions): Promise<Uint8Array> {
+  await inlineImages(element);
+
   const pixelRatio = options.dpi / 72;
   const commonOpts = {
     pixelRatio,
@@ -33,10 +62,7 @@ async function captureElement(element: HTMLElement, options: ExportOptions): Pro
   };
 
   switch (options.format) {
-    case 'jpeg': {
-      const dataUrl = await toJpeg(element, commonOpts);
-      return dataUrlToBytes(dataUrl);
-    }
+    case 'jpeg':
     case 'webp': {
       const dataUrl = await toJpeg(element, commonOpts);
       return dataUrlToBytes(dataUrl);

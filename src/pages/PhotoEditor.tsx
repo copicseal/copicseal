@@ -1,4 +1,5 @@
-import { Camera, Download, ImageIcon, LayoutTemplate, Palette, Type } from 'lucide-react';
+import { Camera, Download, ImageIcon, LayoutTemplate, Palette, Settings, Type } from 'lucide-react';
+import { useState } from 'react';
 import type { ControlPanelTab } from '@/components/CoControlPanel';
 import { ControlPanel } from '@/components/CoControlPanel';
 import { CoDropZone, CoFileInput } from '@/components/CoDropZone';
@@ -7,6 +8,8 @@ import { CoExifPanel } from '@/components/panels/CoExifPanel';
 import { CoExportPanel } from '@/components/panels/CoExportPanel';
 import { CoFontPanel } from '@/components/panels/CoFontPanel';
 import { CoTemplatePanel } from '@/components/panels/CoTemplatePanel';
+import { CoSettingsDialog } from '@/components/settings/CoSettingsDialog';
+import { Button } from '@/components/ui/button';
 import { usePhotos } from '@/hooks/usePhotos';
 
 const CONTROL_TABS: ControlPanelTab[] = [
@@ -19,6 +22,7 @@ const CONTROL_TABS: ControlPanelTab[] = [
 
 export function PhotoEditor() {
   const { photos, currentPhoto, importViaDrop, setCurrentIndex } = usePhotos();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background">
@@ -49,7 +53,15 @@ export function PhotoEditor() {
             >
               添加照片
             </CoFileInput>
-            <span className="text-sm text-muted-foreground">{photos.length} 张照片</span>
+            <span className="flex-1 text-sm text-muted-foreground">{photos.length} 张照片</span>
+            <Button
+              variant="ghost"
+              size="icon-xs"
+              onClick={() => setSettingsOpen(true)}
+              title="设置"
+            >
+              <Settings className="size-3.5" />
+            </Button>
           </div>
 
           <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -93,6 +105,7 @@ export function PhotoEditor() {
           </div>
         </div>
       )}
+      <CoSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
   );
 }

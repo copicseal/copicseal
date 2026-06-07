@@ -50,8 +50,14 @@ export function PhotoEditor() {
   const TemplateComp = templateEntry?.component;
 
   const handleExportSingle = useCallback(async (options: ExportOptions) => {
-    if (templateRef.current) {
+    if (!templateRef.current) {
+      console.error('导出失败: 未找到模板元素');
+      return;
+    }
+    try {
       await exportSingle(templateRef.current, options);
+    } catch (err) {
+      console.error('导出失败:', err);
     }
   }, []);
 

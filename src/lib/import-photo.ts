@@ -27,29 +27,7 @@ export async function selectPhotosViaDialog(): Promise<ImportedPhoto[]> {
   if (!selected) return [];
 
   const paths = Array.isArray(selected) ? selected : [selected];
-
-  const photos: ImportedPhoto[] = [];
-  for (const filePath of paths) {
-    const meta = await invoke<{
-      name: string;
-      path: string;
-      size: number;
-      ext: string;
-      mime_type: string;
-    }>('read_image_file', { path: filePath });
-
-    photos.push({
-      id: photoId(meta.name),
-      name: meta.name,
-      path: meta.path,
-      size: meta.size,
-      mimeType: meta.mime_type,
-      previewUrl: `asset://localhost/${encodeURIComponent(meta.path)}`,
-      isHeic: meta.ext === 'heic',
-    });
-  }
-
-  return photos;
+  return importPhotosViaPaths(paths);
 }
 
 /** 通过 Tauri 拖拽事件的文件路径导入（替代 HTML5 drag-drop） */
@@ -65,14 +43,30 @@ export async function importPhotosViaPaths(filePaths: string[]): Promise<Importe
       mime_type: string;
     }>('read_image_file', { path: filePath });
 
+    const isHeic = meta.ext === 'heic';
+    let previewUrl: string;
+
+    if (isHeic) {
+      try {
+        const pngPath = await invoke<string>('convert_heic_to_png', {
+          input: meta.path,
+        });
+        previewUrl = `asset://localhost/${encodeURIComponent(pngPath)}`;
+      } catch {
+        previewUrl = `asset://localhost/${encodeURIComponent(meta.path)}`;
+      }
+    } else {
+      previewUrl = `asset://localhost/${encodeURIComponent(meta.path)}`;
+    }
+
     photos.push({
       id: photoId(meta.name),
       name: meta.name,
       path: meta.path,
       size: meta.size,
-      mimeType: meta.mime_type,
-      previewUrl: `asset://localhost/${encodeURIComponent(meta.path)}`,
-      isHeic: meta.ext === 'heic',
+      mimeType: isHeic ? 'image/png' : meta.mime_type,
+      previewUrl,
+      isHeic,
     });
   }
 

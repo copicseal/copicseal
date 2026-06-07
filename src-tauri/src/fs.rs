@@ -15,6 +15,40 @@ pub async fn write_file(path: String, contents: Vec<u8>) -> Result<(), String> {
     std::fs::write(&path, contents).map_err(|e| format!("写入文件失败: {}", e))
 }
 
+#[tauri::command]
+pub async fn convert_heic_to_png(input: String) -> Result<String, String> {
+    let input_path = Path::new(&input);
+    if !input_path.exists() {
+        return Err(format!("文件不存在: {}", input));
+    }
+
+    let output = input_path.with_extension("png");
+    let output_str = output.to_string_lossy().to_string();
+
+    if output.exists() {
+        return Ok(output_str);
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let status = std::process::Command::new("sips")
+            .args(["-s", "format", "png", &input, "--out", &output_str])
+            .status()
+            .map_err(|e| format!("sips 执行失败: {}", e))?;
+
+        if !status.success() {
+            return Err("sips 转换 HEIC 失败".into());
+        }
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        return Err("HEIC 转 PNG 仅在 macOS 上支持".into());
+    }
+
+    Ok(output_str)
+}
+
 /// 支持的图片格式
 const SUPPORTED_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "heic", "webp"];
 

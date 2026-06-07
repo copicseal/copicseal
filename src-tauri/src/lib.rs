@@ -13,6 +13,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             fs::read_image_file,
             fs::write_file,
+            fs::convert_heic_to_png,
             config::get_config,
             config::update_config,
             config::get_device_id,

@@ -1,6 +1,21 @@
-import { ImageIcon } from 'lucide-react';
+import { Camera, Download, ImageIcon, LayoutTemplate, Palette, Type } from 'lucide-react';
+import type { ControlPanelTab } from '@/components/CoControlPanel';
+import { ControlPanel } from '@/components/CoControlPanel';
 import { CoDropZone, CoFileInput } from '@/components/CoDropZone';
+import { CoBackgroundPanel } from '@/components/panels/CoBackgroundPanel';
+import { CoExifPanel } from '@/components/panels/CoExifPanel';
+import { CoExportPanel } from '@/components/panels/CoExportPanel';
+import { CoFontPanel } from '@/components/panels/CoFontPanel';
+import { CoTemplatePanel } from '@/components/panels/CoTemplatePanel';
 import { usePhotos } from '@/hooks/usePhotos';
+
+const CONTROL_TABS: ControlPanelTab[] = [
+  { id: 'exif', label: '照片信息', icon: Camera, content: <CoExifPanel /> },
+  { id: 'template', label: '模板', icon: LayoutTemplate, content: <CoTemplatePanel /> },
+  { id: 'background', label: '背景', icon: Palette, content: <CoBackgroundPanel /> },
+  { id: 'font', label: '字体', icon: Type, content: <CoFontPanel /> },
+  { id: 'export', label: '导出', icon: Download, content: <CoExportPanel /> },
+];
 
 export function PhotoEditor() {
   const { photos, currentPhoto, importViaDrop, setCurrentIndex } = usePhotos();
@@ -73,6 +88,8 @@ export function PhotoEditor() {
                 <p className="text-muted-foreground">请选择一张照片</p>
               )}
             </div>
+
+            <ControlPanel tabs={CONTROL_TABS} defaultOpen="export" className="w-56 shrink-0" />
           </div>
         </div>
       )}

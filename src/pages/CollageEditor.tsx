@@ -108,13 +108,13 @@ export function CollageEditor() {
     });
   };
 
-  const updateOffset = useCallback((index: number, dx: number, dy: number) => {
+  const updateOffset = useCallback((index: number, dx: number, dy: number, maxX: number, maxY: number) => {
     setSlots((prev) => {
       const next = [...prev];
       next[index] = {
         ...next[index],
-        offsetX: next[index].offsetX + dx,
-        offsetY: next[index].offsetY + dy,
+        offsetX: Math.max(-maxX, Math.min(maxX, next[index].offsetX + dx)),
+        offsetY: Math.max(-maxY, Math.min(maxY, next[index].offsetY + dy)),
       };
       return next;
     });
@@ -237,12 +237,27 @@ export function CollageEditor() {
           <div ref={canvasRef} style={gridStyle} className="w-full max-w-2xl">
             {slots.map((slot, i) => {
               const photo = slot.photoId ? photos.find((p) => p.id === slot.photoId) : null;
-              const handleMouseDown = (e: React.MouseEvent) => {
+              const handleMouseDown = (e: React.MouseEvent<HTMLImageElement>) => {
                 e.preventDefault();
+                const img = e.currentTarget;
+                const slotEl = img.parentElement;
+                if (!slotEl) return;
+                const slotRect = slotEl.getBoundingClientRect();
+                // scale 1.07 gives ~3.5% extra on each side
+                const maxX = slotRect.width * 0.035;
+                const maxY = slotRect.height * 0.035;
                 const startX = e.clientX;
                 const startY = e.clientY;
+                const startOffX = slot.offsetX;
+                const startOffY = slot.offsetY;
                 const onMove = (ev: MouseEvent) => {
-                  updateOffset(i, (ev.clientX - startX) / 2, (ev.clientY - startY) / 2);
+                  updateOffset(
+                    i,
+                    startOffX + ev.clientX - startX,
+                    startOffY + ev.clientY - startY,
+                    maxX,
+                    maxY,
+                  );
                 };
                 const onUp = () => {
                   document.removeEventListener('mousemove', onMove);
@@ -266,8 +281,7 @@ export function CollageEditor() {
                         role="button"
                         className="h-full w-full cursor-grab object-cover active:cursor-grabbing"
                         style={{
-                          objectPosition: `${50 + slot.offsetX}% ${50 + slot.offsetY}%`,
-                          transform: 'scale(1.1)',
+                          transform: `translate(${slot.offsetX}px, ${slot.offsetY}px) scale(1.07)`,
                         }}
                         draggable={false}
                         onMouseDown={handleMouseDown}

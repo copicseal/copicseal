@@ -13,6 +13,7 @@ export interface ExportOptions {
   quality: number;
   dpi: number;
   preserveExif: boolean;
+  exclude?: string[];
 }
 
 async function blobToBytes(blob: Blob): Promise<Uint8Array> {
@@ -36,6 +37,7 @@ async function captureElement(element: HTMLElement, options: ExportOptions): Pro
     width: options.width ? options.width * scale : undefined,
     height: options.height ? options.height * scale : undefined,
     backgroundColor: fmt !== 'png' ? '#ffffff' : undefined,
+    exclude: options.exclude,
   });
 
   return blobToBytes(blob);

@@ -59,6 +59,7 @@ export function CollageEditor() {
         dpi: 72,
         scale: 1,
         preserveExif: false,
+        exclude: ['.collage-ui-btn'],
       });
     } catch (err) {
       console.error('导出拼图失败:', err);
@@ -154,14 +155,14 @@ export function CollageEditor() {
                       <img src={photo.previewUrl} alt="" className="h-full w-full object-cover" />
                       <button
                         type="button"
-                        className="absolute top-1 right-1 flex size-5 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
+                        className="collage-ui-btn absolute top-1 right-1 flex size-5 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
                         onClick={() => clearSlot(i)}
                       >
                         <X className="size-3" />
                       </button>
                     </>
                   ) : (
-                    <ImagePlus className="size-8 text-muted-foreground/30" />
+                    <ImagePlus className="collage-ui-btn size-8 text-muted-foreground/30" />
                   )}
                 </div>
               );

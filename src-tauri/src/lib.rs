@@ -18,6 +18,8 @@ pub fn run() {
             config::update_config,
             config::get_device_id,
             exif::read_exif,
+            exif::extract_jpeg_exif,
+            exif::insert_jpeg_exif,
             font::list_system_fonts,
             system::get_app_info,
         ])

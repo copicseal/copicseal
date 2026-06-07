@@ -190,3 +190,47 @@ pub fn read_exif(path: String) -> Result<ExifData, String> {
 
     Ok(data)
 }
+
+#[tauri::command]
+pub fn extract_jpeg_exif(path: String) -> Result<Vec<u8>, String> {
+    let data = std::fs::read(&path).map_err(|e| format!("读取文件失败: {}", e))?;
+
+    if data.len() < 2 || data[0] != 0xFF || data[1] != 0xD8 {
+        return Err("不是有效的 JPEG 文件".into());
+    }
+
+    let mut pos = 2;
+    while pos + 3 < data.len() {
+        if data[pos] != 0xFF {
+            return Err("JPEG 格式错误".into());
+        }
+        let marker = data[pos + 1];
+        if marker == 0xE1 {
+            let len = ((data[pos + 2] as usize) << 8) | (data[pos + 3] as usize);
+            if pos + 2 + len <= data.len() {
+                return Ok(data[pos..pos + 2 + len].to_vec());
+            }
+        }
+        if marker == 0xDA || marker == 0xD9 {
+            break;
+        }
+        let seg_len = ((data[pos + 2] as usize) << 8) | (data[pos + 3] as usize);
+        pos += 2 + seg_len;
+    }
+
+    Err("未找到 EXIF 数据".into())
+}
+
+#[tauri::command]
+pub fn insert_jpeg_exif(jpeg_data: Vec<u8>, exif_segment: Vec<u8>) -> Result<Vec<u8>, String> {
+    if jpeg_data.len() < 2 || jpeg_data[0] != 0xFF || jpeg_data[1] != 0xD8 {
+        return Err("不是有效的 JPEG 数据".into());
+    }
+
+    let mut result = Vec::with_capacity(jpeg_data.len() + exif_segment.len());
+    result.extend_from_slice(&jpeg_data[..2]);
+    result.extend_from_slice(&exif_segment);
+    result.extend_from_slice(&jpeg_data[2..]);
+
+    Ok(result)
+}

@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { save } from '@tauri-apps/plugin-dialog';
 import { snapdom } from '@zumer/snapdom';
+import { extractJpegExif, insertJpegExif } from '@/api';
 
 export type ExportFormat = 'jpeg' | 'png' | 'webp';
 
@@ -11,6 +12,7 @@ export interface ExportOptions {
   scale: number;
   quality: number;
   dpi: number;
+  preserveExif: boolean;
 }
 
 async function blobToBytes(blob: Blob): Promise<Uint8Array> {
@@ -54,6 +56,7 @@ function measureContainer(el: HTMLElement): { width: number; height: number } {
 export async function exportSingle(
   element: HTMLElement,
   options: ExportOptions,
+  sourcePath?: string,
   setBaseSize?: (v: number) => Promise<void>,
 ): Promise<void> {
   const initialBaseSize = 1000;
@@ -73,7 +76,18 @@ export async function exportSingle(
     }
   }
 
-  const bytes = await captureElement(element, options);
+  let bytes = await captureElement(element, options);
+
+  if (options.preserveExif && options.format === 'jpeg' && sourcePath) {
+    try {
+      const exifSeg = await extractJpegExif(sourcePath);
+      const result = await insertJpegExif(Array.from(bytes), exifSeg);
+      bytes = new Uint8Array(result);
+    } catch (err) {
+      console.warn('EXIF 保留失败:', err);
+    }
+  }
+
   const ext = options.format === 'jpeg' ? 'jpg' : options.format;
 
   const filePath = await save({

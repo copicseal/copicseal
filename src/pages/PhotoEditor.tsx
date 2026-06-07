@@ -84,13 +84,13 @@ export function PhotoEditor() {
       }
       try {
         onProgress({ current: 0, total: 1 });
-        await exportSingle(templateRef.current, options, adjustBaseSize);
+        await exportSingle(templateRef.current, options, currentPhoto?.path, adjustBaseSize);
         onProgress({ current: 1, total: 1 });
       } catch (err) {
         console.error('导出失败:', err);
       }
     },
-    [adjustBaseSize],
+    [adjustBaseSize, currentPhoto?.path],
   );
 
   const handleExportBatch = useCallback(
@@ -99,16 +99,17 @@ export function PhotoEditor() {
       const total = photos.length;
       for (let i = 0; i < total; i++) {
         setCurrentIndex(i);
-        await new Promise((r) => setTimeout(r, 100));
+        await new Promise((r) => setTimeout(r, 200));
+        const photo = photos[i];
         try {
-          await exportSingle(templateRef.current, options, adjustBaseSize);
+          await exportSingle(templateRef.current, options, photo?.path, adjustBaseSize);
         } catch (err) {
           console.error(`导出第 ${i + 1} 张失败:`, err);
         }
         onProgress({ current: i + 1, total });
       }
     },
-    [adjustBaseSize, photos.length, setCurrentIndex],
+    [adjustBaseSize, photos.length, setCurrentIndex, photos],
   );
 
   const tabs: ControlPanelTab[] = [

@@ -58,3 +58,11 @@ export function getAppInfo(): Promise<AppVersion> {
 export function getDeviceId(): Promise<string> {
   return invoke<string>('get_device_id');
 }
+
+export function extractJpegExif(path: string): Promise<number[]> {
+  return invoke<number[]>('extract_jpeg_exif', { path });
+}
+
+export function insertJpegExif(jpegData: number[], exifSegment: number[]): Promise<number[]> {
+  return invoke<number[]>('insert_jpeg_exif', { jpegData, exifSegment });
+}

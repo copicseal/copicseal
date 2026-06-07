@@ -36,6 +36,7 @@ export function CoExportPanel({ onExportSingle, onExportBatch }: CoExportPanelPr
   const [scale, setScale] = useState([1]);
   const [quality, setQuality] = useState([80]);
   const [dpi, setDpi] = useState('72');
+  const [preserveExif, setPreserveExif] = useState(true);
   const [outputPath] = useState('~/Documents/Copicseal');
   const [exporting, setExporting] = useState(false);
   const [progress, setProgress] = useState<ExportProgress | null>(null);
@@ -48,8 +49,9 @@ export function CoExportPanel({ onExportSingle, onExportBatch }: CoExportPanelPr
       scale: scale[0],
       quality: quality[0],
       dpi: Number(dpi) || 72,
+      preserveExif,
     }),
-    [format, width, height, isOriginal, scale, quality, dpi],
+    [format, width, height, isOriginal, scale, quality, dpi, preserveExif],
   );
 
   const handleExportSingle = async () => {
@@ -191,6 +193,18 @@ export function CoExportPanel({ onExportSingle, onExportBatch }: CoExportPanelPr
           </Select>
         </div>
       </div>
+
+      {format === 'jpeg' && (
+        <div className="flex items-center justify-between">
+          <span className="text-muted-foreground">保留 EXIF 信息</span>
+          <Switch
+            checked={preserveExif}
+            onCheckedChange={setPreserveExif}
+            size="sm"
+            id="preserve-exif"
+          />
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">

@@ -1,4 +1,3 @@
-import { ChevronRight } from 'lucide-react';
 import type { ComponentType, ReactNode } from 'react';
 import {
   Accordion,
@@ -37,7 +36,6 @@ export function ControlPanel({ tabs, defaultOpen = [], className }: ControlPanel
               <AccordionTrigger className="gap-2 px-3 py-2 hover:no-underline data-open:bg-muted/30 data-open:font-medium">
                 <Icon className="size-3.5 shrink-0 text-muted-foreground" />
                 <span className="flex-1 truncate text-left">{tab.label}</span>
-                <ChevronRight className="pointer-events-none size-3 shrink-0 text-muted-foreground transition-transform duration-200 group-aria-expanded/accordion-trigger:rotate-90" />
               </AccordionTrigger>
               <AccordionContent className="px-0">{tab.content}</AccordionContent>
             </AccordionItem>

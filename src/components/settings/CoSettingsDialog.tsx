@@ -1,3 +1,4 @@
+import { check } from '@tauri-apps/plugin-updater';
 import {
   Box,
   Cog,
@@ -232,6 +233,26 @@ function DeviceDatabaseTab() {
 }
 
 function AboutTab() {
+  const [updateStatus, setUpdateStatus] = useState<string | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  const handleCheckUpdate = async () => {
+    setChecking(true);
+    setUpdateStatus(null);
+    try {
+      const update = await check();
+      if (update) {
+        setUpdateStatus(`发现新版本 ${update.version}`);
+      } else {
+        setUpdateStatus('已是最新版本');
+      }
+    } catch {
+      setUpdateStatus('检查更新失败');
+    } finally {
+      setChecking(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col items-center gap-2 py-4">
@@ -259,10 +280,19 @@ function AboutTab() {
         </div>
       </div>
 
-      <Button variant="outline" className="w-full text-xs" size="sm">
-        <RefreshCw className="size-3" />
-        检查更新
+      <Button
+        variant="outline"
+        className="w-full text-xs"
+        size="sm"
+        onClick={handleCheckUpdate}
+        disabled={checking}
+      >
+        <RefreshCw className={checking ? 'size-3 animate-spin' : 'size-3'} />
+        {checking ? '检查中...' : '检查更新'}
       </Button>
+      {updateStatus && (
+        <p className="text-center text-[10px] text-muted-foreground">{updateStatus}</p>
+      )}
     </div>
   );
 }

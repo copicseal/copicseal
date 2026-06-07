@@ -1,5 +1,5 @@
 import { Download, ImagePlus, Loader2, X } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { usePhotos } from '@/hooks/usePhotos';
@@ -11,8 +11,6 @@ interface CollageLayout {
   count: number;
   cols: number;
   rows: number;
-  /** CSS grid-template-areas style for preview thumb */
-  areas: string;
 }
 
 const LAYOUT_GROUPS: { count: number; label: string; layouts: CollageLayout[] }[] = [
@@ -20,78 +18,52 @@ const LAYOUT_GROUPS: { count: number; label: string; layouts: CollageLayout[] }[
     count: 2,
     label: '两张',
     layouts: [
-      { id: 'two-h', label: '左右', count: 2, cols: 2, rows: 1, areas: '"A B"' },
-      { id: 'two-v', label: '上下', count: 2, cols: 1, rows: 2, areas: '"A" "B"' },
-      { id: 'two-big-left', label: '左大右小', count: 2, cols: 3, rows: 1, areas: '"A A B"' },
-      { id: 'two-big-right', label: '左小右大', count: 2, cols: 3, rows: 1, areas: '"A B B"' },
+      { id: 'two-h', label: '左右', count: 2, cols: 2, rows: 1 },
+      { id: 'two-v', label: '上下', count: 2, cols: 1, rows: 2 },
     ],
   },
   {
     count: 3,
     label: '三张',
     layouts: [
-      { id: 'three-h', label: '横排', count: 3, cols: 3, rows: 1, areas: '"A B C"' },
-      { id: 'three-v', label: '竖排', count: 3, cols: 1, rows: 3, areas: '"A" "B" "C"' },
-      {
-        id: 'three-big-top',
-        label: '上大下两小',
-        count: 3,
-        cols: 2,
-        rows: 2,
-        areas: '"A A" "B C"',
-      },
-      {
-        id: 'three-big-left',
-        label: '左大右两小',
-        count: 3,
-        cols: 2,
-        rows: 2,
-        areas: '"A B" "A C"',
-      },
+      { id: 'three-h', label: '横排', count: 3, cols: 3, rows: 1 },
+      { id: 'three-v', label: '竖排', count: 3, cols: 1, rows: 3 },
     ],
   },
   {
     count: 4,
     label: '四张',
     layouts: [
-      { id: 'grid2x2', label: '田字', count: 4, cols: 2, rows: 2, areas: '"A B" "C D"' },
-      { id: 'four-h', label: '四列', count: 4, cols: 4, rows: 1, areas: '"A B C D"' },
+      { id: 'grid2x2', label: '田字', count: 4, cols: 2, rows: 2 },
+      { id: 'four-h', label: '四列', count: 4, cols: 4, rows: 1 },
     ],
   },
 ];
 
+interface SlotData {
+  photoId: string | null;
+  offsetX: number;
+  offsetY: number;
+}
+
 function LayoutThumbnail({ layout, active }: { layout: CollageLayout; active: boolean }) {
-  const cols = layout.cols;
-  const rows = layout.rows;
-  const areaNames = new Set(layout.areas.match(/[A-Z]/g) || []);
-  const w = 40;
-  const h = rows > cols ? 48 : Math.round((w / cols) * rows);
+  const w = Math.round(32 * (layout.cols / Math.max(layout.cols, layout.rows)));
   return (
     <div
-      className={`overflow-hidden rounded border-2 transition-colors ${
+      className={`grid overflow-hidden rounded border-2 transition-colors ${
         active ? 'border-primary' : 'border-transparent hover:border-muted-foreground/30'
       }`}
-      style={{ width: w, height: h }}
+      style={{
+        width: w,
+        height: 32,
+        gridTemplateColumns: `repeat(${layout.cols}, 1fr)`,
+        gridTemplateRows: `repeat(${layout.rows}, 1fr)`,
+        gap: 1,
+      }}
     >
-      <div
-        className="grid h-full w-full"
-        style={{
-          gridTemplateColumns: `repeat(${cols}, 1fr)`,
-          gridTemplateRows: `repeat(${rows}, 1fr)`,
-          gridTemplateAreas: layout.areas,
-          gap: 1,
-        }}
-      >
-        {Array.from(areaNames)
-          .sort()
-          .map((name) => (
-            <div
-              key={`${layout.id}-${name}`}
-              className="bg-muted-foreground/25"
-              style={{ gridArea: name }}
-            />
-          ))}
-      </div>
+      {Array.from({ length: layout.count }).map((_, i) => (
+        <div key={`${layout.id}-t-${i}`} className="bg-muted-foreground/25" />
+      ))}
     </div>
   );
 }
@@ -100,8 +72,11 @@ export function CollageEditor() {
   const { photos, importViaDialog } = usePhotos();
   const canvasRef = useRef<HTMLDivElement>(null);
   const [layoutId, setLayoutId] = useState<string>('two-h');
-  const [slots, setSlots] = useState<(string | null)[]>(() => Array(2).fill(null));
+  const [slots, setSlots] = useState<SlotData[]>(() =>
+    Array(2).fill({ photoId: null, offsetX: 0, offsetY: 0 }),
+  );
   const [gap, setGap] = useState(8);
+  const [ratio, setRatio] = useState(50);
   const [exporting, setExporting] = useState(false);
   const bg = '#ffffff';
   const radius = 0;
@@ -112,15 +87,15 @@ export function CollageEditor() {
   const handleLayoutChange = (id: string) => {
     setLayoutId(id);
     const l = allLayouts.find((la) => la.id === id) ?? allLayouts[0];
-    setSlots(Array(l.count).fill(null));
+    setSlots(Array(l.count).fill({ photoId: null, offsetX: 0, offsetY: 0 }));
   };
 
   const handlePhotoClick = (photoId: string) => {
     setSlots((prev) => {
-      const idx = prev.indexOf(null);
+      const idx = prev.findIndex((s) => s.photoId === null);
       if (idx === -1) return prev;
       const next = [...prev];
-      next[idx] = photoId;
+      next[idx] = { photoId, offsetX: 0, offsetY: 0 };
       return next;
     });
   };
@@ -128,10 +103,22 @@ export function CollageEditor() {
   const clearSlot = (index: number) => {
     setSlots((prev) => {
       const next = [...prev];
-      next[index] = null;
+      next[index] = { photoId: null, offsetX: 0, offsetY: 0 };
       return next;
     });
   };
+
+  const updateOffset = useCallback((index: number, dx: number, dy: number) => {
+    setSlots((prev) => {
+      const next = [...prev];
+      next[index] = {
+        ...next[index],
+        offsetX: next[index].offsetX + dx,
+        offsetY: next[index].offsetY + dy,
+      };
+      return next;
+    });
+  }, []);
 
   const handleExport = async () => {
     if (!canvasRef.current) return;
@@ -152,25 +139,23 @@ export function CollageEditor() {
     }
   };
 
-  const anyPhoto = slots.some((s) => s !== null);
-  const areaNames = [...new Set(layout.areas.match(/[A-Z]/g) || [])].sort();
-  const slotCount = areaNames.length;
+  const anyPhoto = slots.some((s) => s.photoId !== null);
+  const cols = layout.cols;
+  const rows = layout.rows;
+  const colTracks =
+    cols === 1 ? '1fr' : cols === 2 ? `${ratio}fr ${100 - ratio}fr` : `repeat(${cols}, 1fr)`;
+  const rowTracks =
+    rows === 1 ? '1fr' : rows === 2 ? `${ratio}fr ${100 - ratio}fr` : `repeat(${rows}, 1fr)`;
 
   const gridStyle: React.CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: `repeat(${layout.cols}, 1fr)`,
-    gridTemplateRows: `repeat(${layout.rows}, 1fr)`,
-    gridTemplateAreas: layout.areas,
+    gridTemplateColumns: colTracks,
+    gridTemplateRows: rowTracks,
     gap: `${gap}px`,
     backgroundColor: bg,
     padding: `${gap}px`,
     borderRadius: `${radius * 2}px`,
-    aspectRatio:
-      layout.cols === layout.rows
-        ? '1'
-        : layout.cols > layout.rows
-          ? `${layout.cols}/${layout.rows}`
-          : `${layout.rows}/${layout.cols}`,
+    aspectRatio: cols === rows ? '1' : cols > rows ? `${cols}/${rows}` : `${rows}/${cols}`,
     maxHeight: '65vh',
   };
 
@@ -187,6 +172,19 @@ export function CollageEditor() {
           添加照片
         </Button>
         <div className="ml-auto flex items-center gap-2">
+          {(cols > 1 || rows > 1) && (
+            <>
+              <span className="text-[10px] text-muted-foreground">比例</span>
+              <Slider
+                value={[ratio]}
+                onValueChange={([v]) => setRatio(v)}
+                min={20}
+                max={80}
+                step={1}
+                className="w-16"
+              />
+            </>
+          )}
           <span className="text-[10px] text-muted-foreground">间距</span>
           <Slider
             value={[gap]}
@@ -194,7 +192,7 @@ export function CollageEditor() {
             min={0}
             max={40}
             step={1}
-            className="w-20"
+            className="w-16"
           />
           <Button
             size="xs"
@@ -237,19 +235,43 @@ export function CollageEditor() {
 
         <div className="flex min-h-0 flex-1 items-center justify-center bg-muted/30 p-4">
           <div ref={canvasRef} style={gridStyle} className="w-full max-w-2xl">
-            {Array.from({ length: slotCount }).map((_, i) => {
-              const pid = slots[i];
-              const photo = pid ? photos.find((p) => p.id === pid) : null;
-              const areaName = areaNames[i] ?? String(i);
+            {slots.map((slot, i) => {
+              const photo = slot.photoId ? photos.find((p) => p.id === slot.photoId) : null;
+              const handleMouseDown = (e: React.MouseEvent) => {
+                e.preventDefault();
+                const startX = e.clientX;
+                const startY = e.clientY;
+                const onMove = (ev: MouseEvent) => {
+                  updateOffset(i, (ev.clientX - startX) / 2, (ev.clientY - startY) / 2);
+                };
+                const onUp = () => {
+                  document.removeEventListener('mousemove', onMove);
+                  document.removeEventListener('mouseup', onUp);
+                };
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+              };
+
               return (
                 <div
-                  key={`${layout.id}-${areaName}`}
+                  key={`${layout.id}-s-${i}`}
                   className="relative flex items-center justify-center overflow-hidden bg-muted/50"
-                  style={{ borderRadius: `${radius}px`, gridArea: areaName }}
+                  style={{ borderRadius: `${radius}px` }}
                 >
                   {photo ? (
                     <>
-                      <img src={photo.previewUrl} alt="" className="h-full w-full object-cover" />
+                      <img
+                        src={photo.previewUrl}
+                        alt=""
+                        role="button"
+                        className="h-full w-full cursor-grab object-cover active:cursor-grabbing"
+                        style={{
+                          objectPosition: `${50 + slot.offsetX}% ${50 + slot.offsetY}%`,
+                          transform: 'scale(1.1)',
+                        }}
+                        draggable={false}
+                        onMouseDown={handleMouseDown}
+                      />
                       <button
                         type="button"
                         className="collage-ui-btn absolute top-1 right-1 flex size-5 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
@@ -270,7 +292,7 @@ export function CollageEditor() {
 
       <div className="flex items-center gap-1.5 border-t p-2 overflow-x-auto">
         {photos.map((photo) => {
-          const used = slots.includes(photo.id);
+          const used = slots.some((s) => s.photoId === photo.id);
           return (
             <button
               key={photo.id}

@@ -108,7 +108,6 @@ export function CollageEditor() {
 
   const allLayouts = LAYOUT_GROUPS.flatMap((g) => g.layouts);
   const layout = allLayouts.find((l) => l.id === layoutId) ?? allLayouts[0];
-  const slotCount = layout.count;
 
   const handleLayoutChange = (id: string) => {
     setLayoutId(id);
@@ -154,7 +153,8 @@ export function CollageEditor() {
   };
 
   const anyPhoto = slots.some((s) => s !== null);
-  const areaNames = (layout.areas.match(/[A-Z]/g) || []).sort();
+  const areaNames = [...new Set(layout.areas.match(/[A-Z]/g) || [])].sort();
+  const slotCount = areaNames.length;
 
   const gridStyle: React.CSSProperties = {
     display: 'grid',

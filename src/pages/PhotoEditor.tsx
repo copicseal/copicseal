@@ -15,13 +15,12 @@ import { Button } from '@/components/ui/button';
 import { usePhotos } from '@/hooks/usePhotos';
 import { type ColorPalette, extractColorPalette } from '@/lib/color-palette';
 import { type ExportOptions, exportSingle } from '@/lib/export-photo';
-import { getTemplateById } from '@/templates';
+import { Minimal } from '@/templates';
 
 export function PhotoEditor() {
   const { photos, currentPhoto, importViaDialog, setCurrentIndex, removePhoto } = usePhotos();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const [templateId, setTemplateId] = useState<string | null>(null);
   const [fontScale, setFontScale] = useState(1);
   const [orientation, setOrientation] = useState<'auto' | 'horizontal' | 'vertical'>('auto');
   const [exif, setExif] = useState<ExifData | null>(null);
@@ -65,9 +64,6 @@ export function PhotoEditor() {
       setExif(null);
     }
   }, [currentPhoto, loadExif]);
-
-  const templateEntry = templateId ? getTemplateById(templateId) : undefined;
-  const TemplateComp = templateEntry?.component;
 
   const adjustBaseSize = useCallback(
     (v: number): Promise<void> =>
@@ -128,8 +124,6 @@ export function PhotoEditor() {
       icon: LayoutTemplate,
       content: (
         <CoTemplatePanel
-          selectedId={templateId}
-          onSelectId={setTemplateId}
           fontScale={fontScale}
           onFontScaleChange={setFontScale}
           orientation={orientation}
@@ -220,8 +214,8 @@ export function PhotoEditor() {
               style={{ '--base-size': `${baseSize}px` } as React.CSSProperties}
             >
               <div className="w-[calc(var(--base-size)*1px)] max-w-full">
-                {currentPhoto && TemplateComp ? (
-                  <TemplateComp
+                {currentPhoto ? (
+                  <Minimal
                     photoUrl={currentPhoto.previewUrl}
                     exif={exif}
                     orientation={orientation}
@@ -231,12 +225,6 @@ export function PhotoEditor() {
                     borderColor="#1a1a1a"
                     textLine1="{Make} {Model}"
                     textLine2="{FocalLength}  f/{FNumber}  {ExposureTime}s  ISO{ISO}"
-                  />
-                ) : currentPhoto ? (
-                  <img
-                    src={currentPhoto.previewUrl}
-                    alt={currentPhoto.name}
-                    className="max-h-full max-w-full rounded-lg object-contain shadow-lg"
                   />
                 ) : (
                   <p className="text-muted-foreground">请选择一张照片</p>

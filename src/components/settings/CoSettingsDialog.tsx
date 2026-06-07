@@ -4,14 +4,13 @@ import {
   Cog,
   Database,
   Download,
-  FileText,
   Info,
   Plus,
   RefreshCw,
   Settings,
   Trash2,
 } from 'lucide-react';
-import { type ReactNode, useCallback, useEffect, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -30,16 +29,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { fetchRemoteTemplates, type RemoteTemplate } from '@/lib/remote-templates';
 import { cn } from '@/lib/utils';
 
 const TABS = [
   { id: 'general', label: '通用', icon: Cog },
   { id: 'export-presets', label: '导出预设', icon: Download },
   { id: 'template-presets', label: '模板预设', icon: Box },
-  { id: 'template-library', label: '模板库', icon: FileText },
   { id: 'device-database', label: '设备数据库', icon: Database },
   { id: 'about', label: '关于', icon: Info },
 ] as const;
@@ -48,12 +44,6 @@ const MOCK_DEVICES = [
   { id: '1', type: 'camera', brand: 'SONY', model: 'ILCE-7M4', lens: 'FE 24-70mm F2.8 GM II' },
   { id: '2', type: 'camera', brand: 'Canon', model: 'EOS R5' },
   { id: '3', type: 'lens', brand: 'Canon', model: 'RF 24-105mm F4 L IS USM' },
-];
-
-const MOCK_TEMPLATES = [
-  { id: '1', name: '框架白边', author: 'Copicseal', enabled: true },
-  { id: '2', name: 'PS 启动窗', author: '社区', enabled: true },
-  { id: '3', name: '极简水印', author: 'Copicseal', enabled: false },
 ];
 
 function SectionLabel({ children }: { children: ReactNode }) {
@@ -154,88 +144,6 @@ function TemplatePresetsTab() {
         </Button>
       </div>
       <p className="py-4 text-center text-[10px] text-muted-foreground">暂无预设</p>
-    </div>
-  );
-}
-
-function TemplateLibraryTab() {
-  const [remoteTemplates, setRemoteTemplates] = useState<RemoteTemplate[]>([]);
-  const [enabled, setEnabled] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchRemoteTemplates();
-      setRemoteTemplates(data);
-      if (data.length === 0) setError('暂无远程模板');
-    } catch {
-      setError('获取失败');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  const toggle = (id: string) =>
-    setEnabled((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-
-  const all = [
-    ...MOCK_TEMPLATES.map((t) => ({ ...t, remote: false })),
-    ...remoteTemplates.map((t) => ({ ...t, remote: true })),
-  ];
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <SectionLabel>远程模板</SectionLabel>
-        <Button variant="ghost" size="icon-xs" title="刷新" onClick={load} disabled={loading}>
-          <RefreshCw className={loading ? 'size-3 animate-spin' : 'size-3'} />
-        </Button>
-      </div>
-      <div className="space-y-1">
-        {all.map((tpl) => (
-          <div
-            key={tpl.id}
-            className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-muted/50"
-          >
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <span className="truncate text-[10px]">{tpl.name}</span>
-                {tpl.remote && (
-                  <span className="shrink-0 rounded bg-blue-500/10 px-1 py-0.5 text-[8px] text-blue-500">
-                    远程
-                  </span>
-                )}
-              </div>
-              <span className="text-[10px] text-muted-foreground">{tpl.author}</span>
-            </div>
-            <Switch
-              checked={enabled.has(tpl.id) || !tpl.remote}
-              onCheckedChange={() => toggle(tpl.id)}
-              size="sm"
-            />
-          </div>
-        ))}
-        {loading && (
-          <div className="flex justify-center py-2">
-            <div className="size-4 animate-spin rounded-full border-2 border-muted-foreground/20 border-t-muted-foreground" />
-          </div>
-        )}
-        {!loading && error && all.length === 0 && (
-          <p className="py-2 text-center text-[10px] text-muted-foreground">{error}</p>
-        )}
-      </div>
     </div>
   );
 }
@@ -391,7 +299,6 @@ export function CoSettingsDialog({ open, onOpenChange }: CoSettingsDialogProps) 
                 {tab.id === 'general' && <GeneralTab />}
                 {tab.id === 'export-presets' && <ExportPresetsTab />}
                 {tab.id === 'template-presets' && <TemplatePresetsTab />}
-                {tab.id === 'template-library' && <TemplateLibraryTab />}
                 {tab.id === 'device-database' && <DeviceDatabaseTab />}
                 {tab.id === 'about' && <AboutTab />}
               </TabsContent>

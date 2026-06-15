@@ -12,6 +12,16 @@ const host = process.env.TAURI_DEV_HOST;
 // https://vite.dev/config/
 export default defineConfig(async () => ({
   plugins: [react(), tailwindcss()],
+  define: {
+    'process.env.DRAGGABLE_DEBUG': 'false',
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      define: {
+        'process.env.DRAGGABLE_DEBUG': 'false',
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

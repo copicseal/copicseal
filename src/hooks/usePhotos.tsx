@@ -22,6 +22,8 @@ interface PhotoContextValue {
   isDraggingOver: boolean;
   addPhotos: (photos: ImportedPhoto[]) => void;
   removePhoto: (id: string) => void;
+  replacePhoto: (id: string, nextPhoto: ImportedPhoto) => void;
+  movePhoto: (activeId: string, overId: string) => void;
   setCurrentIndex: (index: number) => void;
   importViaDialog: () => Promise<void>;
   importViaDrop: (files: FileList | File[]) => Promise<void>;
@@ -45,6 +47,39 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
       if (idx !== -1 && next.length > 0) {
         setCurrentIndex(Math.min(idx, next.length - 1));
       }
+      return next;
+    });
+  }, []);
+
+  const replacePhoto = useCallback((id: string, nextPhoto: ImportedPhoto) => {
+    setPhotos((prev) =>
+      prev.map((photo) =>
+        photo.id === id
+          ? {
+              ...nextPhoto,
+              id,
+            }
+          : photo,
+      ),
+    );
+  }, []);
+
+  const movePhoto = useCallback((activeId: string, overId: string) => {
+    if (activeId === overId) {
+      return;
+    }
+
+    setPhotos((prev) => {
+      const activeIndex = prev.findIndex((photo) => photo.id === activeId);
+      const overIndex = prev.findIndex((photo) => photo.id === overId);
+
+      if (activeIndex === -1 || overIndex === -1) {
+        return prev;
+      }
+
+      const next = [...prev];
+      const [moved] = next.splice(activeIndex, 1);
+      next.splice(overIndex, 0, moved);
       return next;
     });
   }, []);
@@ -95,6 +130,8 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
         isDraggingOver,
         addPhotos,
         removePhoto,
+        replacePhoto,
+        movePhoto,
         setCurrentIndex,
         importViaDialog,
         importViaDrop,

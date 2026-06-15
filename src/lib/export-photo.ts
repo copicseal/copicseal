@@ -27,7 +27,7 @@ function toSnapdomFormat(f: ExportFormat): 'png' | 'jpeg' | 'webp' {
 
 async function captureElement(element: HTMLElement, options: ExportOptions): Promise<Uint8Array> {
   const fmt = toSnapdomFormat(options.format);
-  const scale = options.dpi / 72;
+  const scale = Math.max(options.scale || 1, 1);
 
   const blob = await snapdom.toBlob(element, {
     type: fmt,

@@ -1,7 +1,7 @@
-import { Minimal } from './Minimal';
+import { Minimal } from './minimal';
 import type { TemplateMeta } from './types';
 
-export { Minimal } from './Minimal';
+export { Minimal } from './minimal';
 export type { TemplateComponent, TemplateMeta, TemplateProps } from './types';
 
 export const BUILTIN_TEMPLATE: { meta: TemplateMeta; component: typeof Minimal } = {

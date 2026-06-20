@@ -52,7 +52,7 @@ export function CoFontPanel() {
   const filtered = fonts.filter((f) => f.family.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="space-y-2 p-3 text-xs">
+    <div className="flex flex-col gap-2 p-3 text-xs">
       <h4 className="font-semibold text-foreground">字体</h4>
 
       <div className="flex items-center gap-1.5">

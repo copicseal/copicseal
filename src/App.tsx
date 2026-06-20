@@ -3,8 +3,8 @@ import { CoSidebar } from '@/components/CoSidebar';
 import { CoSettingsDialog } from '@/components/settings/CoSettingsDialog';
 import { Toaster } from '@/components/ui/toaster';
 import { PhotoProvider } from '@/hooks/usePhotos';
-import { CollageEditor } from '@/pages/CollageEditor';
-import { PhotoEditor } from '@/pages/PhotoEditor';
+import { CollageEditor } from '@/modules/collage';
+import { ComarkEditor } from '@/modules/comark';
 import './App.css';
 
 type AppMode = 'border' | 'collage';
@@ -24,7 +24,7 @@ function App() {
       <CoSidebar mode={mode} onModeChange={setMode} onOpenSettings={openSettings} />
       <div className="min-w-0 flex-1">
         <PhotoProvider key={mode}>
-          {mode === 'border' ? <PhotoEditor /> : <CollageEditor />}
+          {mode === 'border' ? <ComarkEditor /> : <CollageEditor />}
         </PhotoProvider>
       </div>
       <CoSettingsDialog

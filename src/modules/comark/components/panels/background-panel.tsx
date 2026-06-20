@@ -28,7 +28,7 @@ function CollapsibleSection({ title, children }: { title: string; children: Reac
         {open ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
         {title}
       </button>
-      <div className={cn('mt-2 space-y-2', !open && 'hidden')}>{children}</div>
+      <div className={cn('mt-2 flex flex-col gap-2', !open && 'hidden')}>{children}</div>
     </div>
   );
 }
@@ -76,7 +76,7 @@ export function CoBackgroundPanel() {
   );
 
   return (
-    <div className="space-y-3 p-3 text-xs">
+    <div className="flex flex-col gap-3 p-3 text-xs">
       <h4 className="font-semibold text-foreground">背景</h4>
 
       <div className="space-y-1.5">

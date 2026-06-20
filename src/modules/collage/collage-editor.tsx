@@ -51,11 +51,12 @@ import {
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  COLLAGE_LAYOUT_COUNT,
-  COLLAGE_LAYOUT_GROUPS,
-  COLLAGE_LAYOUTS,
-} from '@/features/collage/layouts';
+import { usePhotos } from '@/hooks/usePhotos';
+import { exportSingle } from '@/lib/export-photo';
+import { selectPhotosViaDialog } from '@/lib/import-photo';
+import type { ImportedPhoto } from '@/lib/photo';
+import { cn } from '@/lib/utils';
+import { COLLAGE_LAYOUT_COUNT, COLLAGE_LAYOUT_GROUPS, COLLAGE_LAYOUTS } from './layouts';
 import {
   COLLAGE_EXPORT_LABELS,
   COLLAGE_RATIO_OPTIONS,
@@ -64,20 +65,15 @@ import {
   getAspectRatioValue,
   getExportOptions,
   measureImageAsset,
-} from '@/features/collage/lib';
-import { useCollageStore } from '@/features/collage/store/useCollageStore';
+} from './lib';
+import { useCollageStore } from './store/use-collage-store';
 import type {
   CollageAnnotation,
   CollageLayout,
   CollageShapeAnnotation,
   CollageSlotState,
   CollageTextAnnotation,
-} from '@/features/collage/types';
-import { usePhotos } from '@/hooks/usePhotos';
-import { exportSingle } from '@/lib/export-photo';
-import { selectPhotosViaDialog } from '@/lib/import-photo';
-import type { ImportedPhoto } from '@/lib/photo';
-import { cn } from '@/lib/utils';
+} from './types';
 
 const ANNOTATION_HANDLE_CLASSES = {
   top: 'collage-ui-handle',

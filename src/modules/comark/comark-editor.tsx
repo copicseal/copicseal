@@ -1,22 +1,21 @@
 import { Camera, Download, ImageIcon, LayoutTemplate, Palette, Type } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { type ExifData, readExif } from '@/api';
-import type { ControlPanelTab } from '@/components/CoControlPanel';
-import { ControlPanel } from '@/components/CoControlPanel';
 import { CoDropZone } from '@/components/CoDropZone';
-import { ContextMenu } from '@/components/ContextMenu';
-import { CoBackgroundPanel } from '@/components/panels/CoBackgroundPanel';
-import { CoExifPanel } from '@/components/panels/CoExifPanel';
-import { CoExportPanel } from '@/components/panels/CoExportPanel';
-import { CoFontPanel } from '@/components/panels/CoFontPanel';
-import { CoTemplatePanel } from '@/components/panels/CoTemplatePanel';
 import { Button } from '@/components/ui/button';
 import { usePhotos } from '@/hooks/usePhotos';
-import { type ColorPalette, extractColorPalette } from '@/lib/color-palette';
 import { type ExportOptions, exportSingle } from '@/lib/export-photo';
-import { Minimal } from '@/templates';
+import { ContextMenu } from './components/context-menu';
+import { ControlPanel, type ControlPanelTab } from './components/control-panel';
+import { CoBackgroundPanel } from './components/panels/background-panel';
+import { CoExifPanel } from './components/panels/exif-panel';
+import { CoExportPanel } from './components/panels/export-panel';
+import { CoFontPanel } from './components/panels/font-panel';
+import { CoTemplatePanel } from './components/panels/template-panel';
+import { type ColorPalette, extractColorPalette } from './lib/color-palette';
+import { Minimal } from './templates';
 
-export function PhotoEditor() {
+export function ComarkEditor() {
   const { photos, currentPhoto, importViaDialog, setCurrentIndex, removePhoto } = usePhotos();
 
   const [fontScale, setFontScale] = useState(1);

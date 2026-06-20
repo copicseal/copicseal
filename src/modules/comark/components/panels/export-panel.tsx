@@ -81,7 +81,7 @@ export function CoExportPanel({ onExportSingle, onExportBatch }: CoExportPanelPr
     progress && progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
 
   return (
-    <div className="space-y-4 p-3 text-xs">
+    <div className="flex flex-col gap-4 p-3 text-xs">
       <h4 className="font-semibold text-foreground">导出</h4>
 
       <div className="space-y-1.5">

@@ -1,4 +1,4 @@
-import type { CollageLayout, CollageLayoutSlot } from '@/features/collage/types';
+import type { CollageLayout, CollageLayoutSlot } from './types';
 
 function slot(x: number, y: number, w: number, h: number): CollageLayoutSlot {
   return { x, y, w, h };

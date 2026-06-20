@@ -4,7 +4,7 @@ import type {
   CollageCanvasState,
   CollageExportQuality,
   CollageSlotState,
-} from '@/features/collage/types';
+} from './types';
 
 export const COLLAGE_GRID_UNITS = 12;
 

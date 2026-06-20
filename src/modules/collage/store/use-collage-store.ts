@@ -1,18 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { COLLAGE_LAYOUTS } from '@/features/collage/layouts';
-import {
-  createAnnotation,
-  createEmptySlotState,
-  getDefaultCanvasState,
-} from '@/features/collage/lib';
+import { COLLAGE_LAYOUTS } from '../layouts';
+import { createAnnotation, createEmptySlotState, getDefaultCanvasState } from '../lib';
 import type {
   CollageAnnotation,
   CollageCanvasState,
   CollageExportState,
   CollagePresentState,
   CollageSlotState,
-} from '@/features/collage/types';
+} from '../types';
 
 const DEFAULT_LAYOUT = COLLAGE_LAYOUTS[0];
 

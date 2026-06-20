@@ -1,8 +1,8 @@
 import { Info } from 'lucide-react';
 import type { ExifData } from '@/api';
 import { usePhotos } from '@/hooks/usePhotos';
-import { getBrandColors, getBrandInitial } from '@/lib/brand-logo';
-import type { ColorPalette } from '@/lib/color-palette';
+import { getBrandColors, getBrandInitial } from '../../lib/brand-logo';
+import type { ColorPalette } from '../../lib/color-palette';
 
 function ExifField({
   label,
@@ -42,7 +42,7 @@ export function CoExifPanel({ exif, loading, palette }: CoExifPanelProps) {
   const brandInitial = exif?.make ? getBrandInitial(exif.make) : null;
 
   return (
-    <div className="space-y-3 p-3 text-xs">
+    <div className="flex flex-col gap-3 p-3 text-xs">
       <h4 className="font-semibold text-foreground">照片信息</h4>
 
       {!currentPhoto ? (

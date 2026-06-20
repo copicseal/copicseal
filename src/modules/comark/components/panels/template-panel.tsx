@@ -24,7 +24,7 @@ export function CoTemplatePanel({
   onOrientationChange,
 }: CoTemplatePanelProps) {
   return (
-    <div className="space-y-3 p-3 text-xs">
+    <div className="flex flex-col gap-3 p-3 text-xs">
       <h4 className="font-semibold text-foreground">模板</h4>
 
       <div className="flex items-center gap-2 rounded-md border bg-muted/20 p-2">

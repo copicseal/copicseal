@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePhotos } from '@/hooks/usePhotos';
 import { cn } from '@/lib/utils';
 import { COLLAGE_LAYOUTS } from '@/modules/collage/layouts';
+import { createEmptySlotState } from '@/modules/collage/lib';
 import { getAspectRatioText, getAspectRatioValue } from '@/modules/collage/lib';
 import { useCollageStore } from '@/modules/collage/store/use-collage-store';
 
@@ -52,6 +53,17 @@ export function CollageCanvas({
   }, [ratioValue, viewportSize.height, viewportSize.width]);
 
   useEffect(() => {
+    if (present.canvas.layoutMode === 'free') {
+      commit((draft) => {
+        draft.slotItems = photos.map((photo, index) => ({
+          ...createEmptySlotState(),
+          ...(draft.slotItems[index] ?? {}),
+          photoId: photo.id,
+        }));
+      });
+      return;
+    }
+
     const validPhotoIds = new Set(photos.map((photo) => photo.id));
 
     commit((draft) => {
@@ -85,7 +97,17 @@ export function CollageCanvas({
         };
       });
     });
-  }, [commit, photos]);
+  }, [commit, photos, present.canvas.layoutMode]);
+
+  const freeLayoutItems = useMemo(
+    () =>
+      photos.map((photo, index) => ({
+        photo,
+        slot: present.slotItems[index] ?? createEmptySlotState(),
+        index,
+      })),
+    [photos, present.slotItems],
+  );
 
   if (photos.length === 0) {
     return (
@@ -103,7 +125,8 @@ export function CollageCanvas({
     <div className="flex h-full w-full flex-col">
       <div className="flex items-center justify-between border-b border-border/80 px-4 py-3 text-xs text-muted-foreground">
         <span>
-          当前布局 {layout.name} · {layout.count} 格
+          当前布局 {present.canvas.layoutMode === 'free' ? '自由布局' : layout.name} ·{' '}
+          {present.canvas.layoutMode === 'free' ? `${photos.length} 张图` : `${layout.count} 格`}
         </span>
         <span>画布比例 {getAspectRatioText(present.canvas)}</span>
       </div>
@@ -129,80 +152,151 @@ export function CollageCanvas({
               backgroundSize: 'cover',
             }}
           >
-            <div
-              className="absolute inset-0 grid"
-              style={{
-                gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
-                gridTemplateRows: 'repeat(12, minmax(0, 1fr))',
-                gap: present.canvas.gap,
-                padding: present.canvas.padding,
-              }}
-            >
-              {present.slotItems.map((slotItem, index) => {
-                const photo = slotItem.photoId
-                  ? (photos.find((item) => item.id === slotItem.photoId) ?? null)
-                  : null;
+            {present.canvas.layoutMode === 'free' ? (
+              <div className="absolute inset-0 overflow-hidden" style={{ padding: present.canvas.padding }}>
+                {freeLayoutItems.map(({ photo, slot, index }) => {
+                  const baseLeft = 6 + (index % 3) * 26;
+                  const baseTop = 8 + Math.floor(index / 3) * 26;
 
-                return (
-                  <button
-                    key={`${layout.id}-${index}`}
-                    type="button"
-                    className={cn(
-                      'group relative overflow-hidden bg-muted/35 text-left transition-colors',
-                      selectedSlotIndex === index
-                        ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
-                        : 'hover:bg-muted/50',
-                    )}
-                    style={{
-                      gridColumn: `${layout.slots[index].x + 1} / span ${layout.slots[index].w}`,
-                      gridRow: `${layout.slots[index].y + 1} / span ${layout.slots[index].h}`,
-                      borderRadius: slotItem.borderRadius ?? present.canvas.borderRadius,
-                      boxShadow:
-                        present.canvas.shadow > 0
-                          ? `0 14px 28px -18px rgba(15, 23, 42, ${Math.min(
-                              present.canvas.shadow / 100,
-                              0.35,
-                            )})`
-                          : 'none',
-                    }}
-                    onClick={() => {
-                      if (!photo && currentPhoto) {
-                        assignPhotoToSlot(index, currentPhoto.id);
-                      }
-                      selectSlot(index);
-                    }}
-                    onDragOver={(event) => {
-                      event.preventDefault();
-                    }}
-                    onDrop={(event) => {
-                      event.preventDefault();
-                      const photoId = event.dataTransfer.getData('text/copicseal-photo-id');
-                      if (photoId) {
-                        assignPhotoToSlot(index, photoId);
-                      }
-                      selectSlot(index);
-                    }}
-                  >
-                    {photo ? (
+                  return (
+                    <button
+                      key={`free-${photo.id}`}
+                      type="button"
+                      className={cn(
+                        'group absolute aspect-[4/3] w-[30%] overflow-hidden bg-muted/35 text-left transition-colors',
+                        selectedSlotIndex === index
+                          ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+                          : 'hover:bg-muted/50',
+                      )}
+                      style={{
+                        left: `${baseLeft}%`,
+                        top: `${baseTop}%`,
+                        borderRadius: slot.borderRadius ?? present.canvas.borderRadius,
+                        boxShadow:
+                          present.canvas.shadow > 0
+                            ? `0 14px 28px -18px rgba(15, 23, 42, ${Math.min(
+                                present.canvas.shadow / 100,
+                                0.35,
+                              )})`
+                            : 'none',
+                        transform: `translate(${slot.offsetX}px, ${slot.offsetY}px) scale(${slot.scale}) rotate(${slot.rotation}deg)`,
+                      }}
+                      onClick={() => selectSlot(index)}
+                      onMouseDown={(event) => {
+                        event.preventDefault();
+                        selectSlot(index);
+                        const startX = event.clientX;
+                        const startY = event.clientY;
+                        const startOffsetX = slot.offsetX;
+                        const startOffsetY = slot.offsetY;
+
+                        const handleMove = (moveEvent: MouseEvent) => {
+                          commit((draft) => {
+                            const currentSlot = draft.slotItems[index] ?? createEmptySlotState();
+                            draft.slotItems[index] = {
+                              ...currentSlot,
+                              offsetX: startOffsetX + (moveEvent.clientX - startX),
+                              offsetY: startOffsetY + (moveEvent.clientY - startY),
+                              photoId: photo.id,
+                            };
+                          });
+                        };
+
+                        const handleUp = () => {
+                          window.removeEventListener('mousemove', handleMove);
+                          window.removeEventListener('mouseup', handleUp);
+                        };
+
+                        window.addEventListener('mousemove', handleMove);
+                        window.addEventListener('mouseup', handleUp);
+                      }}
+                    >
                       <img
                         src={photo.previewUrl}
                         alt={photo.name}
                         className="h-full w-full object-cover"
-                        style={{
-                          transform: `translate(${slotItem.offsetX}px, ${slotItem.offsetY}px) scale(${slotItem.scale}) rotate(${slotItem.rotation}deg)`,
-                        }}
                         draggable={false}
                       />
-                    ) : (
-                      <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
-                        <ImagePlus className="size-5" />
-                        <span className="text-xs">点击填充当前图片</span>
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div
+                className="absolute inset-0 grid"
+                style={{
+                  gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
+                  gridTemplateRows: 'repeat(12, minmax(0, 1fr))',
+                  gap: present.canvas.gap,
+                  padding: present.canvas.padding,
+                }}
+              >
+                {present.slotItems.map((slotItem, index) => {
+                  const photo = slotItem.photoId
+                    ? (photos.find((item) => item.id === slotItem.photoId) ?? null)
+                    : null;
+
+                  return (
+                    <button
+                      key={`${layout.id}-${index}`}
+                      type="button"
+                      className={cn(
+                        'group relative overflow-hidden bg-muted/35 text-left transition-colors',
+                        selectedSlotIndex === index
+                          ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+                          : 'hover:bg-muted/50',
+                      )}
+                      style={{
+                        gridColumn: `${layout.slots[index].x + 1} / span ${layout.slots[index].w}`,
+                        gridRow: `${layout.slots[index].y + 1} / span ${layout.slots[index].h}`,
+                        borderRadius: slotItem.borderRadius ?? present.canvas.borderRadius,
+                        boxShadow:
+                          present.canvas.shadow > 0
+                            ? `0 14px 28px -18px rgba(15, 23, 42, ${Math.min(
+                                present.canvas.shadow / 100,
+                                0.35,
+                              )})`
+                            : 'none',
+                      }}
+                      onClick={() => {
+                        if (!photo && currentPhoto) {
+                          assignPhotoToSlot(index, currentPhoto.id);
+                        }
+                        selectSlot(index);
+                      }}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        const photoId = event.dataTransfer.getData('text/copicseal-photo-id');
+                        if (photoId) {
+                          assignPhotoToSlot(index, photoId);
+                        }
+                        selectSlot(index);
+                      }}
+                    >
+                      {photo ? (
+                        <img
+                          src={photo.previewUrl}
+                          alt={photo.name}
+                          className="h-full w-full object-cover"
+                          style={{
+                            transform: `translate(${slotItem.offsetX}px, ${slotItem.offsetY}px) scale(${slotItem.scale}) rotate(${slotItem.rotation}deg)`,
+                          }}
+                          draggable={false}
+                        />
+                      ) : (
+                        <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                          <ImagePlus className="size-5" />
+                          <span className="text-xs">点击填充当前图片</span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>

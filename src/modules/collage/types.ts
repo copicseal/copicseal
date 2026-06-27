@@ -1,4 +1,5 @@
 export type CollageAspectPreset = '1:1' | '16:9' | '9:16' | '4:3' | '3:4' | '16:10' | 'custom';
+export type CollageLayoutMode = 'grid' | 'free';
 
 export type CollageExportFormat = 'png' | 'jpeg';
 
@@ -31,6 +32,7 @@ export interface CollageSlotState {
 }
 
 export interface CollageCanvasState {
+  layoutMode: CollageLayoutMode;
   aspectPreset: CollageAspectPreset;
   customRatioWidth: number;
   customRatioHeight: number;

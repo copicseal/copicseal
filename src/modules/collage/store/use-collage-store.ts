@@ -31,7 +31,8 @@ function getDefaultPresentState(): CollagePresentState {
 
 function normalizeSlots(layoutId: string, slotItems: CollageSlotState[]): CollageSlotState[] {
   const layout = COLLAGE_LAYOUTS.find((item) => item.id === layoutId) ?? DEFAULT_LAYOUT;
-  return Array.from({ length: layout.count }, (_, index) => {
+  const count = Math.max(layout.count, slotItems.length, 1);
+  return Array.from({ length: count }, (_, index) => {
     const existing = slotItems[index];
     return existing
       ? {

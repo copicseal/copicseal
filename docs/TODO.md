@@ -100,7 +100,7 @@
 - [x] 支持 `4 Grid`
 - [x] 支持 `6 Grid`
 - [x] 支持 `Auto Layout`
-- [ ] 支持 `Free Layout`
+- [x] 支持 `Free Layout`
 
 ---
 

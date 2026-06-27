@@ -40,6 +40,7 @@ export function createEmptySlotState(): CollageSlotState {
 
 export function getDefaultCanvasState(): CollageCanvasState {
   return {
+    layoutMode: 'grid',
     aspectPreset: '1:1',
     customRatioWidth: 4,
     customRatioHeight: 5,

@@ -32,13 +32,14 @@ function getAutoLayoutId(photoCount: number) {
 
 export function CollageToolbar() {
   const { photos } = usePhotos();
-  const { present, setLayout } = useCollageStore();
+  const { present, setLayout, updateCanvas } = useCollageStore();
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       {GRID_PRESETS.map((preset) => {
         const Icon = preset.icon;
-        const active = present.layoutId === preset.layoutId;
+        const active =
+          present.canvas.layoutMode === 'grid' && present.layoutId === preset.layoutId;
 
         return (
           <Button
@@ -46,7 +47,10 @@ export function CollageToolbar() {
             variant={active ? 'default' : 'outline'}
             size="sm"
             className="rounded-full px-3"
-            onClick={() => setLayout(preset.layoutId)}
+            onClick={() => {
+              updateCanvas({ layoutMode: 'grid' });
+              setLayout(preset.layoutId);
+            }}
           >
             <Icon data-icon="inline-start" />
             {preset.label}
@@ -58,12 +62,20 @@ export function CollageToolbar() {
         variant="outline"
         size="sm"
         className="rounded-full px-3"
-        onClick={() => setLayout(getAutoLayoutId(photos.length))}
+        onClick={() => {
+          updateCanvas({ layoutMode: 'grid' });
+          setLayout(getAutoLayoutId(photos.length));
+        }}
       >
         Auto Layout
       </Button>
 
-      <Button variant="outline" size="sm" className="rounded-full px-3" disabled>
+      <Button
+        variant={present.canvas.layoutMode === 'free' ? 'default' : 'outline'}
+        size="sm"
+        className="rounded-full px-3"
+        onClick={() => updateCanvas({ layoutMode: 'free' })}
+      >
         Free Layout
       </Button>
     </div>

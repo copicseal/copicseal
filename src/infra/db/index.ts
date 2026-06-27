@@ -1,0 +1,16 @@
+export {
+  type AppConfig,
+  type ComarkTemplateRecord,
+  type FontInfo,
+  type TemplateListConfig,
+  type TemplatePreset,
+  type UpsertComarkTemplatePayload,
+  type UserDevice,
+  getConfig,
+  listComarkTemplates,
+  listSystemFonts,
+  removeComarkTemplate,
+  setComarkTemplateEnabled,
+  updateConfig,
+  upsertComarkTemplate,
+} from '@/api';

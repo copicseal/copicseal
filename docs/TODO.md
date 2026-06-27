@@ -35,7 +35,7 @@
 
 - [x] 创建 `features/template/`
 - [x] 建立 `Template Preview` 区域
-- [ ] 接入 `<TemplateRuntime />`
+- [x] 接入 `<TemplateRuntime />`
 - [x] 实现 Template 页面缩放控制
 - [x] 支持 `Fit`
 - [x] 支持 `50%`

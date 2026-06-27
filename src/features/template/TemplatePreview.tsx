@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { type ExifData, readExif } from '@/api';
 import { Button } from '@/components/ui/button';
 import { usePhotos } from '@/hooks/usePhotos';
-import { Minimal } from '@/modules/comark/templates';
+import { TemplateRuntime } from '@/runtime/template';
 
 type TemplateZoomMode = 'fit' | 50 | 100 | 200;
 
@@ -80,16 +80,18 @@ export function TemplatePreview() {
             maxWidth: zoomMode === 'fit' ? '100%' : undefined,
           }}
         >
-          <Minimal
-            photoUrl={currentPhoto.previewUrl}
-            exif={exif}
-            orientation="auto"
-            margin={1}
-            fontScale={1}
-            primaryColor="#1a1a1a"
-            borderColor="#1a1a1a"
-            textLine1="{Make} {Model}"
-            textLine2="{FocalLength}  f/{FNumber}  {ExposureTime}s  ISO{ISO}"
+          <TemplateRuntime
+            props={{
+              photoUrl: currentPhoto.previewUrl,
+              exif,
+              orientation: 'auto',
+              margin: 1,
+              fontScale: 1,
+              primaryColor: '#1a1a1a',
+              borderColor: '#1a1a1a',
+              textLine1: '{Make} {Model}',
+              textLine2: '{FocalLength}  f/{FNumber}  {ExposureTime}s  ISO{ISO}',
+            }}
           />
         </div>
       </div>

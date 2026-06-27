@@ -22,7 +22,7 @@
 - [x] 建立 `app/` 路由结构
 - [x] 实现 `/template`、`/collage`、`/settings` 三个页面入口
 - [x] 实现左侧 `Nav` 固定宽度 `72px`
-- [ ] 为导航图标补全 tooltip
+- [x] 为导航图标补全 tooltip
 - [x] 禁止顶部 Tab 式页面导航
 - [x] 实现统一页面壳层布局
 - [x] 实现 `Properties` 面板默认 `320px`

@@ -7,7 +7,9 @@ import {
   LayoutTemplate,
 } from 'lucide-react';
 import { useState } from 'react';
+import { CoDropZone } from '@/components/CoDropZone';
 import { Button } from '@/components/ui/button';
+import { usePhotos } from '@/hooks/usePhotos';
 import { cn } from '@/lib/utils';
 import type { AppRoute } from '@/components/CoSidebar';
 
@@ -154,6 +156,14 @@ function AssetsPanel({
   onToggleCollapse: () => void;
   onResizeStart: (clientY: number) => void;
 }) {
+  const {
+    photos,
+    currentIndex,
+    setCurrentIndex,
+    removePhoto,
+    importViaDialog,
+    importViaDrop,
+  } = usePhotos();
   const content = copy[route];
   const isTemplate = route === '/template';
   const cardHeight = Math.max(72, height - 92);
@@ -182,39 +192,106 @@ function AssetsPanel({
           <h2 className="text-sm font-semibold">{content.assetsTitle}</h2>
           <p className="mt-1 text-xs text-muted-foreground">{content.assetsDescription}</p>
         </div>
-        <Button variant="outline" size="sm" className="rounded-full px-3">
+        <Button
+          variant="outline"
+          size="sm"
+          className="rounded-full px-3"
+          onClick={() => void importViaDialog()}
+        >
           <ImageIcon data-icon="inline-start" />
           导入图片
         </Button>
       </div>
 
       {!collapsed ? (
-        <div className="mt-4 h-[calc(100%-64px)] overflow-x-auto overflow-y-hidden">
-          <div className="flex h-full gap-3 pb-3">
-            {Array.from({ length: 8 }).map((_, index) => (
-              <div
-                key={`${route}-asset-${index + 1}`}
-                className="shrink-0 border border-dashed border-border bg-muted/40 p-3"
-                style={{
-                  width: isTemplate ? Math.max(132, cardHeight * (4 / 3)) : 160,
-                  height: isTemplate ? cardHeight : undefined,
-                }}
-              >
-                <div
-                  className="flex h-full items-center justify-center bg-background/80"
-                  style={{ aspectRatio: '4 / 3' }}
-                >
-                  <ImageIcon className="size-5 text-muted-foreground" />
+        <div className="mt-4 h-[calc(100%-64px)]">
+          {photos.length === 0 ? (
+            <CoDropZone
+              onFilesDrop={importViaDrop}
+              className="h-full rounded-none border-border/60 bg-muted/20"
+            >
+              <div className="flex flex-col items-center justify-center gap-3 text-center text-muted-foreground">
+                <ImageIcon className="size-6" />
+                <div>
+                  <p className="text-sm font-medium">
+                    {isTemplate ? '拖入图片开始边框水印' : '拖入图片开始拼图'}
+                  </p>
+                  <p className="text-xs">或点击右上角“导入图片”从本地选择</p>
                 </div>
-                <p className="mt-2 truncate text-[11px] font-medium text-foreground">
-                  {route === '/template' ? `模板图片 ${index + 1}` : `拼图素材 ${index + 1}`}
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  {route === '/template' ? '支持排序、多选、删除' : '支持拖入拼图、替换、删除'}
-                </p>
               </div>
-            ))}
-          </div>
+            </CoDropZone>
+          ) : (
+            <div className="h-full overflow-x-auto overflow-y-hidden">
+              <div className="flex h-full gap-3 pb-3">
+                {photos.map((photo, index) => {
+                  const active = index === currentIndex;
+
+                  return (
+                    <div
+                      key={photo.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setCurrentIndex(index)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setCurrentIndex(index);
+                        }
+                      }}
+                      className={cn(
+                        'group shrink-0 border bg-card text-left transition-colors',
+                        active
+                          ? 'border-primary ring-1 ring-primary/20'
+                          : 'border-border hover:border-primary/40',
+                      )}
+                      style={{
+                        width: isTemplate ? Math.max(132, cardHeight * (4 / 3)) : 160,
+                        height: isTemplate ? cardHeight : undefined,
+                      }}
+                    >
+                      <div className="flex h-full flex-col">
+                        <div
+                          className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-background/80"
+                          style={{ aspectRatio: '4 / 3' }}
+                        >
+                          <img
+                            src={photo.previewUrl}
+                            alt={photo.name}
+                            className="h-full w-full object-cover"
+                          />
+                          {active ? (
+                            <div className="pointer-events-none absolute inset-0 ring-2 ring-primary/60" />
+                          ) : null}
+                        </div>
+                        <div className="border-t border-border/80 px-3 py-2">
+                          <div className="flex items-start gap-2">
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-[11px] font-medium text-foreground">
+                                {photo.name}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {(photo.size / 1024 / 1024).toFixed(1)} MB
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              className="shrink-0 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                removePhoto(photo.id);
+                              }}
+                            >
+                              删除
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       ) : null}
     </section>

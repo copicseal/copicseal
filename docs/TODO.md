@@ -19,15 +19,15 @@
 
 ## Phase 1 — 应用骨架
 
-- [ ] 建立 `app/` 路由结构
-- [ ] 实现 `/template`、`/collage`、`/settings` 三个页面入口
-- [ ] 实现左侧 `Nav` 固定宽度 `72px`
+- [x] 建立 `app/` 路由结构
+- [x] 实现 `/template`、`/collage`、`/settings` 三个页面入口
+- [x] 实现左侧 `Nav` 固定宽度 `72px`
 - [ ] 为导航图标补全 tooltip
-- [ ] 禁止顶部 Tab 式页面导航
-- [ ] 实现统一页面壳层布局
-- [ ] 实现 `Properties` 面板默认 `320px`
-- [ ] 实现 `Properties` 面板拖拽宽度 `280px ~ 420px`
-- [ ] 实现 `Workspace` 与 `Assets` 的垂直分区结构
+- [x] 禁止顶部 Tab 式页面导航
+- [x] 实现统一页面壳层布局
+- [x] 实现 `Properties` 面板默认 `320px`
+- [x] 实现 `Properties` 面板拖拽宽度 `280px ~ 420px`
+- [x] 实现 `Workspace` 与 `Assets` 的垂直分区结构
 
 ---
 
@@ -41,9 +41,9 @@
 - [ ] 支持 `50%`
 - [ ] 支持 `100%`
 - [ ] 支持 `200%`
-- [ ] 建立 `Template Assets` 区域
-- [ ] 实现图片缩略图列表
-- [ ] 支持拖拽导入
+- [x] 建立 `Template Assets` 区域
+- [x] 实现图片缩略图列表
+- [x] 支持拖拽导入
 - [ ] 支持粘贴导入
 - [ ] 支持文件夹导入
 - [ ] 支持多选

@@ -101,3 +101,32 @@ pub async fn read_image_file(path: String) -> Result<ImageMeta, String> {
         mime_type: mime_type.to_string(),
     })
 }
+
+/// 列出目录中的受支持图片文件
+#[tauri::command]
+pub async fn list_image_files_in_directory(path: String) -> Result<Vec<String>, String> {
+    let dir = Path::new(&path);
+
+    if !dir.exists() {
+        return Err(format!("目录不存在: {}", dir.display()));
+    }
+
+    if !dir.is_dir() {
+        return Err(format!("不是目录: {}", dir.display()));
+    }
+
+    let entries = std::fs::read_dir(dir).map_err(|e| format!("读取目录失败: {}", e))?;
+    let mut paths = Vec::new();
+
+    for entry in entries {
+        let entry = entry.map_err(|e| format!("读取目录项失败: {}", e))?;
+        let entry_path = entry.path();
+
+        if entry_path.is_file() && is_supported_image(&entry_path) {
+            paths.push(entry_path.to_string_lossy().to_string());
+        }
+    }
+
+    paths.sort();
+    Ok(paths)
+}

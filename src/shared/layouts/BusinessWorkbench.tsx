@@ -9,15 +9,14 @@ import {
   MoveHorizontal,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import type { AppRoute } from '@/components/CoSidebar';
 import { exportSingle } from '@/bridge/export.api';
+import { getBuiltinTemplateSchema } from '@/bridge/template.api';
 import { CoDropZone } from '@/components/CoDropZone';
+import type { AppRoute } from '@/components/CoSidebar';
 import { Button } from '@/components/ui/button';
-import {
-  CollageCanvas,
-  CollagePropertiesPanel,
-  CollageToolbar,
-} from '@/features/collage';
+import { prepareElementForSnapshot } from '@/core/renderer';
+import { runScheduledExports } from '@/core/scheduler';
+import { CollageCanvas, CollagePropertiesPanel, CollageToolbar } from '@/features/collage';
 import {
   TemplateExportPanel,
   TemplatePreview,
@@ -25,13 +24,10 @@ import {
   TemplateSelector,
   useTemplatePreviewState,
 } from '@/features/template';
-import { prepareElementForSnapshot } from '@/core/renderer';
-import { runScheduledExports } from '@/core/scheduler';
 import { usePhotos } from '@/hooks/usePhotos';
 import { selectPhotosViaDialog } from '@/lib/import-photo';
 import { cn } from '@/lib/utils';
 import { useCollageStore } from '@/modules/collage/store/use-collage-store';
-import { getBuiltinTemplateSchema } from '@/bridge/template.api';
 
 const PROPERTY_MIN_WIDTH = 280;
 const PROPERTY_MAX_WIDTH = 420;
@@ -244,7 +240,12 @@ function AssetsPanel({
         >
           <span className="absolute top-1/2 left-1/2 h-1 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full bg-border transition-colors hover:bg-primary" />
         </button>
-        <Button variant="ghost" size="icon-sm" className="rounded-full bg-background/90" onClick={onToggleCollapse}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="rounded-full bg-background/90"
+          onClick={onToggleCollapse}
+        >
           {collapsed ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
         </Button>
       </div>
@@ -303,10 +304,9 @@ function AssetsPanel({
                   const selected = selectedIds.includes(photo.id);
 
                   return (
-                    <div
+                    <button
                       key={photo.id}
-                      role="button"
-                      tabIndex={0}
+                      type="button"
                       onClick={(event) => {
                         setCurrentIndex(index);
                         if (event.metaKey || event.ctrlKey) {
@@ -420,7 +420,7 @@ function AssetsPanel({
                           )}
                         </div>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>
@@ -450,16 +450,20 @@ function PropertiesPanel({
   onTemplateChange: (templateId: string) => void;
   templateProps: Parameters<typeof TemplatePreview>[0]['templateProps'];
   onTemplatePropsChange: (next: Parameters<typeof TemplatePreview>[0]['templateProps']) => void;
-  onExportCurrent: (options: Parameters<typeof TemplateExportPanel>[0]['onExportCurrent'] extends (
-    arg: infer A,
-  ) => Promise<void>
-    ? A
-    : never) => Promise<void>;
-  onExportBatch: (options: Parameters<typeof TemplateExportPanel>[0]['onExportBatch'] extends (
-    arg: infer A,
-  ) => Promise<void>
-    ? A
-    : never) => Promise<void>;
+  onExportCurrent: (
+    options: Parameters<typeof TemplateExportPanel>[0]['onExportCurrent'] extends (
+      arg: infer A,
+    ) => Promise<void>
+      ? A
+      : never,
+  ) => Promise<void>;
+  onExportBatch: (
+    options: Parameters<typeof TemplateExportPanel>[0]['onExportBatch'] extends (
+      arg: infer A,
+    ) => Promise<void>
+      ? A
+      : never,
+  ) => Promise<void>;
 }) {
   const content = copy[route];
   const isTemplate = route === '/template';
@@ -547,12 +551,7 @@ export function BusinessWorkbench({ route }: BusinessWorkbenchProps) {
   const [propertiesWidth, setPropertiesWidth] = useState(PROPERTY_DEFAULT_WIDTH);
   const [assetsHeight, setAssetsHeight] = useState(ASSETS_DEFAULT_HEIGHT);
   const [assetsCollapsed, setAssetsCollapsed] = useState(false);
-  const {
-    templateId,
-    setTemplateId,
-    templateProps,
-    setTemplateProps,
-  } = useTemplatePreviewState();
+  const { templateId, setTemplateId, templateProps, setTemplateProps } = useTemplatePreviewState();
   const { photos, currentIndex, setCurrentIndex, currentPhoto } = usePhotos();
 
   const handleResizeStart = (startX: number) => {

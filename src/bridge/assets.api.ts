@@ -1,1 +1,1 @@
-export { readExif, type ExifData } from '@/api';
+export { type ExifData, readExif } from '@/api';

@@ -3,8 +3,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePhotos } from '@/hooks/usePhotos';
 import { cn } from '@/lib/utils';
 import { COLLAGE_LAYOUTS } from '@/modules/collage/layouts';
-import { createEmptySlotState } from '@/modules/collage/lib';
-import { getAspectRatioText, getAspectRatioValue } from '@/modules/collage/lib';
+import {
+  createEmptySlotState,
+  getAspectRatioText,
+  getAspectRatioValue,
+} from '@/modules/collage/lib';
 import { useCollageStore } from '@/modules/collage/store/use-collage-store';
 
 function useElementSize<T extends HTMLElement>(ref: React.RefObject<T | null>) {
@@ -153,7 +156,10 @@ export function CollageCanvas({
             }}
           >
             {present.canvas.layoutMode === 'free' ? (
-              <div className="absolute inset-0 overflow-hidden" style={{ padding: present.canvas.padding }}>
+              <div
+                className="absolute inset-0 overflow-hidden"
+                style={{ padding: present.canvas.padding }}
+              >
                 {freeLayoutItems.map(({ photo, slot, index }) => {
                   const baseLeft = 6 + (index % 3) * 26;
                   const baseTop = 8 + Math.floor(index / 3) * 26;
@@ -238,7 +244,7 @@ export function CollageCanvas({
 
                   return (
                     <button
-                      key={`${layout.id}-${index}`}
+                      key={`${layout.id}-${slotItem.photoId ?? `empty-${layout.slots[index].x}-${layout.slots[index].y}`}`}
                       type="button"
                       className={cn(
                         'group relative overflow-hidden bg-muted/35 text-left transition-colors',

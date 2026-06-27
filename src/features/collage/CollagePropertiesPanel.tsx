@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { usePhotos } from '@/hooks/usePhotos';
 import type { ExportOptions } from '@/lib/export-photo';
-import { COLLAGE_RATIO_OPTIONS, COLLAGE_EXPORT_LABELS } from '@/modules/collage/lib';
+import { COLLAGE_EXPORT_LABELS, COLLAGE_RATIO_OPTIONS } from '@/modules/collage/lib';
 import { useCollageStore } from '@/modules/collage/store/use-collage-store';
 
 interface CollagePropertiesPanelProps {
@@ -18,13 +18,8 @@ export function CollagePropertiesPanel({
   onExportBatch,
 }: CollagePropertiesPanelProps) {
   const { photos } = usePhotos();
-  const {
-    present,
-    selectedSlotIndex,
-    updateCanvas,
-    updateSlot,
-    updateExportSettings,
-  } = useCollageStore();
+  const { present, selectedSlotIndex, updateCanvas, updateSlot, updateExportSettings } =
+    useCollageStore();
   const [scale, setScale] = useState([1]);
   const [quality, setQuality] = useState([90]);
   const [width, setWidth] = useState('');
@@ -67,7 +62,9 @@ export function CollagePropertiesPanel({
       <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
         <div>
           <h3 className="text-sm font-semibold">Layout</h3>
-          <p className="mt-1 text-xs leading-6 text-muted-foreground">控制画布布局、间距与背景样式。</p>
+          <p className="mt-1 text-xs leading-6 text-muted-foreground">
+            控制画布布局、间距与背景样式。
+          </p>
         </div>
 
         <div className="mt-4 space-y-4">
@@ -241,9 +238,7 @@ export function CollagePropertiesPanel({
               </div>
               <Slider
                 value={[selectedSlot.borderRadius ?? present.canvas.borderRadius]}
-                onValueChange={([value]) =>
-                  updateSlot(selectedSlotIndex, { borderRadius: value })
-                }
+                onValueChange={([value]) => updateSlot(selectedSlotIndex, { borderRadius: value })}
                 min={0}
                 max={48}
                 step={1}
@@ -296,28 +291,22 @@ export function CollagePropertiesPanel({
             ))}
           </div>
 
-          <label className="block space-y-1.5">
+          <div className="space-y-1.5">
             <span className="text-xs font-medium text-foreground">倍率</span>
             <Slider value={scale} onValueChange={setScale} min={0.5} max={3} step={0.1} />
             <span className="text-[10px] text-muted-foreground">{scale[0].toFixed(1)}x</span>
-          </label>
+          </div>
 
           {present.exportSettings.format !== 'png' ? (
-            <label className="block space-y-1.5">
+            <div className="space-y-1.5">
               <span className="text-xs font-medium text-foreground">质量</span>
-              <Slider
-                value={quality}
-                onValueChange={setQuality}
-                min={1}
-                max={100}
-                step={1}
-              />
+              <Slider value={quality} onValueChange={setQuality} min={1} max={100} step={1} />
               <span className="text-[10px] text-muted-foreground">{quality[0]}</span>
-            </label>
+            </div>
           ) : null}
 
           <div className="grid grid-cols-2 gap-2">
-            <label className="space-y-1.5">
+            <div className="space-y-1.5">
               <span className="text-xs font-medium text-foreground">宽度</span>
               <Input
                 value={width}
@@ -325,8 +314,8 @@ export function CollagePropertiesPanel({
                 placeholder="自动"
                 className="h-9 rounded-none text-xs"
               />
-            </label>
-            <label className="space-y-1.5">
+            </div>
+            <div className="space-y-1.5">
               <span className="text-xs font-medium text-foreground">高度</span>
               <Input
                 value={height}
@@ -334,7 +323,7 @@ export function CollagePropertiesPanel({
                 placeholder="自动"
                 className="h-9 rounded-none text-xs"
               />
-            </label>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2 pt-1">

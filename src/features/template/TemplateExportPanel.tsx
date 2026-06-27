@@ -10,10 +10,7 @@ interface TemplateExportPanelProps {
   onExportBatch: (options: ExportOptions) => Promise<void>;
 }
 
-export function TemplateExportPanel({
-  onExportCurrent,
-  onExportBatch,
-}: TemplateExportPanelProps) {
+export function TemplateExportPanel({ onExportCurrent, onExportBatch }: TemplateExportPanelProps) {
   const [format, setFormat] = useState<ExportFormat>('png');
   const [scale, setScale] = useState([1]);
   const [quality, setQuality] = useState([90]);
@@ -73,22 +70,22 @@ export function TemplateExportPanel({
         ))}
       </div>
 
-      <label className="block space-y-1.5">
+      <div className="space-y-1.5">
         <span className="text-xs font-medium text-foreground">倍率</span>
         <Slider value={scale} onValueChange={setScale} min={0.5} max={3} step={0.1} />
         <span className="text-[10px] text-muted-foreground">{scale[0].toFixed(1)}x</span>
-      </label>
+      </div>
 
       {format !== 'png' ? (
-        <label className="block space-y-1.5">
+        <div className="space-y-1.5">
           <span className="text-xs font-medium text-foreground">质量</span>
           <Slider value={quality} onValueChange={setQuality} min={1} max={100} step={1} />
           <span className="text-[10px] text-muted-foreground">{quality[0]}</span>
-        </label>
+        </div>
       ) : null}
 
       <div className="grid grid-cols-2 gap-2">
-        <label className="space-y-1.5">
+        <div className="space-y-1.5">
           <span className="text-xs font-medium text-foreground">宽度</span>
           <Input
             value={width}
@@ -96,8 +93,8 @@ export function TemplateExportPanel({
             placeholder="自动"
             className="h-9 rounded-none text-xs"
           />
-        </label>
-        <label className="space-y-1.5">
+        </div>
+        <div className="space-y-1.5">
           <span className="text-xs font-medium text-foreground">高度</span>
           <Input
             value={height}
@@ -105,7 +102,7 @@ export function TemplateExportPanel({
             placeholder="自动"
             className="h-9 rounded-none text-xs"
           />
-        </label>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2 pt-1">

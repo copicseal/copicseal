@@ -16,11 +16,7 @@ interface TemplatePropsPanelProps {
   onChange: (next: EditableTemplateProps) => void;
 }
 
-export function TemplatePropsPanel({
-  schema,
-  value,
-  onChange,
-}: TemplatePropsPanelProps) {
+export function TemplatePropsPanel({ schema, value, onChange }: TemplatePropsPanelProps) {
   const updateField = <K extends keyof EditableTemplateProps>(
     key: K,
     nextValue: EditableTemplateProps[K],
@@ -45,7 +41,7 @@ export function TemplatePropsPanel({
           const fieldValue = value[field.key];
 
           return (
-            <label key={field.key} className="block space-y-1.5">
+            <div key={field.key} className="space-y-1.5">
               <span className="text-xs font-medium text-foreground">{field.label}</span>
               {field.type === 'select' ? (
                 <Select
@@ -122,7 +118,7 @@ export function TemplatePropsPanel({
                   className="h-9 rounded-none text-xs"
                 />
               ) : null}
-            </label>
+            </div>
           );
         })}
       </div>

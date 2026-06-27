@@ -1,18 +1,15 @@
 import { Search, Star } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
-import { listBuiltinTemplates } from '@/runtime/template/template-registry';
 import { cn } from '@/lib/utils';
+import { listBuiltinTemplates } from '@/runtime/template/template-registry';
 
 interface TemplateSelectorProps {
   activeTemplateId: string;
   onTemplateChange: (templateId: string) => void;
 }
 
-export function TemplateSelector({
-  activeTemplateId,
-  onTemplateChange,
-}: TemplateSelectorProps) {
+export function TemplateSelector({ activeTemplateId, onTemplateChange }: TemplateSelectorProps) {
   const templates = listBuiltinTemplates();
   const [query, setQuery] = useState('');
   const [favorites, setFavorites] = useState<string[]>(['minimal', 'leica']);
@@ -47,7 +44,9 @@ export function TemplateSelector({
 
   const handleSelect = (templateId: string) => {
     onTemplateChange(templateId);
-    setRecentIds((current) => [templateId, ...current.filter((id) => id !== templateId)].slice(0, 3));
+    setRecentIds((current) =>
+      [templateId, ...current.filter((id) => id !== templateId)].slice(0, 3),
+    );
   };
 
   return (
@@ -81,17 +80,10 @@ export function TemplateSelector({
             const favorite = favorites.includes(template.meta.id);
 
             return (
-              <div
+              <button
                 key={template.meta.id}
-                role="button"
-                tabIndex={0}
+                type="button"
                 onClick={() => handleSelect(template.meta.id)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    handleSelect(template.meta.id);
-                  }
-                }}
                 className={cn(
                   'flex w-full items-start justify-between border px-3 py-3 text-left transition-colors',
                   active ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40',
@@ -116,7 +108,7 @@ export function TemplateSelector({
                 >
                   <Star className={cn('size-4', favorite && 'fill-current')} />
                 </button>
-              </div>
+              </button>
             );
           })}
         </div>

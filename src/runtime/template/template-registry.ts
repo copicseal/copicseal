@@ -1,5 +1,5 @@
-import { BUILTIN_TEMPLATES } from '@/modules/comark/templates';
 import type { BuiltinTemplate } from '@/modules/comark/templates';
+import { BUILTIN_TEMPLATES } from '@/modules/comark/templates';
 
 export function listBuiltinTemplates(): BuiltinTemplate[] {
   return BUILTIN_TEMPLATES;

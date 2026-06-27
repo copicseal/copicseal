@@ -9,7 +9,11 @@ type TemplateZoomMode = 'fit' | 50 | 100 | 200;
 
 const ZOOM_OPTIONS: TemplateZoomMode[] = ['fit', 50, 100, 200];
 
-export function TemplatePreview() {
+interface TemplatePreviewProps {
+  activeTemplateId: string;
+}
+
+export function TemplatePreview({ activeTemplateId }: TemplatePreviewProps) {
   const { currentPhoto } = usePhotos();
   const [exif, setExif] = useState<ExifData | null>(null);
   const [zoomMode, setZoomMode] = useState<TemplateZoomMode>('fit');
@@ -81,6 +85,7 @@ export function TemplatePreview() {
           }}
         >
           <TemplateRuntime
+            templateId={activeTemplateId}
             props={{
               photoUrl: currentPhoto.previewUrl,
               exif,
@@ -96,16 +101,25 @@ export function TemplatePreview() {
         </div>
       </div>
 
-      <div className="flex w-full max-w-xl items-center justify-between border-t border-border/80 pt-3 text-xs text-muted-foreground">
-        <div className="min-w-0">
-          <p className="truncate font-medium text-foreground">{currentPhoto.name}</p>
-          <p>{(currentPhoto.size / 1024 / 1024).toFixed(1)} MB</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <ImageIcon className="size-3.5" />
-          <span>{currentPhoto.mimeType}</span>
+        <div className="flex w-full max-w-xl items-center justify-between border-t border-border/80 pt-3 text-xs text-muted-foreground">
+          <div className="min-w-0">
+            <p className="truncate font-medium text-foreground">{currentPhoto.name}</p>
+            <p>{(currentPhoto.size / 1024 / 1024).toFixed(1)} MB</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <ImageIcon className="size-3.5" />
+            <span>{activeTemplateId}</span>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+}
+
+export function useTemplatePreviewState() {
+  const [templateId, setTemplateId] = useState('minimal');
+
+  return {
+    templateId,
+    setTemplateId,
+  };
 }

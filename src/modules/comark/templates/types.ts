@@ -16,6 +16,12 @@ export interface TemplateMeta {
   id: string;
   name: string;
   description: string;
+  tags?: string[];
 }
 
 export type TemplateComponent = React.ComponentType<TemplateProps>;
+
+export interface BuiltinTemplate {
+  meta: TemplateMeta;
+  component: TemplateComponent;
+}

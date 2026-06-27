@@ -1,5 +1,5 @@
-import { BUILTIN_TEMPLATE } from '@/modules/comark/templates';
 import type { TemplateProps } from '@/modules/comark/templates';
+import { getBuiltinTemplateById } from './template-registry';
 
 interface TemplateRuntimeProps {
   templateId?: string;
@@ -7,10 +7,13 @@ interface TemplateRuntimeProps {
 }
 
 export function TemplateRuntime({
-  templateId = BUILTIN_TEMPLATE.meta.id,
+  templateId = 'minimal',
   props,
 }: TemplateRuntimeProps) {
-  const template = templateId === BUILTIN_TEMPLATE.meta.id ? BUILTIN_TEMPLATE : BUILTIN_TEMPLATE;
+  const template = getBuiltinTemplateById(templateId) ?? getBuiltinTemplateById('minimal');
+  if (!template) {
+    return null;
+  }
   const Component = template.component;
 
   return <Component {...props} />;

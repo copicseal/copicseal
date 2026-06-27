@@ -1,15 +1,20 @@
 import {
   Box,
+  Check,
   Cog,
   Database,
   Download,
+  FolderOpen,
   Info,
+  Languages,
+  Palette,
   RefreshCw,
   Settings2,
   Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
 import { check } from '@tauri-apps/plugin-updater';
+import { open } from '@tauri-apps/plugin-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -21,13 +26,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
 const TABS = [
   { id: 'general', label: 'General', icon: Cog },
   { id: 'template', label: 'Template', icon: Box },
-  { id: 'collage', label: 'Collage', icon: Box },
+  { id: 'collage', label: 'Collage', icon: Palette },
   { id: 'export', label: 'Export', icon: Download },
   { id: 'cache', label: 'Cache', icon: Database },
   { id: 'about', label: 'About', icon: Info },
@@ -43,8 +49,8 @@ function FieldGroup({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-3xl border border-border/80 bg-card p-5 shadow-sm">
-      <div className="max-w-xl">
+    <section className="border border-border/80 bg-card px-5 py-5 shadow-sm">
+      <div className="max-w-2xl">
         <h3 className="text-sm font-semibold">{title}</h3>
         <p className="mt-1 text-xs leading-6 text-muted-foreground">{description}</p>
       </div>
@@ -53,130 +59,298 @@ function FieldGroup({
   );
 }
 
+function SettingField({
+  label,
+  description,
+  children,
+}: {
+  label: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="grid gap-3 border-t border-border/70 py-4 first:border-t-0 first:pt-0 md:grid-cols-[220px_minmax(0,1fr)]">
+      <div>
+        <p className="text-sm font-medium text-foreground">{label}</p>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
+      </div>
+      <div className="min-w-0">{children}</div>
+    </div>
+  );
+}
+
+function OptionCard({
+  title,
+  active = false,
+  children,
+}: {
+  title: string;
+  active?: boolean;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn(
+        'border px-4 py-3 transition-colors',
+        active ? 'border-primary bg-primary/5' : 'border-border bg-background',
+      )}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-medium">{title}</p>
+        {active ? <Check className="size-4 text-primary" /> : null}
+      </div>
+      {children ? <div className="mt-1 text-xs text-muted-foreground">{children}</div> : null}
+    </div>
+  );
+}
+
 function GeneralTab() {
+  const [exportDirectory, setExportDirectory] = useState('~/Documents/Copicseal');
+
+  const handlePickDirectory = async () => {
+    const selected = await open({ directory: true, multiple: false });
+    if (selected && !Array.isArray(selected)) {
+      setExportDirectory(selected);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      <FieldGroup title="Theme" description="控制应用主题外观。">
-        <RadioGroup defaultValue="system" className="flex gap-4" orientation="horizontal">
-          {[
-            { value: 'light', label: '浅色' },
-            { value: 'dark', label: '深色' },
-            { value: 'system', label: '跟随系统' },
-          ].map(({ value, label }) => (
-            <label key={value} htmlFor={`theme-${value}`} className="flex items-center gap-2">
-              <RadioGroupItem value={value} id={`theme-${value}`} />
-              <span>{label}</span>
-            </label>
-          ))}
-        </RadioGroup>
-      </FieldGroup>
+      <FieldGroup title="General" description="控制应用的全局行为与启动体验。">
+        <SettingField label="主题" description="切换浅色、深色或跟随系统。">
+          <RadioGroup defaultValue="system" className="flex flex-wrap gap-3" orientation="horizontal">
+            {[
+              { value: 'light', label: '浅色' },
+              { value: 'dark', label: '深色' },
+              { value: 'system', label: '跟随系统' },
+            ].map(({ value, label }) => (
+              <label key={value} htmlFor={`theme-${value}`} className="flex items-center gap-2">
+                <RadioGroupItem value={value} id={`theme-${value}`} />
+                <span className="text-sm">{label}</span>
+              </label>
+            ))}
+          </RadioGroup>
+        </SettingField>
 
-      <FieldGroup title="Language" description="设置界面语言与文案方向。">
-        <Select defaultValue="zh-CN">
-          <SelectTrigger className="h-9 w-[220px] rounded-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectItem value="zh-CN">简体中文</SelectItem>
-              <SelectItem value="en">English</SelectItem>
-              <SelectItem value="ja">日本語</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </FieldGroup>
+        <SettingField label="语言" description="配置应用的界面语言。">
+          <Select defaultValue="zh-CN">
+            <SelectTrigger className="h-9 w-[240px] rounded-none text-xs">
+              <Languages className="size-3.5" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="zh-CN">简体中文</SelectItem>
+                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="ja">日本語</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </SettingField>
 
-      <FieldGroup title="Startup Page" description="决定应用启动时默认进入的页面。">
-        <Select defaultValue="template">
-          <SelectTrigger className="h-9 w-[220px] rounded-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="template">Template</SelectItem>
-            <SelectItem value="collage">Collage</SelectItem>
-            <SelectItem value="settings">Settings</SelectItem>
-          </SelectContent>
-        </Select>
-      </FieldGroup>
+        <SettingField label="启动页" description="设置应用启动后默认进入的一级页面。">
+          <Select defaultValue="template">
+            <SelectTrigger className="h-9 w-[240px] rounded-none text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="template">Template</SelectItem>
+              <SelectItem value="collage">Collage</SelectItem>
+              <SelectItem value="settings">Settings</SelectItem>
+            </SelectContent>
+          </Select>
+        </SettingField>
 
-      <FieldGroup title="Default Export Directory" description="配置默认导出目录与行为。">
-        <div className="flex max-w-xl items-center gap-2">
-          <Input defaultValue="~/Documents/Copicseal" readOnly className="h-10 rounded-full" />
-          <Button variant="outline" className="rounded-full px-4">
-            选择
-          </Button>
-        </div>
+        <SettingField label="默认导出目录" description="指定导出图片时的默认保存位置。">
+          <div className="flex max-w-2xl items-center gap-2">
+            <Input
+              value={exportDirectory}
+              readOnly
+              className="h-10 rounded-none text-xs"
+            />
+            <Button
+              variant="outline"
+              className="rounded-none px-4"
+              onClick={() => void handlePickDirectory()}
+            >
+              <FolderOpen data-icon="inline-start" />
+              选择
+            </Button>
+          </div>
+        </SettingField>
+
+        <SettingField label="自动更新" description="决定是否在应用中主动检查更新。">
+          <RadioGroup defaultValue="enabled" className="flex flex-wrap gap-3" orientation="horizontal">
+            {[
+              { value: 'enabled', label: '开启' },
+              { value: 'disabled', label: '关闭' },
+            ].map(({ value, label }) => (
+              <label key={value} htmlFor={`autoupdate-${value}`} className="flex items-center gap-2">
+                <RadioGroupItem value={value} id={`autoupdate-${value}`} />
+                <span className="text-sm">{label}</span>
+              </label>
+            ))}
+          </RadioGroup>
+        </SettingField>
       </FieldGroup>
     </div>
   );
 }
 
 function TemplateTab() {
+  const [borderWidth, setBorderWidth] = useState([24]);
+  const [fontScale, setFontScale] = useState([1]);
+
   return (
     <div className="space-y-4">
-      <FieldGroup title="默认模板" description="为 Template 页面提供默认视觉起点。">
-        <div className="grid gap-3 md:grid-cols-2">
-          {['Leica', 'Film', 'Minimal', 'Instagram'].map((name) => (
-            <div key={name} className="rounded-2xl border border-border bg-background p-4">
-              <p className="text-sm font-semibold">{name}</p>
-              <p className="mt-1 text-xs text-muted-foreground">支持搜索、收藏、最近使用</p>
-            </div>
-          ))}
-        </div>
-      </FieldGroup>
+      <FieldGroup title="Template" description="配置边框水印页面的默认模板与样式参数。">
+        <SettingField label="默认模板" description="设置进入 Template 页面时默认选中的模板。">
+          <div className="grid gap-3 md:grid-cols-2">
+            {[
+              { name: 'Leica', description: '经典相机信息排版' },
+              { name: 'Film', description: '胶片边框与颗粒风格' },
+              { name: 'Minimal', description: '最简边框水印方案' },
+              { name: 'Instagram', description: '社媒风格展示卡片' },
+            ].map((item, index) => (
+              <OptionCard key={item.name} title={item.name} active={index === 2}>
+                {item.description}
+              </OptionCard>
+            ))}
+          </div>
+        </SettingField>
 
-      <FieldGroup title="默认样式" description="包含默认字体、边框宽度、背景颜色与 EXIF 格式。">
-        <div className="grid gap-3 md:grid-cols-2">
-          {[
-            '默认字体',
-            '默认边框宽度',
-            '默认背景颜色',
-            '默认 EXIF 格式',
-          ].map((item) => (
-            <div key={item} className="rounded-2xl border border-border bg-background px-4 py-3 text-sm">
-              {item}
+        <SettingField label="默认字体" description="控制模板文字信息的默认字体。">
+          <Select defaultValue="inter">
+            <SelectTrigger className="h-9 w-[240px] rounded-none text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="inter">Inter Variable</SelectItem>
+              <SelectItem value="ibm-plex">IBM Plex Sans</SelectItem>
+              <SelectItem value="georgia">Georgia</SelectItem>
+              <SelectItem value="sf-pro">SF Pro</SelectItem>
+            </SelectContent>
+          </Select>
+        </SettingField>
+
+        <SettingField label="默认边框宽度" description="控制模板边框的基础宽度。">
+          <div className="max-w-md">
+            <Slider value={borderWidth} onValueChange={setBorderWidth} min={0} max={80} step={1} />
+            <p className="mt-2 text-xs text-muted-foreground">{borderWidth[0]} px</p>
+          </div>
+        </SettingField>
+
+        <SettingField label="默认背景颜色" description="设置模板默认背景色。">
+          <div className="flex max-w-md items-center gap-2">
+            <input
+              type="color"
+              defaultValue="#ffffff"
+              className="h-10 w-12 border border-border bg-background p-1"
+            />
+            <Input defaultValue="#ffffff" className="h-10 rounded-none text-xs" />
+          </div>
+        </SettingField>
+
+        <SettingField label="默认 EXIF 格式" description="控制相机参数文本的默认模板。">
+          <div className="grid gap-3">
+            <Input
+              defaultValue="{Make} {Model}"
+              className="h-10 rounded-none text-xs"
+            />
+            <Input
+              defaultValue="{FocalLength}  f/{FNumber}  {ExposureTime}s  ISO{ISO}"
+              className="h-10 rounded-none text-xs"
+            />
+            <div className="max-w-md">
+              <Slider value={fontScale} onValueChange={setFontScale} min={0.6} max={2} step={0.1} />
+              <p className="mt-2 text-xs text-muted-foreground">字体倍率 {fontScale[0].toFixed(1)}x</p>
             </div>
-          ))}
-        </div>
+          </div>
+        </SettingField>
       </FieldGroup>
     </div>
   );
 }
 
 function CollageTab() {
+  const [gap, setGap] = useState([12]);
+  const [radius, setRadius] = useState([18]);
+
   return (
     <div className="space-y-4">
-      <FieldGroup title="默认布局" description="配置拼图页面的默认布局模式与基础样式。">
-        <div className="grid gap-3 md:grid-cols-2">
-          {['默认布局', '默认间距', '默认背景色', '默认圆角'].map((item) => (
-            <div key={item} className="rounded-2xl border border-border bg-background px-4 py-3 text-sm">
-              {item}
-            </div>
-          ))}
-        </div>
+      <FieldGroup title="Collage" description="配置拼图页面的默认布局与样式。">
+        <SettingField label="默认布局" description="设置进入 Collage 页面时使用的默认布局模式。">
+          <Select defaultValue="four-grid">
+            <SelectTrigger className="h-9 w-[240px] rounded-none text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="two-columns">2 Grid</SelectItem>
+              <SelectItem value="three-columns">3 Grid</SelectItem>
+              <SelectItem value="four-grid">4 Grid</SelectItem>
+              <SelectItem value="six-grid">6 Grid</SelectItem>
+              <SelectItem value="free-layout">Free Layout</SelectItem>
+            </SelectContent>
+          </Select>
+        </SettingField>
+
+        <SettingField label="默认间距" description="控制拼图项之间的默认间距。">
+          <div className="max-w-md">
+            <Slider value={gap} onValueChange={setGap} min={0} max={48} step={1} />
+            <p className="mt-2 text-xs text-muted-foreground">{gap[0]} px</p>
+          </div>
+        </SettingField>
+
+        <SettingField label="默认背景色" description="设置拼图画布的默认背景色。">
+          <div className="flex max-w-md items-center gap-2">
+            <input
+              type="color"
+              defaultValue="#ffffff"
+              className="h-10 w-12 border border-border bg-background p-1"
+            />
+            <Input defaultValue="#ffffff" className="h-10 rounded-none text-xs" />
+          </div>
+        </SettingField>
+
+        <SettingField label="默认圆角" description="控制拼图项的默认圆角。">
+          <div className="max-w-md">
+            <Slider value={radius} onValueChange={setRadius} min={0} max={48} step={1} />
+            <p className="mt-2 text-xs text-muted-foreground">{radius[0]} px</p>
+          </div>
+        </SettingField>
       </FieldGroup>
     </div>
   );
 }
 
 function ExportTab() {
+  const [scale, setScale] = useState([1]);
+  const [quality, setQuality] = useState([90]);
+
   return (
     <div className="space-y-4">
-      <FieldGroup title="导出默认值" description="配置共享导出管线的默认格式、倍率与质量。">
-        <div className="grid gap-3 md:grid-cols-3">
-          {['PNG', 'JPG', 'WEBP'].map((item) => (
-            <div key={item} className="rounded-2xl border border-border bg-background px-4 py-3 text-sm">
-              {item}
-            </div>
-          ))}
-        </div>
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
-          {['默认倍率', '默认质量'].map((item) => (
-            <div key={item} className="rounded-2xl border border-border bg-background px-4 py-3 text-sm">
-              {item}
-            </div>
-          ))}
-        </div>
+      <FieldGroup title="Export" description="设置共享导出管线的默认格式、倍率与质量。">
+        <SettingField label="默认格式" description="控制导出的默认文件格式。">
+          <div className="grid gap-3 md:grid-cols-3">
+            {['PNG', 'JPG', 'WEBP'].map((item, index) => (
+              <OptionCard key={item} title={item} active={index === 0} />
+            ))}
+          </div>
+        </SettingField>
+
+        <SettingField label="默认倍率" description="控制默认导出的缩放倍率。">
+          <div className="max-w-md">
+            <Slider value={scale} onValueChange={setScale} min={0.5} max={3} step={0.1} />
+            <p className="mt-2 text-xs text-muted-foreground">{scale[0].toFixed(1)}x</p>
+          </div>
+        </SettingField>
+
+        <SettingField label="默认质量" description="控制 JPG / WEBP 导出的质量。">
+          <div className="max-w-md">
+            <Slider value={quality} onValueChange={setQuality} min={1} max={100} step={1} />
+            <p className="mt-2 text-xs text-muted-foreground">{quality[0]}</p>
+          </div>
+        </SettingField>
       </FieldGroup>
     </div>
   );
@@ -185,17 +359,26 @@ function ExportTab() {
 function CacheTab() {
   return (
     <div className="space-y-4">
-      <FieldGroup title="缓存管理" description="后续这里会管理缩略图缓存、预览资源缓存与清理策略。">
-        <div className="flex items-center justify-between rounded-2xl border border-border bg-background px-4 py-3">
-          <div>
-            <p className="text-sm font-medium">预览缓存</p>
-            <p className="text-xs text-muted-foreground">当前为页面骨架占位。</p>
+      <FieldGroup title="Cache" description="管理缩略图缓存、预览资源缓存与清理策略。">
+        <SettingField label="缓存摘要" description="查看当前缓存状态与预计占用。">
+          <div className="grid gap-3 md:grid-cols-2">
+            <OptionCard title="缩略图缓存">约 128 MB，用于素材栏缩略图加载。</OptionCard>
+            <OptionCard title="预览资源缓存">约 256 MB，用于模板与拼图预览。</OptionCard>
           </div>
-          <Button variant="outline" className="rounded-full px-4">
-            <Trash2 data-icon="inline-start" />
-            清理
-          </Button>
-        </div>
+        </SettingField>
+
+        <SettingField label="清理缓存" description="清理本地缓存并释放磁盘空间。">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" className="rounded-none px-4">
+              <Trash2 data-icon="inline-start" />
+              清理缩略图缓存
+            </Button>
+            <Button variant="outline" className="rounded-none px-4">
+              <Trash2 data-icon="inline-start" />
+              清理预览资源缓存
+            </Button>
+          </div>
+        </SettingField>
       </FieldGroup>
     </div>
   );
@@ -221,21 +404,27 @@ function AboutTab() {
 
   return (
     <div className="space-y-4">
-      <FieldGroup title="About Copicseal" description="当前阶段为新版页面骨架与信息架构搭建。">
-        <div className="flex items-start justify-between gap-4 rounded-3xl border border-border bg-background p-5">
-          <div>
-            <p className="text-base font-semibold">Copicseal</p>
-            <p className="mt-1 text-xs text-muted-foreground">Tauri 2 + React 19 + Rust</p>
+      <FieldGroup title="About" description="查看产品信息、技术栈与版本更新状态。">
+        <SettingField label="产品信息" description="当前产品定位与技术实现摘要。">
+          <div className="grid gap-3 md:grid-cols-2">
+            <OptionCard title="Copicseal">以图片处理为核心的桌面应用。</OptionCard>
+            <OptionCard title="技术栈">Tauri 2 + React 19 + Rust</OptionCard>
           </div>
-          <div className="flex size-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-            <Settings2 className="size-5" />
+        </SettingField>
+
+        <SettingField label="检查更新" description="手动检查应用新版本。">
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
+              onClick={() => void handleCheckUpdate()}
+              variant="outline"
+              className="rounded-none px-4"
+            >
+              <RefreshCw className={cn('size-3.5', checking && 'animate-spin')} />
+              {checking ? '检查中...' : '检查更新'}
+            </Button>
+            {status ? <p className="text-xs text-muted-foreground">{status}</p> : null}
           </div>
-        </div>
-        <Button onClick={handleCheckUpdate} variant="outline" className="rounded-full px-4">
-          <RefreshCw className={cn('size-3.5', checking && 'animate-spin')} />
-          {checking ? '检查中...' : '检查更新'}
-        </Button>
-        {status ? <p className="text-xs text-muted-foreground">{status}</p> : null}
+        </SettingField>
       </FieldGroup>
     </div>
   );
@@ -243,10 +432,10 @@ function AboutTab() {
 
 export function SettingsPage() {
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[linear-gradient(180deg,color-mix(in_oklch,var(--color-muted),white_25%)_0%,var(--color-background)_100%)]">
+    <div className="flex h-full min-h-0 flex-col bg-background">
       <div className="border-b border-border/80 px-6 py-5">
         <div className="flex items-center gap-3">
-          <div className="flex size-11 items-center justify-center rounded-2xl bg-card text-primary shadow-sm">
+          <div className="flex size-11 items-center justify-center border border-border/80 bg-card text-primary shadow-sm">
             <Settings2 className="size-5" />
           </div>
           <div>
@@ -261,12 +450,12 @@ export function SettingsPage() {
       <Tabs defaultValue="general" orientation="vertical" className="min-h-0 flex-1 p-4">
         <TabsList
           variant="line"
-          className="w-56 shrink-0 rounded-[28px] border border-border/80 bg-card p-3"
+          className="w-56 shrink-0 border border-border/80 bg-card p-3"
         >
           {TABS.map((tab) => {
             const Icon = tab.icon;
             return (
-              <TabsTrigger key={tab.id} value={tab.id} className="gap-2 rounded-2xl px-3 py-2.5">
+              <TabsTrigger key={tab.id} value={tab.id} className="gap-2 px-3 py-2.5">
                 <Icon className="size-3.5" />
                 {tab.label}
               </TabsTrigger>

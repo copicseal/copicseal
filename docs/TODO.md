@@ -85,21 +85,21 @@
 
 ## Phase 5 — Collage 页面基础能力
 
-- [ ] 创建 `features/collage/`
-- [ ] 建立 `Collage Preview` 区域
-- [ ] 接入 `<CollageCanvas />`
+- [x] 创建 `features/collage/`
+- [x] 建立 `Collage Preview` 区域
+- [x] 接入 `<CollageCanvas />`
 - [ ] 建立 `Collage Assets` 区域
 - [ ] 支持图片导入
 - [ ] 支持拖入拼图
 - [ ] 支持排序
 - [ ] 支持替换图片
 - [ ] 支持删除图片
-- [ ] 建立顶部布局工具栏
-- [ ] 支持 `2 Grid`
-- [ ] 支持 `3 Grid`
-- [ ] 支持 `4 Grid`
-- [ ] 支持 `6 Grid`
-- [ ] 支持 `Auto Layout`
+- [x] 建立顶部布局工具栏
+- [x] 支持 `2 Grid`
+- [x] 支持 `3 Grid`
+- [x] 支持 `4 Grid`
+- [x] 支持 `6 Grid`
+- [x] 支持 `Auto Layout`
 - [ ] 支持 `Free Layout`
 
 ---

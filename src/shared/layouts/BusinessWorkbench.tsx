@@ -9,8 +9,10 @@ import {
   MoveHorizontal,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import type { AppRoute } from '@/components/CoSidebar';
 import { CoDropZone } from '@/components/CoDropZone';
 import { Button } from '@/components/ui/button';
+import { CollageCanvas, CollageToolbar } from '@/features/collage';
 import {
   TemplateExportPanel,
   TemplatePreview,
@@ -20,9 +22,8 @@ import {
 } from '@/features/template';
 import { usePhotos } from '@/hooks/usePhotos';
 import { exportSingle } from '@/lib/export-photo';
-import { getBuiltinTemplateSchema } from '@/runtime/template/template-registry';
 import { cn } from '@/lib/utils';
-import type { AppRoute } from '@/components/CoSidebar';
+import { getBuiltinTemplateSchema } from '@/runtime/template/template-registry';
 
 const PROPERTY_MIN_WIDTH = 280;
 const PROPERTY_MAX_WIDTH = 420;
@@ -60,7 +61,7 @@ const copy = {
   '/collage': {
     badge: 'Collage',
     title: 'Collage Preview',
-    description: 'Workspace 是拼图的真实渲染区域，后续会由 <CollageCanvas /> 承载。',
+    description: 'Workspace 是拼图的真实渲染区域，当前已接入真实 CollageCanvas 预览。',
     assetsTitle: 'Collage Assets',
     assetsDescription: '当前拼图会话的局部素材区，后续接入排序、替换图片和拖入拼图。',
     propertySections: [
@@ -97,11 +98,13 @@ function ToolRail({ route }: { route: BusinessWorkbenchProps['route'] }) {
         {isTemplate ? <LayoutTemplate className="size-3.5" /> : <Grid3x3 className="size-3.5" />}
         {isTemplate ? 'Template' : 'Collage'}
       </div>
-      <div className="ml-auto" />
-      <Button size="sm" className="rounded-full px-3">
-        <Download data-icon="inline-start" />
-        导出
-      </Button>
+      {isTemplate ? <div className="ml-auto" /> : <CollageToolbar />}
+      {isTemplate ? (
+        <Button size="sm" className="rounded-full px-3">
+          <Download data-icon="inline-start" />
+          导出
+        </Button>
+      ) : null}
     </div>
   );
 }
@@ -117,7 +120,6 @@ function WorkspacePanel({
   templateProps: Parameters<typeof TemplatePreview>[0]['templateProps'];
   previewRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  const content = copy[route];
   const isTemplate = route === '/template';
 
   return (
@@ -132,19 +134,8 @@ function WorkspacePanel({
           />
         </div>
       ) : (
-        <div className="relative flex w-full max-w-4xl flex-col items-center gap-5">
-          <div className="rounded-full border border-border/70 bg-background/80 px-3 py-1 text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase shadow-sm">
-            {content.badge}
-          </div>
-          <div className="flex aspect-[4/3] w-full max-w-3xl max-h-[min(62vh,760px)] items-center justify-center rounded-[32px] border border-border/80 bg-card/90 p-8 shadow-[0_24px_80px_-32px_rgba(15,23,42,0.35)]">
-            <div className="flex max-w-xl flex-col items-center gap-4 text-center">
-              <Grid3x3 className="size-14 text-primary" />
-              <div>
-                <h1 className="text-2xl font-semibold tracking-tight">{content.title}</h1>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{content.description}</p>
-              </div>
-            </div>
-          </div>
+        <div className="relative flex h-full w-full min-h-0 min-w-0">
+          <CollageCanvas />
         </div>
       )}
     </section>

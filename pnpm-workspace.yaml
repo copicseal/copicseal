@@ -1,3 +1,7 @@
+allowBuilds:
+  esbuild: true
+  msw: true
+  simple-git-hooks: true
 onlyBuiltDependencies:
   - esbuild
   - simple-git-hooks

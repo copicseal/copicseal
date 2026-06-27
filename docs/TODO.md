@@ -192,4 +192,4 @@
 - [x] 验证 Template 与 Collage 状态互不污染
 - [x] 验证 `biome check`
 - [x] 验证 `vite build`
-- [ ] 验证 Tauri 构建链路
+- [x] 验证 Tauri 构建链路

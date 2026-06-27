@@ -30,6 +30,28 @@ export async function selectPhotosViaDialog(): Promise<ImportedPhoto[]> {
   return importPhotosViaPaths(paths);
 }
 
+/** 通过 Tauri 文件对话框选择文件夹中的图片 */
+export async function selectPhotosFromDirectory(): Promise<ImportedPhoto[]> {
+  const selected = await open({
+    directory: true,
+    multiple: false,
+  });
+
+  if (!selected || Array.isArray(selected)) {
+    return [];
+  }
+
+  const filePaths = await invoke<string[]>('list_image_files_in_directory', {
+    path: selected,
+  });
+
+  if (!filePaths.length) {
+    return [];
+  }
+
+  return importPhotosViaPaths(filePaths);
+}
+
 /** 通过 Tauri 拖拽事件的文件路径导入（替代 HTML5 drag-drop） */
 export async function importPhotosViaPaths(filePaths: string[]): Promise<ImportedPhoto[]> {
   const photos: ImportedPhoto[] = [];

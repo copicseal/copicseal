@@ -2,11 +2,12 @@ import {
   ChevronDown,
   ChevronUp,
   Download,
+  FolderOpen,
   Grid3x3,
   ImageIcon,
   LayoutTemplate,
 } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CoDropZone } from '@/components/CoDropZone';
 import { Button } from '@/components/ui/button';
 import {
@@ -166,13 +167,55 @@ function AssetsPanel({
     photos,
     currentIndex,
     setCurrentIndex,
+    selectedIds,
     removePhoto,
+    removeSelectedPhotos,
+    togglePhotoSelection,
+    selectSinglePhoto,
+    selectAllPhotos,
     importViaDialog,
+    importViaDirectory,
     importViaDrop,
   } = usePhotos();
   const content = copy[route];
   const isTemplate = route === '/template';
   const cardHeight = Math.max(72, height - 92);
+
+  useEffect(() => {
+    if (!isTemplate) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'a') {
+        event.preventDefault();
+        selectAllPhotos();
+      }
+
+      if (event.key === 'Delete' || event.key === 'Backspace') {
+        if (selectedIds.length > 0) {
+          event.preventDefault();
+          removeSelectedPhotos();
+        }
+      }
+    };
+
+    const handlePaste = async (event: ClipboardEvent) => {
+      const files = event.clipboardData?.files;
+      if (files && files.length > 0) {
+        event.preventDefault();
+        await importViaDrop(files);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('paste', handlePaste);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('paste', handlePaste);
+    };
+  }, [importViaDrop, isTemplate, removeSelectedPhotos, selectAllPhotos, selectedIds.length]);
 
   return (
     <section
@@ -198,15 +241,28 @@ function AssetsPanel({
           <h2 className="text-sm font-semibold">{content.assetsTitle}</h2>
           <p className="mt-1 text-xs text-muted-foreground">{content.assetsDescription}</p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="rounded-full px-3"
-          onClick={() => void importViaDialog()}
-        >
-          <ImageIcon data-icon="inline-start" />
-          导入图片
-        </Button>
+        <div className="flex items-center gap-2">
+          {isTemplate ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-full px-3"
+              onClick={() => void importViaDirectory()}
+            >
+              <FolderOpen data-icon="inline-start" />
+              文件夹导入
+            </Button>
+          ) : null}
+          <Button
+            variant="outline"
+            size="sm"
+            className="rounded-full px-3"
+            onClick={() => void importViaDialog()}
+          >
+            <ImageIcon data-icon="inline-start" />
+            导入图片
+          </Button>
+        </div>
       </div>
 
       {!collapsed ? (
@@ -231,22 +287,31 @@ function AssetsPanel({
               <div className="flex h-full gap-3 pb-3">
                 {photos.map((photo, index) => {
                   const active = index === currentIndex;
+                  const selected = selectedIds.includes(photo.id);
 
                   return (
                     <div
                       key={photo.id}
                       role="button"
                       tabIndex={0}
-                      onClick={() => setCurrentIndex(index)}
+                      onClick={(event) => {
+                        setCurrentIndex(index);
+                        if (event.metaKey || event.ctrlKey) {
+                          togglePhotoSelection(photo.id);
+                        } else {
+                          selectSinglePhoto(photo.id);
+                        }
+                      }}
                       onKeyDown={(event) => {
                         if (event.key === 'Enter' || event.key === ' ') {
                           event.preventDefault();
                           setCurrentIndex(index);
+                          selectSinglePhoto(photo.id);
                         }
                       }}
                       className={cn(
                         'group shrink-0 border bg-card text-left transition-colors',
-                        active
+                        selected || active
                           ? 'border-primary ring-1 ring-primary/20'
                           : 'border-border hover:border-primary/40',
                       )}
@@ -265,7 +330,7 @@ function AssetsPanel({
                             alt={photo.name}
                             className="h-full w-full object-cover"
                           />
-                          {active ? (
+                          {selected || active ? (
                             <div className="pointer-events-none absolute inset-0 ring-2 ring-primary/60" />
                           ) : null}
                         </div>
@@ -277,6 +342,7 @@ function AssetsPanel({
                               </p>
                               <p className="text-[10px] text-muted-foreground">
                                 {(photo.size / 1024 / 1024).toFixed(1)} MB
+                                {selected ? ' · 已选中' : ''}
                               </p>
                             </div>
                             <button

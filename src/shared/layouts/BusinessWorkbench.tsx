@@ -47,20 +47,6 @@ const copy = {
     description: 'Workspace 是边框水印的真实渲染区域，后续会由 <TemplateRuntime /> 承载。',
     assetsTitle: 'Template Assets',
     assetsDescription: '当前功能页内的图片缩略图列表，后续接入拖拽、粘贴、文件夹导入和多选。',
-    propertySections: [
-      {
-        title: 'Template Selector',
-        body: '模板选择器将支持搜索、收藏与最近使用，并驱动当前预览模板切换。',
-      },
-      {
-        title: 'Template Props',
-        body: '该区域会改为由 propsSchema 自动生成，避免维护手写模板表单。',
-      },
-      {
-        title: 'Export',
-        body: '导出参数会在这里统一配置，并对接共享的 Export Pipeline。',
-      },
-    ],
   },
   '/collage': {
     badge: 'Collage',
@@ -68,20 +54,6 @@ const copy = {
     description: 'Workspace 是拼图的真实渲染区域，当前已接入真实 CollageCanvas 预览。',
     assetsTitle: 'Collage Assets',
     assetsDescription: '当前拼图会话的局部素材区，后续接入排序、替换图片和拖入拼图。',
-    propertySections: [
-      {
-        title: 'Layout',
-        body: '布局区会负责 Grid / Free Layout 切换，以及间距、边距、背景等参数。',
-      },
-      {
-        title: 'Selection',
-        body: '选中图片后，这里会显示缩放、位置、旋转和圆角等单图属性。',
-      },
-      {
-        title: 'Export',
-        body: '导出参数结构会与 Template 对齐，但保留 Collage 的独立页面状态。',
-      },
-    ],
   },
 } as const;
 
@@ -465,7 +437,6 @@ function PropertiesPanel({
       : never,
   ) => Promise<void>;
 }) {
-  const content = copy[route];
   const isTemplate = route === '/template';
   const templateSchema = getBuiltinTemplateSchema(activeTemplateId);
 
@@ -524,22 +495,6 @@ function PropertiesPanel({
               onExportBatch={onExportBatch}
             />
           )}
-          {isTemplate
-            ? content.propertySections.map((section) => (
-                <section
-                  key={section.title}
-                  className="rounded-2xl border border-border/80 bg-background/70 px-4 py-4 shadow-sm"
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-sm font-semibold">{section.title}</h3>
-                    <span className="rounded-full bg-muted px-2 py-1 text-[10px] text-muted-foreground">
-                      Accordion
-                    </span>
-                  </div>
-                  <p className="mt-2 text-xs leading-6 text-muted-foreground">{section.body}</p>
-                </section>
-              ))
-            : null}
         </div>
       </div>
     </aside>

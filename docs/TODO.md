@@ -185,11 +185,11 @@
 
 ## Phase 10 — 收尾与验收
 
-- [ ] 验证 Template 页面主流程
-- [ ] 验证 Collage 页面主流程
-- [ ] 验证 Settings 页面主流程
-- [ ] 验证预览与导出一致性
-- [ ] 验证 Template 与 Collage 状态互不污染
-- [ ] 验证 `biome check`
-- [ ] 验证 `vite build`
+- [x] 验证 Template 页面主流程
+- [x] 验证 Collage 页面主流程
+- [x] 验证 Settings 页面主流程
+- [x] 验证预览与导出一致性
+- [x] 验证 Template 与 Collage 状态互不污染
+- [x] 验证 `biome check`
+- [x] 验证 `vite build`
 - [ ] 验证 Tauri 构建链路

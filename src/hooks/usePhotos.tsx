@@ -39,6 +39,10 @@ interface PhotoContextValue {
 
 const PhotoContext = createContext<PhotoContextValue | null>(null);
 
+function canUseTauriWindowApi() {
+  return typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+}
+
 export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [photos, setPhotos] = useState<ImportedPhoto[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -120,24 +124,40 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
   );
 
   useEffect(() => {
-    const unlisten = getCurrentWindow().onDragDropEvent(async (event) => {
-      switch (event.payload.type) {
-        case 'enter':
-          setIsDraggingOver(true);
-          break;
-        case 'leave':
-          setIsDraggingOver(false);
-          break;
-        case 'drop': {
-          setIsDraggingOver(false);
-          const result = await importPhotosViaPaths(event.payload.paths);
-          if (result.length) addPhotos(result);
-          break;
+    if (!canUseTauriWindowApi()) {
+      return;
+    }
+
+    let cleanup: (() => void) | undefined;
+
+    try {
+      const appWindow = getCurrentWindow();
+      const unlisten = appWindow.onDragDropEvent(async (event) => {
+        switch (event.payload.type) {
+          case 'enter':
+            setIsDraggingOver(true);
+            break;
+          case 'leave':
+            setIsDraggingOver(false);
+            break;
+          case 'drop': {
+            setIsDraggingOver(false);
+            const result = await importPhotosViaPaths(event.payload.paths);
+            if (result.length) addPhotos(result);
+            break;
+          }
         }
-      }
-    });
+      });
+
+      cleanup = () => {
+        unlisten.then((fn) => fn());
+      };
+    } catch {
+      cleanup = undefined;
+    }
+
     return () => {
-      unlisten.then((fn) => fn());
+      cleanup?.();
     };
   }, [addPhotos]);
 

@@ -80,35 +80,34 @@ export function TemplateSelector({ activeTemplateId, onTemplateChange }: Templat
             const favorite = favorites.includes(template.meta.id);
 
             return (
-              <button
+              <div
                 key={template.meta.id}
-                type="button"
-                onClick={() => handleSelect(template.meta.id)}
                 className={cn(
-                  'flex w-full items-start justify-between border px-3 py-3 text-left transition-colors',
+                  'flex items-start justify-between border px-3 py-3 transition-colors',
                   active ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40',
                 )}
               >
-                <div className="min-w-0">
+                <button
+                  type="button"
+                  onClick={() => handleSelect(template.meta.id)}
+                  className="min-w-0 flex-1 text-left"
+                >
                   <p className="text-sm font-medium text-foreground">{template.meta.name}</p>
                   <p className="mt-1 text-xs leading-5 text-muted-foreground">
                     {template.meta.description}
                   </p>
-                </div>
+                </button>
                 <button
                   type="button"
                   className={cn(
                     'ml-3 shrink-0 text-muted-foreground transition-colors hover:text-foreground',
                     favorite && 'text-primary',
                   )}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    toggleFavorite(template.meta.id);
-                  }}
+                  onClick={() => toggleFavorite(template.meta.id)}
                 >
                   <Star className={cn('size-4', favorite && 'fill-current')} />
                 </button>
-              </button>
+              </div>
             );
           })}
         </div>

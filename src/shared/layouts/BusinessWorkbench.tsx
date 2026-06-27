@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { AppRoute } from '@/components/CoSidebar';
+import { exportSingle } from '@/bridge/export.api';
 import { CoDropZone } from '@/components/CoDropZone';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,12 +25,13 @@ import {
   TemplateSelector,
   useTemplatePreviewState,
 } from '@/features/template';
+import { prepareElementForSnapshot } from '@/core/renderer';
+import { runScheduledExports } from '@/core/scheduler';
 import { usePhotos } from '@/hooks/usePhotos';
-import { exportSingle } from '@/lib/export-photo';
 import { selectPhotosViaDialog } from '@/lib/import-photo';
 import { cn } from '@/lib/utils';
 import { useCollageStore } from '@/modules/collage/store/use-collage-store';
-import { getBuiltinTemplateSchema } from '@/runtime/template/template-registry';
+import { getBuiltinTemplateSchema } from '@/bridge/template.api';
 
 const PROPERTY_MIN_WIDTH = 280;
 const PROPERTY_MAX_WIDTH = 420;
@@ -598,6 +600,7 @@ export function BusinessWorkbench({ route }: BusinessWorkbenchProps) {
       return;
     }
 
+    await prepareElementForSnapshot(previewRef.current);
     await exportSingle(previewRef.current, options, currentPhoto?.path);
   };
 
@@ -614,11 +617,18 @@ export function BusinessWorkbench({ route }: BusinessWorkbenchProps) {
 
     const originalIndex = currentIndex;
 
-    for (let index = 0; index < photos.length; index += 1) {
-      setCurrentIndex(index);
-      await new Promise((resolve) => setTimeout(resolve, 120));
-      await exportSingle(previewRef.current, options, photos[index]?.path);
-    }
+    await runScheduledExports({
+      items: photos,
+      runner: async (photo, index) => {
+        setCurrentIndex(index);
+        await new Promise((resolve) => setTimeout(resolve, 120));
+        if (!previewRef.current) {
+          return;
+        }
+        await prepareElementForSnapshot(previewRef.current);
+        await exportSingle(previewRef.current, options, photo.path);
+      },
+    });
 
     setCurrentIndex(originalIndex);
   };

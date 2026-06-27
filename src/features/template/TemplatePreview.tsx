@@ -1,10 +1,10 @@
 import { ImageIcon, LayoutTemplate } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { type ExifData, readExif } from '@/api';
+import { type ExifData, readExif } from '@/bridge/assets.api';
 import { Button } from '@/components/ui/button';
 import { usePhotos } from '@/hooks/usePhotos';
 import { TemplateRuntime } from '@/runtime/template';
-import { getBuiltinTemplateById } from '@/runtime/template/template-registry';
+import { getBuiltinTemplateById } from '@/bridge/template.api';
 import type { TemplateProps } from '@/modules/comark/templates';
 
 type TemplateZoomMode = 'fit' | 50 | 100 | 200;

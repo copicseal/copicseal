@@ -169,17 +169,17 @@
 
 ## Phase 9 — Runtime / Core / Bridge
 
-- [ ] 建立 `runtime/template/`
-- [ ] 建立模板注册与执行能力
-- [ ] 建立 `core/renderer/`
-- [ ] 建立 DOM 稳定性控制
-- [ ] 建立 `core/scheduler/`
-- [ ] 建立导出任务调度
-- [ ] 建立 `bridge/tauri.ts`
-- [ ] 建立 `bridge/export.api.ts`
-- [ ] 建立 `bridge/assets.api.ts`
-- [ ] 建立 `bridge/template.api.ts`
-- [ ] 建立 `bridge/collage.api.ts`
+- [x] 建立 `runtime/template/`
+- [x] 建立模板注册与执行能力
+- [x] 建立 `core/renderer/`
+- [x] 建立 DOM 稳定性控制
+- [x] 建立 `core/scheduler/`
+- [x] 建立导出任务调度
+- [x] 建立 `bridge/tauri.ts`
+- [x] 建立 `bridge/export.api.ts`
+- [x] 建立 `bridge/assets.api.ts`
+- [x] 建立 `bridge/template.api.ts`
+- [x] 建立 `bridge/collage.api.ts`
 
 ---
 

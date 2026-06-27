@@ -1,92 +1,94 @@
 import { check } from '@tauri-apps/plugin-updater';
-import { Grid3x3, Info, LayoutTemplate, Menu, RefreshCw, Settings, User } from 'lucide-react';
-import { toast } from 'sonner';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Grid3x3,
+  LayoutTemplate,
+  RefreshCw,
+  Settings2,
+  Sparkles,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
-type AppMode = 'border' | 'collage';
+export type AppRoute = '/template' | '/collage' | '/settings';
 
 interface CoSidebarProps {
-  mode: AppMode;
-  onModeChange: (mode: AppMode) => void;
-  onOpenSettings?: (tab?: string) => void;
+  route: AppRoute;
+  onRouteChange: (route: AppRoute) => void;
 }
 
-export function CoSidebar({ mode, onModeChange, onOpenSettings }: CoSidebarProps) {
+const items: Array<{
+  route: AppRoute;
+  label: string;
+  icon: typeof LayoutTemplate;
+}> = [
+  { route: '/template', label: '边框水印', icon: LayoutTemplate },
+  { route: '/collage', label: '拼图', icon: Grid3x3 },
+  { route: '/settings', label: '设置', icon: Settings2 },
+];
+
+export function CoSidebar({ route, onRouteChange }: CoSidebarProps) {
   const handleCheckUpdate = async () => {
-    const tid = toast.loading('检查中...');
+    const notificationId = toast.loading('检查更新中...');
+
     try {
       const update = await check();
       if (update) {
-        toast.success(`发现新版本 ${update.version}`, { id: tid });
+        toast.success(`发现新版本 ${update.version}`, { id: notificationId });
       } else {
-        toast.success('已是最新版本', { id: tid });
+        toast.success('已是最新版本', { id: notificationId });
       }
     } catch {
-      toast.error('检查更新失败', { id: tid });
+      toast.error('检查更新失败', { id: notificationId });
     }
   };
 
   return (
-    <div className="flex h-full w-[60px] shrink-0 flex-col border-r bg-muted/30 py-2">
-      <div className="flex flex-col items-center gap-1">
-        <Avatar className="mb-2 size-9">
-          <AvatarFallback className="bg-muted-foreground/15 text-muted-foreground text-[10px]">
-            <User className="size-5" />
-          </AvatarFallback>
-        </Avatar>
-
+    <aside className="flex h-full w-[72px] shrink-0 flex-col border-r border-border/80 bg-[linear-gradient(180deg,color-mix(in_oklch,var(--color-muted),white_15%)_0%,var(--color-background)_100%)] py-4">
+      <div className="flex flex-col items-center gap-4">
         <button
           type="button"
-          title="边框"
-          onClick={() => onModeChange('border')}
-          className={`flex size-9 items-center justify-center rounded-lg transition-colors hover:bg-muted ${mode === 'border' ? 'bg-muted' : ''}`}
+          title="Copicseal"
+          onClick={() => onRouteChange('/template')}
+          className="flex size-11 items-center justify-center rounded-2xl border border-border/80 bg-card text-primary shadow-sm transition-transform hover:-translate-y-0.5"
         >
-          <LayoutTemplate className="size-5 text-muted-foreground" />
+          <Sparkles className="size-5" />
         </button>
 
+        <div className="flex flex-col items-center gap-2">
+          {items.map((item) => {
+            const Icon = item.icon;
+            const active = route === item.route;
+
+            return (
+              <button
+                key={item.route}
+                type="button"
+                title={item.label}
+                onClick={() => onRouteChange(item.route)}
+                className={cn(
+                  'flex size-11 items-center justify-center rounded-2xl border transition-all',
+                  active
+                    ? 'border-primary/30 bg-primary text-primary-foreground shadow-[0_12px_28px_-16px_var(--color-primary)]'
+                    : 'border-transparent bg-transparent text-muted-foreground hover:border-border hover:bg-card hover:text-foreground',
+                )}
+              >
+                <Icon className="size-4.5" />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-auto px-3">
         <button
           type="button"
-          title="拼图"
-          onClick={() => onModeChange('collage')}
-          className={`flex size-9 items-center justify-center rounded-lg transition-colors hover:bg-muted ${mode === 'collage' ? 'bg-muted' : ''}`}
+          title="检查更新"
+          onClick={handleCheckUpdate}
+          className="flex size-11 items-center justify-center rounded-2xl border border-transparent text-muted-foreground transition-all hover:border-border hover:bg-card hover:text-foreground"
         >
-          <Grid3x3 className="size-5 text-muted-foreground" />
+          <RefreshCw className="size-4.5" />
         </button>
       </div>
-
-      <div className="mt-auto flex flex-col items-center">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              title="菜单"
-              className="flex size-9 items-center justify-center rounded-lg transition-colors hover:bg-muted"
-            >
-              <Menu className="size-5 text-muted-foreground" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="right" align="end" className="min-w-36">
-            <DropdownMenuItem onClick={() => onOpenSettings?.()}>
-              <Settings className="size-3.5" />
-              设置
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onOpenSettings?.('about')}>
-              <Info className="size-3.5" />
-              关于
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleCheckUpdate}>
-              <RefreshCw className="size-3.5" />
-              检查更新
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </div>
+    </aside>
   );
 }

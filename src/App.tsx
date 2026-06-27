@@ -1,37 +1,62 @@
-import { useState } from 'react';
-import { CoSidebar } from '@/components/CoSidebar';
-import { CoSettingsDialog } from '@/components/settings/CoSettingsDialog';
+import { useEffect, useState } from 'react';
+import { CoSidebar, type AppRoute } from '@/components/CoSidebar';
 import { Toaster } from '@/components/ui/toaster';
 import { PhotoProvider } from '@/hooks/usePhotos';
-import { CollageEditor } from '@/modules/collage';
-import { ComarkEditor } from '@/modules/comark';
+import { BusinessWorkbench } from '@/shared/layouts/BusinessWorkbench';
+import { SettingsPage } from '@/features/settings/SettingsPage';
 import './App.css';
 
-type AppMode = 'border' | 'collage';
+const DEFAULT_ROUTE: AppRoute = '/template';
+
+function normalizeRoute(pathname: string): AppRoute {
+  if (pathname === '/collage' || pathname === '/settings' || pathname === '/template') {
+    return pathname;
+  }
+
+  return DEFAULT_ROUTE;
+}
+
+function navigate(route: AppRoute) {
+  if (window.location.pathname !== route) {
+    window.history.pushState({}, '', route);
+  }
+}
 
 function App() {
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settingsTab, setSettingsTab] = useState<string | undefined>();
-  const [mode, setMode] = useState<AppMode>('border');
+  const [route, setRoute] = useState<AppRoute>(() => normalizeRoute(window.location.pathname));
 
-  const openSettings = (tab?: string) => {
-    setSettingsTab(tab);
-    setSettingsOpen(true);
+  useEffect(() => {
+    const normalized = normalizeRoute(window.location.pathname);
+    if (normalized !== window.location.pathname) {
+      navigate(normalized);
+    }
+    setRoute(normalized);
+
+    const handlePopState = () => {
+      setRoute(normalizeRoute(window.location.pathname));
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const handleRouteChange = (nextRoute: AppRoute) => {
+    navigate(nextRoute);
+    setRoute(nextRoute);
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <CoSidebar mode={mode} onModeChange={setMode} onOpenSettings={openSettings} />
+    <div className="flex h-screen overflow-hidden bg-background text-foreground">
+      <CoSidebar route={route} onRouteChange={handleRouteChange} />
       <div className="min-w-0 flex-1">
-        <PhotoProvider key={mode}>
-          {mode === 'border' ? <ComarkEditor /> : <CollageEditor />}
-        </PhotoProvider>
+        {route === '/settings' ? (
+          <SettingsPage />
+        ) : (
+          <PhotoProvider key={route}>
+            <BusinessWorkbench route={route} />
+          </PhotoProvider>
+        )}
       </div>
-      <CoSettingsDialog
-        open={settingsOpen}
-        onOpenChange={setSettingsOpen}
-        defaultTab={settingsTab}
-      />
       <Toaster />
     </div>
   );

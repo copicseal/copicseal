@@ -27,6 +27,7 @@ export interface CollageSlotState {
   offsetX: number;
   offsetY: number;
   rotation: number;
+  borderRadius: number | null;
 }
 
 export interface CollageCanvasState {
@@ -38,6 +39,7 @@ export interface CollageCanvasState {
   gap: number;
   padding: number;
   borderRadius: number;
+  shadow: number;
 }
 
 export interface CollageTextAnnotation {

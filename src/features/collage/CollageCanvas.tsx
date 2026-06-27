@@ -29,7 +29,11 @@ function useElementSize<T extends HTMLElement>(ref: React.RefObject<T | null>) {
   return size;
 }
 
-export function CollageCanvas() {
+export function CollageCanvas({
+  previewRef,
+}: {
+  previewRef?: React.RefObject<HTMLDivElement | null>;
+}) {
   const { photos, currentPhoto } = usePhotos();
   const { present, selectedSlotIndex, selectSlot, assignPhotoToSlot, commit } = useCollageStore();
   const viewportRef = useRef<HTMLDivElement | null>(null);
@@ -113,6 +117,7 @@ export function CollageCanvas() {
           }}
         >
           <div
+            ref={previewRef}
             className="relative w-full overflow-hidden"
             style={{
               aspectRatio: ratioValue,
@@ -151,7 +156,14 @@ export function CollageCanvas() {
                     style={{
                       gridColumn: `${layout.slots[index].x + 1} / span ${layout.slots[index].w}`,
                       gridRow: `${layout.slots[index].y + 1} / span ${layout.slots[index].h}`,
-                      borderRadius: present.canvas.borderRadius,
+                      borderRadius: slotItem.borderRadius ?? present.canvas.borderRadius,
+                      boxShadow:
+                        present.canvas.shadow > 0
+                          ? `0 14px 28px -18px rgba(15, 23, 42, ${Math.min(
+                              present.canvas.shadow / 100,
+                              0.35,
+                            )})`
+                          : 'none',
                     }}
                     onClick={() => {
                       if (!photo && currentPhoto) {

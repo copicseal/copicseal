@@ -12,7 +12,11 @@ import { useEffect, useRef, useState } from 'react';
 import type { AppRoute } from '@/components/CoSidebar';
 import { CoDropZone } from '@/components/CoDropZone';
 import { Button } from '@/components/ui/button';
-import { CollageCanvas, CollageToolbar } from '@/features/collage';
+import {
+  CollageCanvas,
+  CollagePropertiesPanel,
+  CollageToolbar,
+} from '@/features/collage';
 import {
   TemplateExportPanel,
   TemplatePreview,
@@ -137,7 +141,7 @@ function WorkspacePanel({
         </div>
       ) : (
         <div className="relative flex h-full w-full min-h-0 min-w-0">
-          <CollageCanvas />
+          <CollageCanvas previewRef={previewRef} />
         </div>
       )}
     </section>
@@ -444,8 +448,16 @@ function PropertiesPanel({
   onTemplateChange: (templateId: string) => void;
   templateProps: Parameters<typeof TemplatePreview>[0]['templateProps'];
   onTemplatePropsChange: (next: Parameters<typeof TemplatePreview>[0]['templateProps']) => void;
-  onExportCurrent: Parameters<typeof TemplateExportPanel>[0]['onExportCurrent'];
-  onExportBatch: Parameters<typeof TemplateExportPanel>[0]['onExportBatch'];
+  onExportCurrent: (options: Parameters<typeof TemplateExportPanel>[0]['onExportCurrent'] extends (
+    arg: infer A,
+  ) => Promise<void>
+    ? A
+    : never) => Promise<void>;
+  onExportBatch: (options: Parameters<typeof TemplateExportPanel>[0]['onExportBatch'] extends (
+    arg: infer A,
+  ) => Promise<void>
+    ? A
+    : never) => Promise<void>;
 }) {
   const content = copy[route];
   const isTemplate = route === '/template';
@@ -500,21 +512,28 @@ function PropertiesPanel({
                 onExportBatch={onExportBatch}
               />
             </section>
-          ) : null}
-          {content.propertySections.map((section) => (
-            <section
-              key={section.title}
-              className="rounded-2xl border border-border/80 bg-background/70 px-4 py-4 shadow-sm"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="text-sm font-semibold">{section.title}</h3>
-                <span className="rounded-full bg-muted px-2 py-1 text-[10px] text-muted-foreground">
-                  Accordion
-                </span>
-              </div>
-              <p className="mt-2 text-xs leading-6 text-muted-foreground">{section.body}</p>
-            </section>
-          ))}
+          ) : (
+            <CollagePropertiesPanel
+              onExportCurrent={onExportCurrent}
+              onExportBatch={onExportBatch}
+            />
+          )}
+          {isTemplate
+            ? content.propertySections.map((section) => (
+                <section
+                  key={section.title}
+                  className="rounded-2xl border border-border/80 bg-background/70 px-4 py-4 shadow-sm"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-sm font-semibold">{section.title}</h3>
+                    <span className="rounded-full bg-muted px-2 py-1 text-[10px] text-muted-foreground">
+                      Accordion
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs leading-6 text-muted-foreground">{section.body}</p>
+                </section>
+              ))
+            : null}
         </div>
       </div>
     </aside>

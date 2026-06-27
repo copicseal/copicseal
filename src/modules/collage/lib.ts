@@ -34,6 +34,7 @@ export function createEmptySlotState(): CollageSlotState {
     offsetX: 0,
     offsetY: 0,
     rotation: 0,
+    borderRadius: null,
   };
 }
 
@@ -47,6 +48,7 @@ export function getDefaultCanvasState(): CollageCanvasState {
     gap: 12,
     padding: 20,
     borderRadius: 18,
+    shadow: 18,
   };
 }
 

@@ -88,12 +88,12 @@
 - [x] 创建 `features/collage/`
 - [x] 建立 `Collage Preview` 区域
 - [x] 接入 `<CollageCanvas />`
-- [ ] 建立 `Collage Assets` 区域
-- [ ] 支持图片导入
-- [ ] 支持拖入拼图
-- [ ] 支持排序
-- [ ] 支持替换图片
-- [ ] 支持删除图片
+- [x] 建立 `Collage Assets` 区域
+- [x] 支持图片导入
+- [x] 支持拖入拼图
+- [x] 支持排序
+- [x] 支持替换图片
+- [x] 支持删除图片
 - [x] 建立顶部布局工具栏
 - [x] 支持 `2 Grid`
 - [x] 支持 `3 Grid`

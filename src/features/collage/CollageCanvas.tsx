@@ -159,6 +159,17 @@ export function CollageCanvas() {
                       }
                       selectSlot(index);
                     }}
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                      const photoId = event.dataTransfer.getData('text/copicseal-photo-id');
+                      if (photoId) {
+                        assignPhotoToSlot(index, photoId);
+                      }
+                      selectSlot(index);
+                    }}
                   >
                     {photo ? (
                       <img

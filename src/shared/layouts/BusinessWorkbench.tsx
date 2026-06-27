@@ -22,7 +22,9 @@ import {
 } from '@/features/template';
 import { usePhotos } from '@/hooks/usePhotos';
 import { exportSingle } from '@/lib/export-photo';
+import { selectPhotosViaDialog } from '@/lib/import-photo';
 import { cn } from '@/lib/utils';
+import { useCollageStore } from '@/modules/collage/store/use-collage-store';
 import { getBuiltinTemplateSchema } from '@/runtime/template/template-registry';
 
 const PROPERTY_MIN_WIDTH = 280;
@@ -159,6 +161,7 @@ function AssetsPanel({
     photos,
     currentIndex,
     setCurrentIndex,
+    replacePhoto,
     selectedIds,
     removePhoto,
     removeSelectedPhotos,
@@ -170,6 +173,7 @@ function AssetsPanel({
     importViaDirectory,
     importViaDrop,
   } = usePhotos();
+  const { removePhotoReferences } = useCollageStore();
   const content = copy[route];
   const isTemplate = route === '/template';
   const cardHeight = Math.max(72, height - 92);
@@ -210,6 +214,15 @@ function AssetsPanel({
       window.removeEventListener('paste', handlePaste);
     };
   }, [importViaDrop, isTemplate, removeSelectedPhotos, selectAllPhotos, selectedIds.length]);
+
+  const handleCollageReplace = async (photoId: string) => {
+    const selected = await selectPhotosViaDialog();
+    if (!selected[0]) {
+      return;
+    }
+
+    replacePhoto(photoId, selected[0]);
+  };
 
   return (
     <section
@@ -303,8 +316,10 @@ function AssetsPanel({
                           selectSinglePhoto(photo.id);
                         }
                       }}
-                      draggable={isTemplate}
-                      onDragStart={() => {
+                      draggable
+                      onDragStart={(event) => {
+                        event.dataTransfer.effectAllowed = 'move';
+                        event.dataTransfer.setData('text/copicseal-photo-id', photo.id);
                         if (isTemplate) {
                           setDraggedPhotoId(photo.id);
                         }
@@ -368,6 +383,9 @@ function AssetsPanel({
                               className="shrink-0 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
                               onClick={(event) => {
                                 event.stopPropagation();
+                                if (!isTemplate) {
+                                  removePhotoReferences(photo.id);
+                                }
                                 removePhoto(photo.id);
                               }}
                             >
@@ -379,7 +397,21 @@ function AssetsPanel({
                               <MoveHorizontal className="size-3" />
                               <span>拖拽排序</span>
                             </div>
-                          ) : null}
+                          ) : (
+                            <div className="mt-2 flex items-center gap-2 text-[10px] text-muted-foreground">
+                              <span>拖到上方画布即可放入拼图</span>
+                              <button
+                                type="button"
+                                className="ml-auto hover:text-foreground"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  void handleCollageReplace(photo.id);
+                                }}
+                              >
+                                替换
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>

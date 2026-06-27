@@ -1,3 +1,5 @@
+import { open } from '@tauri-apps/plugin-dialog';
+import { check } from '@tauri-apps/plugin-updater';
 import {
   Box,
   Check,
@@ -13,8 +15,6 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
-import { check } from '@tauri-apps/plugin-updater';
-import { open } from '@tauri-apps/plugin-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -118,7 +118,11 @@ function GeneralTab() {
     <div className="space-y-4">
       <FieldGroup title="General" description="控制应用的全局行为与启动体验。">
         <SettingField label="主题" description="切换浅色、深色或跟随系统。">
-          <RadioGroup defaultValue="system" className="flex flex-wrap gap-3" orientation="horizontal">
+          <RadioGroup
+            defaultValue="system"
+            className="flex flex-wrap gap-3"
+            orientation="horizontal"
+          >
             {[
               { value: 'light', label: '浅色' },
               { value: 'dark', label: '深色' },
@@ -163,11 +167,7 @@ function GeneralTab() {
 
         <SettingField label="默认导出目录" description="指定导出图片时的默认保存位置。">
           <div className="flex max-w-2xl items-center gap-2">
-            <Input
-              value={exportDirectory}
-              readOnly
-              className="h-10 rounded-none text-xs"
-            />
+            <Input value={exportDirectory} readOnly className="h-10 rounded-none text-xs" />
             <Button
               variant="outline"
               className="rounded-none px-4"
@@ -180,12 +180,20 @@ function GeneralTab() {
         </SettingField>
 
         <SettingField label="自动更新" description="决定是否在应用中主动检查更新。">
-          <RadioGroup defaultValue="enabled" className="flex flex-wrap gap-3" orientation="horizontal">
+          <RadioGroup
+            defaultValue="enabled"
+            className="flex flex-wrap gap-3"
+            orientation="horizontal"
+          >
             {[
               { value: 'enabled', label: '开启' },
               { value: 'disabled', label: '关闭' },
             ].map(({ value, label }) => (
-              <label key={value} htmlFor={`autoupdate-${value}`} className="flex items-center gap-2">
+              <label
+                key={value}
+                htmlFor={`autoupdate-${value}`}
+                className="flex items-center gap-2"
+              >
                 <RadioGroupItem value={value} id={`autoupdate-${value}`} />
                 <span className="text-sm">{label}</span>
               </label>
@@ -253,17 +261,16 @@ function TemplateTab() {
 
         <SettingField label="默认 EXIF 格式" description="控制相机参数文本的默认模板。">
           <div className="grid gap-3">
-            <Input
-              defaultValue="{Make} {Model}"
-              className="h-10 rounded-none text-xs"
-            />
+            <Input defaultValue="{Make} {Model}" className="h-10 rounded-none text-xs" />
             <Input
               defaultValue="{FocalLength}  f/{FNumber}  {ExposureTime}s  ISO{ISO}"
               className="h-10 rounded-none text-xs"
             />
             <div className="max-w-md">
               <Slider value={fontScale} onValueChange={setFontScale} min={0.6} max={2} step={0.1} />
-              <p className="mt-2 text-xs text-muted-foreground">字体倍率 {fontScale[0].toFixed(1)}x</p>
+              <p className="mt-2 text-xs text-muted-foreground">
+                字体倍率 {fontScale[0].toFixed(1)}x
+              </p>
             </div>
           </div>
         </SettingField>
@@ -448,10 +455,7 @@ export function SettingsPage() {
       </div>
 
       <Tabs defaultValue="general" orientation="vertical" className="min-h-0 flex-1 p-4">
-        <TabsList
-          variant="line"
-          className="w-56 shrink-0 border border-border/80 bg-card p-3"
-        >
+        <TabsList variant="line" className="w-56 shrink-0 border border-border/80 bg-card p-3">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             return (

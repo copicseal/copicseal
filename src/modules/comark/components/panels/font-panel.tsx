@@ -18,7 +18,7 @@ export function CoFontPanel() {
       setFonts(result);
       if (config) {
         configRef.current = config;
-        setFavorites(new Set(config.font_favorites));
+        setFavorites(new Set(config.fonts.favorites));
       }
       setLoading(false);
     });
@@ -27,7 +27,13 @@ export function CoFontPanel() {
   const saveFavorites = useCallback(async (favs: Set<string>) => {
     const config = configRef.current;
     if (!config) return;
-    const updated = { ...config, font_favorites: [...favs] };
+    const updated = {
+      ...config,
+      fonts: {
+        ...config.fonts,
+        favorites: [...favs],
+      },
+    };
     try {
       await updateConfig(updated);
       configRef.current = updated;

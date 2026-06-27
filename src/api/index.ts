@@ -27,7 +27,98 @@ export interface AppConfig {
   language: string;
   theme: string;
   save_directory: string;
-  font_favorites: string[];
+  output: OutputConfig;
+  fonts: FontConfig;
+  template_presets: TemplatePreset[];
+  template_list: TemplateListConfig;
+  user_devices: UserDevice[];
+  device_id: string;
+}
+
+export interface OutputConfig {
+  presets: OutputPreset[];
+  default_path: string;
+  retain_exif: boolean;
+}
+
+export interface OutputPreset {
+  id?: string;
+  name?: string;
+  type: string;
+  width: number;
+  height: number;
+  scale: number;
+  quality: number;
+  is_original: boolean;
+}
+
+export interface FontConfig {
+  favorites: string[];
+  default_font: string;
+}
+
+export interface TemplatePreset {
+  id: string;
+  name: string;
+  description: string;
+  template_id: string;
+  template_props: Record<string, unknown>;
+  background: Record<string, unknown>;
+  font: string;
+}
+
+export interface TemplateListConfig {
+  enabled: EnabledTemplate[];
+  remote_registry: TemplateRegistry[];
+}
+
+export interface EnabledTemplate {
+  template_id: string;
+  name: string;
+}
+
+export interface TemplateRegistry {
+  id: string;
+  name: string;
+  url: string;
+}
+
+export interface UserDevice {
+  id: string;
+  name: string;
+  device_type: string;
+  brand: string;
+  model: string;
+  lens: string;
+  exif_overrides: Record<string, unknown>;
+}
+
+export interface ComarkTemplateRecord {
+  id: string;
+  name: string;
+  version: string;
+  description: string | null;
+  author: string | null;
+  license: string | null;
+  source_type: string;
+  registry_url: string | null;
+  local_path: string | null;
+  enabled: boolean;
+  installed_at: string;
+  updated_at: string;
+}
+
+export interface UpsertComarkTemplatePayload {
+  id: string;
+  name: string;
+  version: string;
+  description?: string | null;
+  author?: string | null;
+  license?: string | null;
+  source_type: 'built_in' | 'remote';
+  registry_url?: string | null;
+  local_path?: string | null;
+  enabled: boolean;
 }
 
 export interface AppVersion {
@@ -57,6 +148,24 @@ export function getAppInfo(): Promise<AppVersion> {
 
 export function getDeviceId(): Promise<string> {
   return invoke<string>('get_device_id');
+}
+
+export function listComarkTemplates(): Promise<ComarkTemplateRecord[]> {
+  return invoke<ComarkTemplateRecord[]>('list_comark_templates');
+}
+
+export function upsertComarkTemplate(
+  payload: UpsertComarkTemplatePayload,
+): Promise<ComarkTemplateRecord> {
+  return invoke<ComarkTemplateRecord>('upsert_comark_template', { payload });
+}
+
+export function removeComarkTemplate(id: string): Promise<void> {
+  return invoke('remove_comark_template', { id });
+}
+
+export function setComarkTemplateEnabled(id: string, enabled: boolean): Promise<void> {
+  return invoke('set_comark_template_enabled', { id, enabled });
 }
 
 export function extractJpegExif(path: string): Promise<number[]> {

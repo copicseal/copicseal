@@ -8,3 +8,7 @@ export function listBuiltinTemplates(): BuiltinTemplate[] {
 export function getBuiltinTemplateById(id: string): BuiltinTemplate | undefined {
   return BUILTIN_TEMPLATES.find((template) => template.meta.id === id);
 }
+
+export function getBuiltinTemplateSchema(id: string) {
+  return getBuiltinTemplateById(id)?.schema;
+}

@@ -21,7 +21,31 @@ export interface TemplateMeta {
 
 export type TemplateComponent = React.ComponentType<TemplateProps>;
 
+export type TemplateFieldType = 'number' | 'color' | 'select' | 'text';
+
+export interface TemplateFieldOption {
+  label: string;
+  value: string;
+}
+
+export interface TemplateSchemaField {
+  key: keyof Omit<TemplateProps, 'photoUrl' | 'exif'>;
+  label: string;
+  type: TemplateFieldType;
+  description?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  options?: TemplateFieldOption[];
+}
+
+export interface TemplateSchema {
+  fields: TemplateSchemaField[];
+  defaults: Omit<TemplateProps, 'photoUrl' | 'exif'>;
+}
+
 export interface BuiltinTemplate {
   meta: TemplateMeta;
   component: TemplateComponent;
+  schema: TemplateSchema;
 }

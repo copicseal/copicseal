@@ -1,8 +1,67 @@
 import { Minimal } from './minimal';
-import type { BuiltinTemplate } from './types';
+import type { BuiltinTemplate, TemplateSchema } from './types';
 
 export { Minimal } from './minimal';
-export type { BuiltinTemplate, TemplateComponent, TemplateMeta, TemplateProps } from './types';
+export type {
+  BuiltinTemplate,
+  TemplateComponent,
+  TemplateMeta,
+  TemplateProps,
+  TemplateSchema,
+  TemplateSchemaField,
+} from './types';
+
+const minimalSchema: TemplateSchema = {
+  fields: [
+    {
+      key: 'orientation',
+      label: '排版方向',
+      type: 'select',
+      options: [
+        { label: '自动', value: 'auto' },
+        { label: '横向', value: 'horizontal' },
+        { label: '竖向', value: 'vertical' },
+      ],
+    },
+    {
+      key: 'fontScale',
+      label: '字体缩放',
+      type: 'number',
+      min: 0.8,
+      max: 2,
+      step: 0.1,
+    },
+    {
+      key: 'primaryColor',
+      label: '主色',
+      type: 'color',
+    },
+    {
+      key: 'borderColor',
+      label: '边框色',
+      type: 'color',
+    },
+    {
+      key: 'textLine1',
+      label: '文案 1',
+      type: 'text',
+    },
+    {
+      key: 'textLine2',
+      label: '文案 2',
+      type: 'text',
+    },
+  ],
+  defaults: {
+    orientation: 'auto',
+    margin: 1,
+    fontScale: 1,
+    primaryColor: '#1a1a1a',
+    borderColor: '#1a1a1a',
+    textLine1: '{Make} {Model}',
+    textLine2: '{FocalLength}  f/{FNumber}  {ExposureTime}s  ISO{ISO}',
+  },
+};
 
 export const BUILTIN_TEMPLATE: BuiltinTemplate = {
   meta: {
@@ -12,6 +71,7 @@ export const BUILTIN_TEMPLATE: BuiltinTemplate = {
     tags: ['clean', 'watermark'],
   },
   component: Minimal,
+  schema: minimalSchema,
 };
 
 export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
@@ -24,6 +84,7 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
       tags: ['camera', 'editorial'],
     },
     component: Minimal,
+    schema: minimalSchema,
   },
   {
     meta: {
@@ -33,6 +94,7 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
       tags: ['film', 'retro'],
     },
     component: Minimal,
+    schema: minimalSchema,
   },
   {
     meta: {
@@ -42,5 +104,6 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
       tags: ['social', 'mobile'],
     },
     component: Minimal,
+    schema: minimalSchema,
   },
 ];

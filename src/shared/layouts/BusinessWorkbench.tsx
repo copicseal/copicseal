@@ -9,8 +9,14 @@ import {
 import { useState } from 'react';
 import { CoDropZone } from '@/components/CoDropZone';
 import { Button } from '@/components/ui/button';
-import { TemplatePreview, TemplateSelector, useTemplatePreviewState } from '@/features/template';
+import {
+  TemplatePreview,
+  TemplatePropsPanel,
+  TemplateSelector,
+  useTemplatePreviewState,
+} from '@/features/template';
 import { usePhotos } from '@/hooks/usePhotos';
+import { getBuiltinTemplateSchema } from '@/runtime/template/template-registry';
 import { cn } from '@/lib/utils';
 import type { AppRoute } from '@/components/CoSidebar';
 
@@ -99,9 +105,11 @@ function ToolRail({ route }: { route: BusinessWorkbenchProps['route'] }) {
 function WorkspacePanel({
   route,
   activeTemplateId,
+  templateProps,
 }: {
   route: BusinessWorkbenchProps['route'];
   activeTemplateId: string;
+  templateProps: Parameters<typeof TemplatePreview>[0]['templateProps'];
 }) {
   const content = copy[route];
   const isTemplate = route === '/template';
@@ -111,7 +119,7 @@ function WorkspacePanel({
       <div className="absolute inset-0 bg-[linear-gradient(to_right,color-mix(in_oklch,var(--color-border),transparent_35%)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklch,var(--color-border),transparent_35%)_1px,transparent_1px)] bg-[size:32px_32px] opacity-35" />
       {isTemplate ? (
         <div className="relative flex h-full w-full min-h-0 min-w-0 items-center justify-center">
-          <TemplatePreview activeTemplateId={activeTemplateId} />
+          <TemplatePreview activeTemplateId={activeTemplateId} templateProps={templateProps} />
         </div>
       ) : (
         <div className="relative flex w-full max-w-4xl flex-col items-center gap-5">
@@ -294,15 +302,20 @@ function PropertiesPanel({
   onResizeStart,
   activeTemplateId,
   onTemplateChange,
+  templateProps,
+  onTemplatePropsChange,
 }: {
   route: BusinessWorkbenchProps['route'];
   width: number;
   onResizeStart: (clientX: number) => void;
   activeTemplateId: string;
   onTemplateChange: (templateId: string) => void;
+  templateProps: Parameters<typeof TemplatePreview>[0]['templateProps'];
+  onTemplatePropsChange: (next: Parameters<typeof TemplatePreview>[0]['templateProps']) => void;
 }) {
   const content = copy[route];
   const isTemplate = route === '/template';
+  const templateSchema = getBuiltinTemplateSchema(activeTemplateId);
 
   return (
     <aside
@@ -337,6 +350,15 @@ function PropertiesPanel({
               />
             </section>
           ) : null}
+          {isTemplate && templateSchema ? (
+            <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
+              <TemplatePropsPanel
+                schema={templateSchema}
+                value={templateProps}
+                onChange={onTemplatePropsChange}
+              />
+            </section>
+          ) : null}
           {content.propertySections.map((section) => (
             <section
               key={section.title}
@@ -361,7 +383,7 @@ export function BusinessWorkbench({ route }: BusinessWorkbenchProps) {
   const [propertiesWidth, setPropertiesWidth] = useState(PROPERTY_DEFAULT_WIDTH);
   const [assetsHeight, setAssetsHeight] = useState(ASSETS_DEFAULT_HEIGHT);
   const [assetsCollapsed, setAssetsCollapsed] = useState(false);
-  const { templateId, setTemplateId } = useTemplatePreviewState();
+  const { templateId, setTemplateId, templateProps, setTemplateProps } = useTemplatePreviewState();
 
   const handleResizeStart = (startX: number) => {
     const startWidth = propertiesWidth;
@@ -402,7 +424,11 @@ export function BusinessWorkbench({ route }: BusinessWorkbenchProps) {
       <ToolRail route={route} />
       <div className="flex min-h-0 min-w-0 flex-1">
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-0">
-          <WorkspacePanel route={route} activeTemplateId={templateId} />
+          <WorkspacePanel
+            route={route}
+            activeTemplateId={templateId}
+            templateProps={templateProps}
+          />
           <AssetsPanel
             route={route}
             collapsed={assetsCollapsed}
@@ -417,6 +443,8 @@ export function BusinessWorkbench({ route }: BusinessWorkbenchProps) {
           onResizeStart={handleResizeStart}
           activeTemplateId={templateId}
           onTemplateChange={setTemplateId}
+          templateProps={templateProps}
+          onTemplatePropsChange={setTemplateProps}
         />
       </div>
     </div>

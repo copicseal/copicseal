@@ -4,6 +4,8 @@ import { type ExifData, readExif } from '@/api';
 import { Button } from '@/components/ui/button';
 import { usePhotos } from '@/hooks/usePhotos';
 import { TemplateRuntime } from '@/runtime/template';
+import { getBuiltinTemplateById } from '@/runtime/template/template-registry';
+import type { TemplateProps } from '@/modules/comark/templates';
 
 type TemplateZoomMode = 'fit' | 50 | 100 | 200;
 
@@ -11,9 +13,10 @@ const ZOOM_OPTIONS: TemplateZoomMode[] = ['fit', 50, 100, 200];
 
 interface TemplatePreviewProps {
   activeTemplateId: string;
+  templateProps: Omit<TemplateProps, 'photoUrl' | 'exif'>;
 }
 
-export function TemplatePreview({ activeTemplateId }: TemplatePreviewProps) {
+export function TemplatePreview({ activeTemplateId, templateProps }: TemplatePreviewProps) {
   const { currentPhoto } = usePhotos();
   const [exif, setExif] = useState<ExifData | null>(null);
   const [zoomMode, setZoomMode] = useState<TemplateZoomMode>('fit');
@@ -35,6 +38,8 @@ export function TemplatePreview({ activeTemplateId }: TemplatePreviewProps) {
 
     setExif(null);
   }, [currentPhoto?.path, loadExif]);
+
+  const template = getBuiltinTemplateById(activeTemplateId);
 
   if (!currentPhoto) {
     return (
@@ -89,13 +94,7 @@ export function TemplatePreview({ activeTemplateId }: TemplatePreviewProps) {
             props={{
               photoUrl: currentPhoto.previewUrl,
               exif,
-              orientation: 'auto',
-              margin: 1,
-              fontScale: 1,
-              primaryColor: '#1a1a1a',
-              borderColor: '#1a1a1a',
-              textLine1: '{Make} {Model}',
-              textLine2: '{FocalLength}  f/{FNumber}  {ExposureTime}s  ISO{ISO}',
+              ...templateProps,
             }}
           />
         </div>
@@ -108,7 +107,7 @@ export function TemplatePreview({ activeTemplateId }: TemplatePreviewProps) {
           </div>
           <div className="flex items-center gap-2">
             <ImageIcon className="size-3.5" />
-            <span>{activeTemplateId}</span>
+            <span>{template?.meta.name ?? activeTemplateId}</span>
           </div>
         </div>
       </div>
@@ -117,9 +116,31 @@ export function TemplatePreview({ activeTemplateId }: TemplatePreviewProps) {
 
 export function useTemplatePreviewState() {
   const [templateId, setTemplateId] = useState('minimal');
+  const [templateProps, setTemplateProps] = useState<Omit<TemplateProps, 'photoUrl' | 'exif'>>(
+    () => ({
+      orientation: 'auto',
+      margin: 1,
+      fontScale: 1,
+      primaryColor: '#1a1a1a',
+      borderColor: '#1a1a1a',
+      textLine1: '{Make} {Model}',
+      textLine2: '{FocalLength}  f/{FNumber}  {ExposureTime}s  ISO{ISO}',
+    }),
+  );
+
+  useEffect(() => {
+    const template = getBuiltinTemplateById(templateId);
+    if (!template) {
+      return;
+    }
+
+    setTemplateProps(template.schema.defaults);
+  }, [templateId]);
 
   return {
     templateId,
     setTemplateId,
+    templateProps,
+    setTemplateProps,
   };
 }

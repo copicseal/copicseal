@@ -2,112 +2,168 @@
 
 ## 概述
 
-定义应用中的核心数据结构和用户可配置项。
+本章定义 Template、Collage、Export 与 Settings 所需的核心数据模型。模型设计遵循以下原则：
+
+- 无项目系统
+- 无全局素材工作区
+- 功能页各自维护本地会话状态
+- 仅共享基础设施数据与默认配置
 
 ---
 
-## 5.1 照片对象
+## 5.1 Template Asset
 
-每张导入的照片为一个独立实体：
+Template 页面中的图片素材对象：
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| ID | 字符串 | 唯一标识 |
-| 文件名 | 字符串 | 原始文件名 |
-| 预览 URL | 字符串 | 用于前端展示 |
-| 原始文件 | 字符串 | 文件路径 |
-| EXIF 元数据 | 对象 | 相机参数 |
-| 调色板 | 二维数组 | 主要色彩 |
-| 模板 ID | 字符串 | 当前选中模板 |
-| 模板属性 | 对象 | 模板自定义值 |
-| 字体 | 字符串 | 字体族名 |
-| 导出规格 | 数组 | 输出规格列表 |
-| 背景设置 | 对象 | 背景样式 |
-| 导出路径 | 字符串 | 输出目录 |
-| 加载状态 | 布尔 | 是否就绪 |
+| id | string | 唯一标识 |
+| fileName | string | 原始文件名 |
+| filePath | string | 本地文件路径 |
+| previewUrl | string | 预览资源 |
+| thumbnailUrl | string | 缩略图资源 |
+| exif | object | EXIF 数据 |
+| order | number | 资产排序 |
+| selected | boolean | 是否选中 |
 
 ---
 
-## 5.2 导出规格
+## 5.2 Template Session
+
+Template 页面的当前工作状态：
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| 格式 | JPEG/PNG/WebP | 输出格式 |
-| 质量 | 0–1 | JPEG/WebP 质量 |
-| 宽度 | 数值 | 像素 |
-| 高度 | 数值 | 像素 |
-| 缩放比例 | 数值 | 额外缩放 |
-| 是否原始尺寸 | 布尔 | 使用 EXIF 原始尺寸 |
+| activeAssetId | string | 当前预览图片 |
+| templateId | string | 当前模板 ID |
+| templateProps | object | 当前模板 props |
+| zoom | number | 预览缩放 |
+| fitMode | boolean | 是否适配预览区域 |
+| exportConfig | object | 导出配置 |
+| selectionIds | string[] | 当前多选资产 |
 
 ---
 
-## 5.3 背景设置
+## 5.3 Template Definition
+
+模板定义对象：
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| 模式 | none/color/image | 背景类型 |
-| 边距 | [上, 下, 左, 右] | 像素 |
-| 颜色 | RGBA | 纯色背景 |
-| 背景图 URL | 字符串 | 图片背景 |
-| 滤镜 | 对象 | 模糊/亮度/对比度等 |
-| 暗色模式样式 | 对象 | 暗色主题适用 |
-| 横版样式 | 对象 | 横版布局适用 |
-| 竖版样式 | 对象 | 竖版布局适用 |
+| id | string | 模板 ID |
+| name | string | 模板名 |
+| tags | string[] | 搜索与分类标签 |
+| favorite | boolean | 是否收藏 |
+| recentUsedAt | string | 最近使用时间 |
+| propsSchema | object | 自动生成表单的 schema |
+| componentKey | string | 运行时组件标识 |
 
 ---
 
-## 5.4 模板对象
+## 5.4 Collage Asset
+
+Collage 页面中的图片素材对象：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | string | 唯一标识 |
+| fileName | string | 原始文件名 |
+| filePath | string | 本地文件路径 |
+| previewUrl | string | 预览资源 |
+| thumbnailUrl | string | 缩略图资源 |
+| order | number | 素材排序 |
+| selected | boolean | 是否被选中 |
+
+---
+
+## 5.5 Collage Session
+
+Collage 页面的当前工作状态：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| layoutMode | 'grid' \| 'free' | 布局模式 |
+| layoutPreset | string | 当前布局预设 |
+| canvasStyle | object | 间距、边距、背景、圆角、阴影 |
+| items | object[] | 画布中的图片项 |
+| selectedItemId | string | 当前选中图片项 |
+| exportConfig | object | 导出配置 |
+
+### Collage Item
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | string | 画布项 ID |
+| assetId | string | 素材引用 |
+| x | number | 横向位置 |
+| y | number | 纵向位置 |
+| width | number | 宽度 |
+| height | number | 高度 |
+| scale | number | 缩放 |
+| rotation | number | 旋转 |
+| borderRadius | number | 圆角 |
+
+---
+
+## 5.6 Export Config
+
+统一导出配置：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| format | 'png' \| 'jpg' \| 'webp' | 导出格式 |
+| quality | number | 图片质量 |
+| scale | number | 导出倍率 |
+| outputDir | string | 输出目录 |
+
+---
+
+## 5.7 Settings Config
+
+设置中心统一管理以下默认配置：
+
+### General
 
 | 字段 | 说明 |
 |------|------|
-| ID | 唯一标识 |
-| 名称 | 显示名称 |
-| 版本 | 语义化版本 |
-| 描述 | 功能描述 |
-| 作者 | 模板作者 |
-| 许可证 | 开源协议 |
-| 代码 | 模板执行代码 |
-| 样式 | CSS 样式 |
-| 签名 | Ed25519 加密签名 |
+| theme | 主题 |
+| language | 语言 |
+| startupPage | 启动页 |
+| defaultExportDir | 默认导出目录 |
+| autoUpdate | 自动更新 |
 
----
-
-## 5.5 模板预设
+### Template
 
 | 字段 | 说明 |
 |------|------|
-| 名称 | 预设名称 |
-| 描述 | 用途说明 |
-| 模板 ID | 关联模板 |
-| 模板属性值 | 自定义属性 |
-| 背景设置 | 背景配置 |
-| 字体 | 字体选择 |
+| defaultTemplateId | 默认模板 |
+| defaultFont | 默认字体 |
+| defaultBorderWidth | 默认边框宽度 |
+| defaultBackgroundColor | 默认背景色 |
+| defaultExifFormat | 默认 EXIF 格式 |
 
----
-
-## 5.6 应用全局配置
-
-| 分类 | 配置项 | 说明 |
-|------|--------|------|
-| 输出 | 默认导出路径 | 文件保存位置 |
-| 输出 | 导出预设列表 | 常用导出规格 |
-| 输出 | 保留 EXIF | 是否在导出文件中保留相机信息 |
-| 模板 | 启用的模板列表 | 哪些模板在 UI 中可见 |
-| 模板 | 远程注册表列表 | 模板下载来源 |
-| 模板 | 模板预设列表 | 用户保存的预设 |
-| 字体 | 默认字体 | 新照片的默认字体 |
-| 字体 | 收藏字体列表 | 用户标记的常用字体 |
-| 设备 | 用户设备列表 | 自定义相机/镜头信息 |
-
----
-
-## 5.7 设备信息
-
-用户可在"设备数据库"中添加自定义相机/镜头：
+### Collage
 
 | 字段 | 说明 |
 |------|------|
-| 设备 ID | 唯一标识 |
-| 设备名称 | 显示名称 |
-| 类型 | 相机 / 镜头 |
-| 自定义 EXIF 值 | 覆盖默认元数据 |
+| defaultLayout | 默认布局 |
+| defaultGap | 默认间距 |
+| defaultBackgroundColor | 默认背景色 |
+| defaultRadius | 默认圆角 |
+
+### Export
+
+| 字段 | 说明 |
+|------|------|
+| defaultFormat | 默认格式 |
+| defaultScale | 默认倍率 |
+| defaultQuality | 默认质量 |
+
+---
+
+## 5.8 存储原则
+
+- Template 与 Collage 运行态状态不做项目化持久化
+- Settings 作为默认配置持久化存储
+- 模板收藏、最近使用等轻量状态可持久化
+- 素材缩略图与缓存由基础设施统一管理

@@ -27,5 +27,5 @@ tauri-plugin-dialog = "2.7.1"
 dirs = "6"
 kamadak-exif = "0.6"
 font-kit = "0.14"
+rusqlite = { version = "0.32", features = ["bundled"] }
 uuid = { version = "1", features = ["v4"] }
-

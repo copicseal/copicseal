@@ -6,16 +6,18 @@ import {
   ImageIcon,
   LayoutTemplate,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { CoDropZone } from '@/components/CoDropZone';
 import { Button } from '@/components/ui/button';
 import {
+  TemplateExportPanel,
   TemplatePreview,
   TemplatePropsPanel,
   TemplateSelector,
   useTemplatePreviewState,
 } from '@/features/template';
 import { usePhotos } from '@/hooks/usePhotos';
+import { exportSingle } from '@/lib/export-photo';
 import { getBuiltinTemplateSchema } from '@/runtime/template/template-registry';
 import { cn } from '@/lib/utils';
 import type { AppRoute } from '@/components/CoSidebar';
@@ -106,10 +108,12 @@ function WorkspacePanel({
   route,
   activeTemplateId,
   templateProps,
+  previewRef,
 }: {
   route: BusinessWorkbenchProps['route'];
   activeTemplateId: string;
   templateProps: Parameters<typeof TemplatePreview>[0]['templateProps'];
+  previewRef: React.RefObject<HTMLDivElement | null>;
 }) {
   const content = copy[route];
   const isTemplate = route === '/template';
@@ -119,7 +123,11 @@ function WorkspacePanel({
       <div className="absolute inset-0 bg-[linear-gradient(to_right,color-mix(in_oklch,var(--color-border),transparent_35%)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklch,var(--color-border),transparent_35%)_1px,transparent_1px)] bg-[size:32px_32px] opacity-35" />
       {isTemplate ? (
         <div className="relative flex h-full w-full min-h-0 min-w-0 items-center justify-center">
-          <TemplatePreview activeTemplateId={activeTemplateId} templateProps={templateProps} />
+          <TemplatePreview
+            activeTemplateId={activeTemplateId}
+            templateProps={templateProps}
+            previewRef={previewRef}
+          />
         </div>
       ) : (
         <div className="relative flex w-full max-w-4xl flex-col items-center gap-5">
@@ -304,6 +312,8 @@ function PropertiesPanel({
   onTemplateChange,
   templateProps,
   onTemplatePropsChange,
+  onExportCurrent,
+  onExportBatch,
 }: {
   route: BusinessWorkbenchProps['route'];
   width: number;
@@ -312,6 +322,8 @@ function PropertiesPanel({
   onTemplateChange: (templateId: string) => void;
   templateProps: Parameters<typeof TemplatePreview>[0]['templateProps'];
   onTemplatePropsChange: (next: Parameters<typeof TemplatePreview>[0]['templateProps']) => void;
+  onExportCurrent: Parameters<typeof TemplateExportPanel>[0]['onExportCurrent'];
+  onExportBatch: Parameters<typeof TemplateExportPanel>[0]['onExportBatch'];
 }) {
   const content = copy[route];
   const isTemplate = route === '/template';
@@ -359,6 +371,14 @@ function PropertiesPanel({
               />
             </section>
           ) : null}
+          {isTemplate ? (
+            <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
+              <TemplateExportPanel
+                onExportCurrent={onExportCurrent}
+                onExportBatch={onExportBatch}
+              />
+            </section>
+          ) : null}
           {content.propertySections.map((section) => (
             <section
               key={section.title}
@@ -380,10 +400,17 @@ function PropertiesPanel({
 }
 
 export function BusinessWorkbench({ route }: BusinessWorkbenchProps) {
+  const previewRef = useRef<HTMLDivElement | null>(null);
   const [propertiesWidth, setPropertiesWidth] = useState(PROPERTY_DEFAULT_WIDTH);
   const [assetsHeight, setAssetsHeight] = useState(ASSETS_DEFAULT_HEIGHT);
   const [assetsCollapsed, setAssetsCollapsed] = useState(false);
-  const { templateId, setTemplateId, templateProps, setTemplateProps } = useTemplatePreviewState();
+  const {
+    templateId,
+    setTemplateId,
+    templateProps,
+    setTemplateProps,
+  } = useTemplatePreviewState();
+  const { photos, currentIndex, setCurrentIndex, currentPhoto } = usePhotos();
 
   const handleResizeStart = (startX: number) => {
     const startWidth = propertiesWidth;
@@ -419,6 +446,42 @@ export function BusinessWorkbench({ route }: BusinessWorkbenchProps) {
     window.addEventListener('mouseup', handlePointerUp);
   };
 
+  const handleExportCurrent = async (
+    options: Parameters<typeof TemplateExportPanel>[0]['onExportCurrent'] extends (
+      arg: infer A,
+    ) => Promise<void>
+      ? A
+      : never,
+  ) => {
+    if (!previewRef.current) {
+      return;
+    }
+
+    await exportSingle(previewRef.current, options, currentPhoto?.path);
+  };
+
+  const handleExportBatch = async (
+    options: Parameters<typeof TemplateExportPanel>[0]['onExportBatch'] extends (
+      arg: infer A,
+    ) => Promise<void>
+      ? A
+      : never,
+  ) => {
+    if (!previewRef.current || photos.length === 0) {
+      return;
+    }
+
+    const originalIndex = currentIndex;
+
+    for (let index = 0; index < photos.length; index += 1) {
+      setCurrentIndex(index);
+      await new Promise((resolve) => setTimeout(resolve, 120));
+      await exportSingle(previewRef.current, options, photos[index]?.path);
+    }
+
+    setCurrentIndex(originalIndex);
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
       <ToolRail route={route} />
@@ -428,6 +491,7 @@ export function BusinessWorkbench({ route }: BusinessWorkbenchProps) {
             route={route}
             activeTemplateId={templateId}
             templateProps={templateProps}
+            previewRef={previewRef}
           />
           <AssetsPanel
             route={route}
@@ -445,6 +509,8 @@ export function BusinessWorkbench({ route }: BusinessWorkbenchProps) {
           onTemplateChange={setTemplateId}
           templateProps={templateProps}
           onTemplatePropsChange={setTemplateProps}
+          onExportCurrent={handleExportCurrent}
+          onExportBatch={handleExportBatch}
         />
       </div>
     </div>

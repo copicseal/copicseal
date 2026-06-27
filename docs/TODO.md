@@ -71,15 +71,15 @@
 
 ## Phase 4 — Template 导出能力
 
-- [ ] 建立 Template `Export` 面板
-- [ ] 支持 `PNG`
-- [ ] 支持 `JPG`
-- [ ] 支持 `WEBP`
-- [ ] 支持质量调节
-- [ ] 支持倍率调节
-- [ ] 支持“导出当前”
-- [ ] 支持“批量导出”
-- [ ] 保证导出结果来自当前 Template Workspace
+- [x] 建立 Template `Export` 面板
+- [x] 支持 `PNG`
+- [x] 支持 `JPG`
+- [x] 支持 `WEBP`
+- [x] 支持质量调节
+- [x] 支持倍率调节
+- [x] 支持“导出当前”
+- [x] 支持“批量导出”
+- [x] 保证导出结果来自当前 Template Workspace
 
 ---
 

@@ -14,9 +14,14 @@ const ZOOM_OPTIONS: TemplateZoomMode[] = ['fit', 50, 100, 200];
 interface TemplatePreviewProps {
   activeTemplateId: string;
   templateProps: Omit<TemplateProps, 'photoUrl' | 'exif'>;
+  previewRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-export function TemplatePreview({ activeTemplateId, templateProps }: TemplatePreviewProps) {
+export function TemplatePreview({
+  activeTemplateId,
+  templateProps,
+  previewRef,
+}: TemplatePreviewProps) {
   const { currentPhoto } = usePhotos();
   const [exif, setExif] = useState<ExifData | null>(null);
   const [zoomMode, setZoomMode] = useState<TemplateZoomMode>('fit');
@@ -83,6 +88,7 @@ export function TemplatePreview({ activeTemplateId, templateProps }: TemplatePre
 
       <div className="flex min-h-0 w-full flex-1 items-center justify-center overflow-auto">
         <div
+          ref={previewRef}
           className="origin-center transition-transform duration-200"
           style={{
             transform: `scale(${scale})`,

@@ -9,6 +9,7 @@ import {
 import { useState } from 'react';
 import { CoDropZone } from '@/components/CoDropZone';
 import { Button } from '@/components/ui/button';
+import { TemplatePreview } from '@/features/template';
 import { usePhotos } from '@/hooks/usePhotos';
 import { cn } from '@/lib/utils';
 import type { AppRoute } from '@/components/CoSidebar';
@@ -102,43 +103,26 @@ function WorkspacePanel({ route }: { route: BusinessWorkbenchProps['route'] }) {
   return (
     <section className="relative flex min-h-0 min-w-0 flex-1 items-center justify-center overflow-hidden border border-r-0 border-b-0 border-border/80 bg-[radial-gradient(circle_at_top,_var(--color-accent),transparent_45%),linear-gradient(180deg,color-mix(in_oklch,var(--color-background),white_55%)_0%,var(--color-background)_100%)] p-6">
       <div className="absolute inset-0 bg-[linear-gradient(to_right,color-mix(in_oklch,var(--color-border),transparent_35%)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklch,var(--color-border),transparent_35%)_1px,transparent_1px)] bg-[size:32px_32px] opacity-35" />
-      <div className="relative flex w-full max-w-4xl flex-col items-center gap-5">
-        <div className="rounded-full border border-border/70 bg-background/80 px-3 py-1 text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase shadow-sm">
-          {content.badge}
+      {isTemplate ? (
+        <div className="relative flex h-full w-full min-h-0 min-w-0 items-center justify-center">
+          <TemplatePreview />
         </div>
-        <div
-          className={cn(
-            'flex aspect-[4/3] w-full max-w-3xl items-center justify-center rounded-[32px] border border-border/80 bg-card/90 p-8 shadow-[0_24px_80px_-32px_rgba(15,23,42,0.35)]',
-            isTemplate ? 'max-h-[min(62vh,720px)]' : 'max-h-[min(62vh,760px)]',
-          )}
-        >
-          <div className="flex max-w-xl flex-col items-center gap-4 text-center">
-            {isTemplate ? (
-              <LayoutTemplate className="size-14 text-primary" />
-            ) : (
+      ) : (
+        <div className="relative flex w-full max-w-4xl flex-col items-center gap-5">
+          <div className="rounded-full border border-border/70 bg-background/80 px-3 py-1 text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase shadow-sm">
+            {content.badge}
+          </div>
+          <div className="flex aspect-[4/3] w-full max-w-3xl max-h-[min(62vh,760px)] items-center justify-center rounded-[32px] border border-border/80 bg-card/90 p-8 shadow-[0_24px_80px_-32px_rgba(15,23,42,0.35)]">
+            <div className="flex max-w-xl flex-col items-center gap-4 text-center">
               <Grid3x3 className="size-14 text-primary" />
-            )}
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight">{content.title}</h1>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{content.description}</p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="rounded-full px-4">
-                Fit
-              </Button>
-              <Button variant="outline" size="sm" className="rounded-full px-4">
-                50%
-              </Button>
-              <Button size="sm" className="rounded-full px-4">
-                100%
-              </Button>
-              <Button variant="outline" size="sm" className="rounded-full px-4">
-                200%
-              </Button>
+              <div>
+                <h1 className="text-2xl font-semibold tracking-tight">{content.title}</h1>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{content.description}</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </section>
   );
 }

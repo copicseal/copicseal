@@ -33,14 +33,14 @@
 
 ## Phase 2 — Template 页面基础能力
 
-- [ ] 创建 `features/template/`
-- [ ] 建立 `Template Preview` 区域
+- [x] 创建 `features/template/`
+- [x] 建立 `Template Preview` 区域
 - [ ] 接入 `<TemplateRuntime />`
-- [ ] 实现 Template 页面缩放控制
-- [ ] 支持 `Fit`
-- [ ] 支持 `50%`
-- [ ] 支持 `100%`
-- [ ] 支持 `200%`
+- [x] 实现 Template 页面缩放控制
+- [x] 支持 `Fit`
+- [x] 支持 `50%`
+- [x] 支持 `100%`
+- [x] 支持 `200%`
 - [x] 建立 `Template Assets` 区域
 - [x] 实现图片缩略图列表
 - [x] 支持拖拽导入

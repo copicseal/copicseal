@@ -6,6 +6,7 @@ import {
   Grid3x3,
   ImageIcon,
   LayoutTemplate,
+  MoveHorizontal,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { CoDropZone } from '@/components/CoDropZone';
@@ -170,6 +171,7 @@ function AssetsPanel({
     selectedIds,
     removePhoto,
     removeSelectedPhotos,
+    movePhoto,
     togglePhotoSelection,
     selectSinglePhoto,
     selectAllPhotos,
@@ -180,6 +182,7 @@ function AssetsPanel({
   const content = copy[route];
   const isTemplate = route === '/template';
   const cardHeight = Math.max(72, height - 92);
+  const [draggedPhotoId, setDraggedPhotoId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isTemplate) {
@@ -309,11 +312,35 @@ function AssetsPanel({
                           selectSinglePhoto(photo.id);
                         }
                       }}
+                      draggable={isTemplate}
+                      onDragStart={() => {
+                        if (isTemplate) {
+                          setDraggedPhotoId(photo.id);
+                        }
+                      }}
+                      onDragOver={(event) => {
+                        if (!isTemplate) {
+                          return;
+                        }
+                        event.preventDefault();
+                      }}
+                      onDrop={(event) => {
+                        if (!isTemplate) {
+                          return;
+                        }
+                        event.preventDefault();
+                        if (draggedPhotoId && draggedPhotoId !== photo.id) {
+                          movePhoto(draggedPhotoId, photo.id);
+                        }
+                        setDraggedPhotoId(null);
+                      }}
+                      onDragEnd={() => setDraggedPhotoId(null)}
                       className={cn(
                         'group shrink-0 border bg-card text-left transition-colors',
                         selected || active
                           ? 'border-primary ring-1 ring-primary/20'
                           : 'border-border hover:border-primary/40',
+                        isTemplate && 'cursor-grab active:cursor-grabbing',
                       )}
                       style={{
                         width: isTemplate ? Math.max(132, cardHeight * (4 / 3)) : 160,
@@ -356,6 +383,12 @@ function AssetsPanel({
                               删除
                             </button>
                           </div>
+                          {isTemplate ? (
+                            <div className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground">
+                              <MoveHorizontal className="size-3" />
+                              <span>拖拽排序</span>
+                            </div>
+                          ) : null}
                         </div>
                       </div>
                     </div>

@@ -6,10 +6,7 @@ interface TemplateRuntimeProps {
   props: TemplateProps;
 }
 
-export function TemplateRuntime({
-  templateId = 'minimal',
-  props,
-}: TemplateRuntimeProps) {
+export function TemplateRuntime({ templateId = 'minimal', props }: TemplateRuntimeProps) {
   const template = getBuiltinTemplateById(templateId) ?? getBuiltinTemplateById('minimal');
   if (!template) {
     return null;

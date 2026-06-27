@@ -1,11 +1,11 @@
 import { ImageIcon, LayoutTemplate } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { type ExifData, readExif } from '@/bridge/assets.api';
+import { getBuiltinTemplateById } from '@/bridge/template.api';
 import { Button } from '@/components/ui/button';
 import { usePhotos } from '@/hooks/usePhotos';
-import { TemplateRuntime } from '@/runtime/template';
-import { getBuiltinTemplateById } from '@/bridge/template.api';
 import type { TemplateProps } from '@/modules/comark/templates';
+import { TemplateRuntime } from '@/runtime/template';
 
 type TemplateZoomMode = 'fit' | 50 | 100 | 200;
 
@@ -51,10 +51,10 @@ export function TemplatePreview({
       <div className="flex h-full w-full flex-col items-center justify-center gap-4 text-center text-muted-foreground">
         <LayoutTemplate className="size-14 text-primary" />
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Template Preview</h1>
-          <p className="mt-2 text-sm leading-6">
-            选择一张图片后，这里会显示真实模板渲染结果。
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            Template Preview
+          </h1>
+          <p className="mt-2 text-sm leading-6">选择一张图片后，这里会显示真实模板渲染结果。</p>
         </div>
       </div>
     );
@@ -106,18 +106,18 @@ export function TemplatePreview({
         </div>
       </div>
 
-        <div className="flex w-full max-w-xl items-center justify-between border-t border-border/80 pt-3 text-xs text-muted-foreground">
-          <div className="min-w-0">
-            <p className="truncate font-medium text-foreground">{currentPhoto.name}</p>
-            <p>{(currentPhoto.size / 1024 / 1024).toFixed(1)} MB</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <ImageIcon className="size-3.5" />
-            <span>{template?.meta.name ?? activeTemplateId}</span>
-          </div>
+      <div className="flex w-full max-w-xl items-center justify-between border-t border-border/80 pt-3 text-xs text-muted-foreground">
+        <div className="min-w-0">
+          <p className="truncate font-medium text-foreground">{currentPhoto.name}</p>
+          <p>{(currentPhoto.size / 1024 / 1024).toFixed(1)} MB</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <ImageIcon className="size-3.5" />
+          <span>{template?.meta.name ?? activeTemplateId}</span>
         </div>
       </div>
-    );
+    </div>
+  );
 }
 
 export function useTemplatePreviewState() {

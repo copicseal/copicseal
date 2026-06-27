@@ -38,8 +38,7 @@ export function CollageToolbar() {
     <div className="flex flex-wrap items-center gap-2">
       {GRID_PRESETS.map((preset) => {
         const Icon = preset.icon;
-        const active =
-          present.canvas.layoutMode === 'grid' && present.layoutId === preset.layoutId;
+        const active = present.canvas.layoutMode === 'grid' && present.layoutId === preset.layoutId;
 
         return (
           <Button

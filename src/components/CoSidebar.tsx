@@ -1,18 +1,7 @@
 import { check } from '@tauri-apps/plugin-updater';
-import {
-  Grid3x3,
-  LayoutTemplate,
-  RefreshCw,
-  Settings2,
-  Sparkles,
-} from 'lucide-react';
+import { Grid3x3, LayoutTemplate, RefreshCw, Settings2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 export type AppRoute = '/template' | '/collage' | '/settings';

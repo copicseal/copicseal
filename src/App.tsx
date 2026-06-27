@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { CoSidebar, type AppRoute } from '@/components/CoSidebar';
+import { type AppRoute, CoSidebar } from '@/components/CoSidebar';
 import { Toaster } from '@/components/ui/toaster';
+import { SettingsPage } from '@/features/settings/SettingsPage';
 import { PhotoProvider } from '@/hooks/usePhotos';
 import { BusinessWorkbench } from '@/shared/layouts/BusinessWorkbench';
-import { SettingsPage } from '@/features/settings/SettingsPage';
 import './App.css';
 
 const DEFAULT_ROUTE: AppRoute = '/template';

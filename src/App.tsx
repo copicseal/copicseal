@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { type AppRoute, CoSidebar } from '@/components/CoSidebar';
-import { CoTitlebar } from '@/components/CoTitlebar';
 import { Toaster } from '@/components/ui/toaster';
+import { useWindowStyle, WindowStyleProvider } from '@/components/window-style-context';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { PhotoProvider } from '@/hooks/usePhotos';
 import { BusinessWorkbench } from '@/shared/layouts/BusinessWorkbench';
@@ -23,8 +23,9 @@ function navigate(route: AppRoute) {
   }
 }
 
-function App() {
+function AppContent() {
   const [route, setRoute] = useState<AppRoute>(() => normalizeRoute(window.location.pathname));
+  const { variant } = useWindowStyle();
 
   useEffect(() => {
     const normalized = normalizeRoute(window.location.pathname);
@@ -47,22 +48,30 @@ function App() {
   };
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
-      <CoTitlebar />
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        <CoSidebar route={route} onRouteChange={handleRouteChange} />
-        <div className="min-w-0 flex-1">
-          {route === '/settings' ? (
-            <SettingsPage />
-          ) : (
-            <PhotoProvider key={route}>
-              <BusinessWorkbench route={route} />
-            </PhotoProvider>
-          )}
-        </div>
+    <div
+      className="flex h-screen overflow-hidden bg-background text-foreground"
+      data-window-style={variant}
+    >
+      <CoSidebar route={route} onRouteChange={handleRouteChange} />
+      <div className="min-h-0 min-w-0 flex-1">
+        {route === '/settings' ? (
+          <SettingsPage />
+        ) : (
+          <PhotoProvider key={route}>
+            <BusinessWorkbench route={route} />
+          </PhotoProvider>
+        )}
       </div>
       <Toaster />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <WindowStyleProvider>
+      <AppContent />
+    </WindowStyleProvider>
   );
 }
 

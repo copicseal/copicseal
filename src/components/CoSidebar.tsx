@@ -1,7 +1,6 @@
-import { check } from '@tauri-apps/plugin-updater';
-import { Grid3x3, LayoutTemplate, RefreshCw, Settings2, Sparkles } from 'lucide-react';
-import { toast } from 'sonner';
+import { Grid3x3, LayoutTemplate, Settings2, Sparkles } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useWindowStyle } from '@/components/window-style-context';
 import { cn } from '@/lib/utils';
 
 export type AppRoute = '/template' | '/collage' | '/settings';
@@ -18,28 +17,21 @@ const items: Array<{
 }> = [
   { route: '/template', label: '边框水印', icon: LayoutTemplate },
   { route: '/collage', label: '拼图', icon: Grid3x3 },
-  { route: '/settings', label: '设置', icon: Settings2 },
 ];
 
 export function CoSidebar({ route, onRouteChange }: CoSidebarProps) {
-  const handleCheckUpdate = async () => {
-    const notificationId = toast.loading('检查更新中...');
-
-    try {
-      const update = await check();
-      if (update) {
-        toast.success(`发现新版本 ${update.version}`, { id: notificationId });
-      } else {
-        toast.success('已是最新版本', { id: notificationId });
-      }
-    } catch {
-      toast.error('检查更新失败', { id: notificationId });
-    }
-  };
+  const { variant } = useWindowStyle();
 
   return (
     <TooltipProvider>
-      <aside className="flex h-full w-[72px] shrink-0 flex-col border-r border-border/80 bg-[linear-gradient(180deg,color-mix(in_oklch,var(--color-muted),white_15%)_0%,var(--color-background)_100%)] py-4">
+      <aside
+        className="flex h-full w-[72px] shrink-0 flex-col border-r border-sidebar-border bg-[linear-gradient(180deg,color-mix(in_oklch,var(--color-muted),white_15%)_0%,var(--color-background)_100%)] pb-4"
+        data-tauri-drag-region
+      >
+        <div
+          className={cn('shrink-0', variant === 'win' ? 'h-3' : 'h-10')}
+          data-tauri-drag-region
+        />
         <div className="flex flex-col items-center gap-4">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -89,14 +81,19 @@ export function CoSidebar({ route, onRouteChange }: CoSidebarProps) {
             <TooltipTrigger asChild>
               <button
                 type="button"
-                aria-label="检查更新"
-                onClick={handleCheckUpdate}
-                className="flex size-11 items-center justify-center rounded-2xl border border-transparent text-muted-foreground transition-all hover:border-border hover:bg-card hover:text-foreground"
+                aria-label="设置"
+                onClick={() => onRouteChange('/settings')}
+                className={cn(
+                  'flex size-11 items-center justify-center rounded-2xl border transition-all',
+                  route === '/settings'
+                    ? 'border-primary/30 bg-primary text-primary-foreground shadow-[0_12px_28px_-16px_var(--color-primary)]'
+                    : 'border-transparent bg-transparent text-muted-foreground hover:border-border hover:bg-card hover:text-foreground',
+                )}
               >
-                <RefreshCw className="size-4.5" />
+                <Settings2 className="size-4.5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent>检查更新</TooltipContent>
+            <TooltipContent>设置</TooltipContent>
           </Tooltip>
         </div>
       </aside>

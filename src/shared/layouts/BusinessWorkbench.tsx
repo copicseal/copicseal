@@ -13,6 +13,7 @@ import { exportSingle } from '@/bridge/export.api';
 import { getBuiltinTemplateSchema } from '@/bridge/template.api';
 import { CoDropZone } from '@/components/CoDropZone';
 import type { AppRoute } from '@/components/CoSidebar';
+import { CoWindowHeader } from '@/components/CoWindowHeader';
 import { Button } from '@/components/ui/button';
 import { prepareElementForSnapshot } from '@/core/renderer';
 import { runScheduledExports } from '@/core/scheduler';
@@ -67,21 +68,24 @@ function clampAssetsHeight(height: number) {
 
 function ToolRail({ route }: { route: BusinessWorkbenchProps['route'] }) {
   const isTemplate = route === '/template';
+  const content = copy[route];
 
   return (
-    <div className="flex min-w-0 items-center gap-2 border-b border-border/80 px-5 py-3">
-      <div className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
-        {isTemplate ? <LayoutTemplate className="size-3.5" /> : <Grid3x3 className="size-3.5" />}
-        {isTemplate ? 'Template' : 'Collage'}
-      </div>
-      {isTemplate ? <div className="ml-auto" /> : <CollageToolbar />}
-      {isTemplate ? (
-        <Button size="sm" className="rounded-full px-3">
-          <Download data-icon="inline-start" />
-          导出
-        </Button>
-      ) : null}
-    </div>
+    <CoWindowHeader
+      icon={isTemplate ? LayoutTemplate : Grid3x3}
+      title={content.badge}
+      description={isTemplate ? '模板渲染与导出' : '布局编辑与导出'}
+      actions={
+        isTemplate ? (
+          <Button size="sm" className="rounded-full px-3">
+            <Download data-icon="inline-start" />
+            导出
+          </Button>
+        ) : (
+          <CollageToolbar />
+        )
+      }
+    />
   );
 }
 
@@ -457,9 +461,6 @@ function PropertiesPanel({
       <div className="border-b border-border/80 px-4 py-4">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           Properties
-        </p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          默认宽度 320px，可拖拽调整到 280px - 420px。
         </p>
       </div>
 

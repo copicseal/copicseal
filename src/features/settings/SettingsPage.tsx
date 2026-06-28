@@ -15,6 +15,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
+import { CoWindowHeader } from '@/components/CoWindowHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -440,19 +441,11 @@ function AboutTab() {
 export function SettingsPage() {
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
-      <div className="border-b border-border/80 px-6 py-5">
-        <div className="flex items-center gap-3">
-          <div className="flex size-11 items-center justify-center border border-border/80 bg-card text-primary shadow-sm">
-            <Settings2 className="size-5" />
-          </div>
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">Settings</h1>
-            <p className="text-sm text-muted-foreground">
-              管理软件行为、Template 默认配置、Collage 默认配置与导出策略。
-            </p>
-          </div>
-        </div>
-      </div>
+      <CoWindowHeader
+        icon={Settings2}
+        title="Settings"
+        description="管理软件行为、Template 默认配置、Collage 默认配置与导出策略。"
+      />
 
       <Tabs defaultValue="general" orientation="vertical" className="min-h-0 flex-1 p-4">
         <TabsList variant="line" className="w-56 shrink-0 border border-border/80 bg-card p-3">

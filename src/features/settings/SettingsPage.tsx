@@ -32,12 +32,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
 const TABS = [
-  { id: 'general', label: 'General', icon: Cog },
-  { id: 'template', label: 'Template', icon: Box },
-  { id: 'collage', label: 'Collage', icon: Palette },
-  { id: 'export', label: 'Export', icon: Download },
-  { id: 'cache', label: 'Cache', icon: Database },
-  { id: 'about', label: 'About', icon: Info },
+  { id: 'general', label: '通用', icon: Cog },
+  { id: 'template', label: '边框水印', icon: Box },
+  { id: 'collage', label: '拼图', icon: Palette },
+  { id: 'export', label: '导出', icon: Download },
+  { id: 'cache', label: '缓存', icon: Database },
+  { id: 'about', label: '关于', icon: Info },
 ] as const;
 
 function FieldGroup({
@@ -117,7 +117,7 @@ function GeneralTab() {
 
   return (
     <div className="space-y-4">
-      <FieldGroup title="General" description="控制应用的全局行为与启动体验。">
+      <FieldGroup title="通用" description="控制应用的全局行为与启动体验。">
         <SettingField label="主题" description="切换浅色、深色或跟随系统。">
           <RadioGroup
             defaultValue="system"
@@ -146,8 +146,8 @@ function GeneralTab() {
             <SelectContent>
               <SelectGroup>
                 <SelectItem value="zh-CN">简体中文</SelectItem>
-                <SelectItem value="en">English</SelectItem>
-                <SelectItem value="ja">日本語</SelectItem>
+                <SelectItem value="en">英语</SelectItem>
+                <SelectItem value="ja">日语</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
@@ -159,9 +159,9 @@ function GeneralTab() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="template">Template</SelectItem>
-              <SelectItem value="collage">Collage</SelectItem>
-              <SelectItem value="settings">Settings</SelectItem>
+              <SelectItem value="template">边框水印</SelectItem>
+              <SelectItem value="collage">拼图</SelectItem>
+              <SelectItem value="settings">设置</SelectItem>
             </SelectContent>
           </Select>
         </SettingField>
@@ -212,14 +212,14 @@ function TemplateTab() {
 
   return (
     <div className="space-y-4">
-      <FieldGroup title="Template" description="配置边框水印页面的默认模板与样式参数。">
-        <SettingField label="默认模板" description="设置进入 Template 页面时默认选中的模板。">
+      <FieldGroup title="边框水印" description="配置边框水印页面的默认模板与样式参数。">
+        <SettingField label="默认模板" description="设置进入边框水印页面时默认选中的模板。">
           <div className="grid gap-3 md:grid-cols-2">
             {[
               { name: 'Leica', description: '经典相机信息排版' },
               { name: 'Film', description: '胶片边框与颗粒风格' },
-              { name: 'Minimal', description: '最简边框水印方案' },
-              { name: 'Instagram', description: '社媒风格展示卡片' },
+              { name: '极简', description: '最简边框水印方案' },
+              { name: '社媒', description: '社交媒体风格展示卡片' },
             ].map((item, index) => (
               <OptionCard key={item.name} title={item.name} active={index === 2}>
                 {item.description}
@@ -234,7 +234,7 @@ function TemplateTab() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="inter">Inter Variable</SelectItem>
+              <SelectItem value="inter">Inter 可变字体</SelectItem>
               <SelectItem value="ibm-plex">IBM Plex Sans</SelectItem>
               <SelectItem value="georgia">Georgia</SelectItem>
               <SelectItem value="sf-pro">SF Pro</SelectItem>
@@ -286,18 +286,18 @@ function CollageTab() {
 
   return (
     <div className="space-y-4">
-      <FieldGroup title="Collage" description="配置拼图页面的默认布局与样式。">
-        <SettingField label="默认布局" description="设置进入 Collage 页面时使用的默认布局模式。">
+      <FieldGroup title="拼图" description="配置拼图页面的默认布局与样式。">
+        <SettingField label="默认布局" description="设置进入拼图页面时使用的默认布局模式。">
           <Select defaultValue="four-grid">
             <SelectTrigger className="h-9 w-[240px] rounded-none text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="two-columns">2 Grid</SelectItem>
-              <SelectItem value="three-columns">3 Grid</SelectItem>
-              <SelectItem value="four-grid">4 Grid</SelectItem>
-              <SelectItem value="six-grid">6 Grid</SelectItem>
-              <SelectItem value="free-layout">Free Layout</SelectItem>
+              <SelectItem value="two-columns">2 宫格</SelectItem>
+              <SelectItem value="three-columns">3 宫格</SelectItem>
+              <SelectItem value="four-grid">4 宫格</SelectItem>
+              <SelectItem value="six-grid">6 宫格</SelectItem>
+              <SelectItem value="free-layout">自由布局</SelectItem>
             </SelectContent>
           </Select>
         </SettingField>
@@ -337,7 +337,7 @@ function ExportTab() {
 
   return (
     <div className="space-y-4">
-      <FieldGroup title="Export" description="设置共享导出管线的默认格式、倍率与质量。">
+      <FieldGroup title="导出" description="设置共享导出管线的默认格式、倍率与质量。">
         <SettingField label="默认格式" description="控制导出的默认文件格式。">
           <div className="grid gap-3 md:grid-cols-3">
             {['PNG', 'JPG', 'WEBP'].map((item, index) => (
@@ -367,7 +367,7 @@ function ExportTab() {
 function CacheTab() {
   return (
     <div className="space-y-4">
-      <FieldGroup title="Cache" description="管理缩略图缓存、预览资源缓存与清理策略。">
+      <FieldGroup title="缓存" description="管理缩略图缓存、预览资源缓存与清理策略。">
         <SettingField label="缓存摘要" description="查看当前缓存状态与预计占用。">
           <div className="grid gap-3 md:grid-cols-2">
             <OptionCard title="缩略图缓存">约 128 MB，用于素材栏缩略图加载。</OptionCard>
@@ -412,10 +412,10 @@ function AboutTab() {
 
   return (
     <div className="space-y-4">
-      <FieldGroup title="About" description="查看产品信息、技术栈与版本更新状态。">
+      <FieldGroup title="关于" description="查看产品信息、技术栈与版本更新状态。">
         <SettingField label="产品信息" description="当前产品定位与技术实现摘要。">
           <div className="grid gap-3 md:grid-cols-2">
-            <OptionCard title="Copicseal">以图片处理为核心的桌面应用。</OptionCard>
+            <OptionCard title="可图匠（Copicseal）">以图片处理为核心的桌面应用。</OptionCard>
             <OptionCard title="技术栈">Tauri 2 + React 19 + Rust</OptionCard>
           </div>
         </SettingField>
@@ -443,8 +443,8 @@ export function SettingsPage() {
     <div className="flex h-full min-h-0 flex-col bg-background">
       <CoWindowHeader
         icon={Settings2}
-        title="Settings"
-        description="管理软件行为、Template 默认配置、Collage 默认配置与导出策略。"
+        title="设置"
+        description="管理软件行为、边框水印默认配置、拼图默认配置与导出策略。"
       />
 
       <Tabs defaultValue="general" orientation="vertical" className="min-h-0 flex-1 p-4">

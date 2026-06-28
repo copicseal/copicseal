@@ -66,9 +66,9 @@ const minimalSchema: TemplateSchema = {
 export const BUILTIN_TEMPLATE: BuiltinTemplate = {
   meta: {
     id: 'minimal',
-    name: 'Minimal',
+    name: '极简',
     description: '右下角半透明参数水印',
-    tags: ['clean', 'watermark'],
+    tags: ['简洁', '水印'],
   },
   component: Minimal,
   schema: minimalSchema,
@@ -81,7 +81,7 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
       id: 'leica',
       name: 'Leica',
       description: '强调器材信息与简洁底标的经典模板。',
-      tags: ['camera', 'editorial'],
+      tags: ['相机', '编辑风格'],
     },
     component: Minimal,
     schema: minimalSchema,
@@ -91,7 +91,7 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
       id: 'film',
       name: 'Film',
       description: '偏胶片展示风格，保留较强的参数存在感。',
-      tags: ['film', 'retro'],
+      tags: ['胶片', '复古'],
     },
     component: Minimal,
     schema: minimalSchema,
@@ -99,9 +99,9 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
   {
     meta: {
       id: 'instagram',
-      name: 'Instagram',
+      name: '社媒',
       description: '偏社交媒体展示的轻量模板。',
-      tags: ['social', 'mobile'],
+      tags: ['社交', '移动端'],
     },
     component: Minimal,
     schema: minimalSchema,

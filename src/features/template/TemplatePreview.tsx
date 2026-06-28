@@ -51,9 +51,7 @@ export function TemplatePreview({
       <div className="flex h-full w-full flex-col items-center justify-center gap-4 text-center text-muted-foreground">
         <LayoutTemplate className="size-14 text-primary" />
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Template Preview
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">边框水印预览</h1>
           <p className="mt-2 text-sm leading-6">选择一张图片后，这里会显示真实模板渲染结果。</p>
         </div>
       </div>
@@ -65,7 +63,7 @@ export function TemplatePreview({
   return (
     <div className="flex h-full w-full flex-col items-center gap-5">
       <div className="rounded-full border border-border/70 bg-background/80 px-3 py-1 text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase shadow-sm">
-        Template
+        当前模板
       </div>
 
       <div className="flex gap-2">
@@ -80,7 +78,7 @@ export function TemplatePreview({
               className="rounded-full px-4"
               onClick={() => setZoomMode(option)}
             >
-              {option === 'fit' ? 'Fit' : `${option}%`}
+              {option === 'fit' ? '适应' : `${option}%`}
             </Button>
           );
         })}

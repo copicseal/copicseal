@@ -43,17 +43,17 @@ interface BusinessWorkbenchProps {
 
 const copy = {
   '/template': {
-    badge: 'Template',
-    title: 'Template Preview',
-    description: 'Workspace 是边框水印的真实渲染区域，后续会由 <TemplateRuntime /> 承载。',
-    assetsTitle: 'Template Assets',
+    badge: '边框水印',
+    title: '边框水印预览',
+    description: '工作区是边框水印的真实渲染区域，后续会由 <TemplateRuntime /> 承载。',
+    assetsTitle: '边框水印素材',
     assetsDescription: '当前功能页内的图片缩略图列表，后续接入拖拽、粘贴、文件夹导入和多选。',
   },
   '/collage': {
-    badge: 'Collage',
-    title: 'Collage Preview',
-    description: 'Workspace 是拼图的真实渲染区域，当前已接入真实 CollageCanvas 预览。',
-    assetsTitle: 'Collage Assets',
+    badge: '拼图',
+    title: '拼图预览',
+    description: '工作区是拼图的真实渲染区域，当前已接入真实 CollageCanvas 预览。',
+    assetsTitle: '拼图素材',
     assetsDescription: '当前拼图会话的局部素材区，后续接入排序、替换图片和拖入拼图。',
   },
 } as const;

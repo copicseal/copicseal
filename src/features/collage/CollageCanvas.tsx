@@ -117,7 +117,7 @@ export function CollageCanvas({
       <div className="flex h-full w-full flex-col items-center justify-center gap-4 text-center text-muted-foreground">
         <ImagePlus className="size-14 text-primary" />
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Collage Preview</h1>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">拼图预览</h1>
           <p className="mt-2 text-sm leading-6">导入图片后，这里会显示真实拼图预览结果。</p>
         </div>
       </div>

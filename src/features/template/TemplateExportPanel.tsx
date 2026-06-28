@@ -49,7 +49,7 @@ export function TemplateExportPanel({ onExportCurrent, onExportBatch }: Template
   return (
     <div className="space-y-3">
       <div>
-        <h3 className="text-sm font-semibold">Export</h3>
+        <h3 className="text-sm font-semibold">导出</h3>
         <p className="mt-1 text-xs leading-6 text-muted-foreground">
           当前模板结果支持导出当前图片与批量导出资产栏中的全部图片。
         </p>

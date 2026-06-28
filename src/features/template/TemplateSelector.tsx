@@ -52,7 +52,7 @@ export function TemplateSelector({ activeTemplateId, onTemplateChange }: Templat
   return (
     <div className="space-y-3">
       <div>
-        <h3 className="text-sm font-semibold">Template Selector</h3>
+        <h3 className="text-sm font-semibold">模板选择</h3>
         <p className="mt-1 text-xs leading-6 text-muted-foreground">
           支持模板搜索、收藏和最近使用。
         </p>
@@ -70,8 +70,8 @@ export function TemplateSelector({ activeTemplateId, onTemplateChange }: Templat
 
       <div className="space-y-2">
         <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground">
-          <span className="border border-border px-2 py-1">最近使用: {recentIds.join(', ')}</span>
-          <span className="border border-border px-2 py-1">收藏: {favorites.length}</span>
+          <span className="border border-border px-2 py-1">最近使用：{recentIds.join(', ')}</span>
+          <span className="border border-border px-2 py-1">收藏：{favorites.length}</span>
         </div>
 
         <div className="space-y-2">

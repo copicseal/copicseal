@@ -4,10 +4,10 @@ import { usePhotos } from '@/hooks/usePhotos';
 import { useCollageStore } from '@/modules/collage/store/use-collage-store';
 
 const GRID_PRESETS = [
-  { label: '2 Grid', layoutId: 'two-columns', icon: Grid2x2 },
-  { label: '3 Grid', layoutId: 'three-columns', icon: Grid3x3 },
-  { label: '4 Grid', layoutId: 'four-grid', icon: LayoutGrid },
-  { label: '6 Grid', layoutId: 'six-grid', icon: LayoutGrid },
+  { label: '2 宫格', layoutId: 'two-columns', icon: Grid2x2 },
+  { label: '3 宫格', layoutId: 'three-columns', icon: Grid3x3 },
+  { label: '4 宫格', layoutId: 'four-grid', icon: LayoutGrid },
+  { label: '6 宫格', layoutId: 'six-grid', icon: LayoutGrid },
 ] as const;
 
 function getAutoLayoutId(photoCount: number) {
@@ -66,7 +66,7 @@ export function CollageToolbar() {
           setLayout(getAutoLayoutId(photos.length));
         }}
       >
-        Auto Layout
+        自动排版
       </Button>
 
       <Button
@@ -75,7 +75,7 @@ export function CollageToolbar() {
         className="rounded-full px-3"
         onClick={() => updateCanvas({ layoutMode: 'free' })}
       >
-        Free Layout
+        自由布局
       </Button>
     </div>
   );

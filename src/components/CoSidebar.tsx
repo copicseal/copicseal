@@ -37,14 +37,14 @@ export function CoSidebar({ route, onRouteChange }: CoSidebarProps) {
             <TooltipTrigger asChild>
               <button
                 type="button"
-                aria-label="Copicseal"
+                aria-label="可图匠"
                 onClick={() => onRouteChange('/template')}
                 className="flex size-11 items-center justify-center rounded-2xl border border-border/80 bg-card text-primary shadow-sm transition-transform hover:-translate-y-0.5"
               >
                 <Sparkles className="size-5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent>Copicseal</TooltipContent>
+            <TooltipContent>可图匠</TooltipContent>
           </Tooltip>
 
           <div className="flex flex-col items-center gap-2">

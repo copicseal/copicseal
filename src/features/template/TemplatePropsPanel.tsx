@@ -30,7 +30,7 @@ export function TemplatePropsPanel({ schema, value, onChange }: TemplatePropsPan
   return (
     <div className="space-y-3">
       <div>
-        <h3 className="text-sm font-semibold">Template Props</h3>
+        <h3 className="text-sm font-semibold">模板参数</h3>
         <p className="mt-1 text-xs leading-6 text-muted-foreground">
           该区域由 propsSchema 自动生成，不再维护手写模板表单。
         </p>

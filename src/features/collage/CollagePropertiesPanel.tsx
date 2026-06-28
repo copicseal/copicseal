@@ -61,7 +61,7 @@ export function CollagePropertiesPanel({
     <div className="space-y-3">
       <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
         <div>
-          <h3 className="text-sm font-semibold">Layout</h3>
+          <h3 className="text-sm font-semibold">布局</h3>
           <p className="mt-1 text-xs leading-6 text-muted-foreground">
             控制画布布局、间距与背景样式。
           </p>
@@ -165,7 +165,7 @@ export function CollagePropertiesPanel({
 
       <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
         <div>
-          <h3 className="text-sm font-semibold">Selection</h3>
+          <h3 className="text-sm font-semibold">选中项</h3>
           <p className="mt-1 text-xs leading-6 text-muted-foreground">
             {selectedSlotIndex === null
               ? '选择画布中的图片区域后，在这里调整单图属性。'
@@ -250,9 +250,9 @@ export function CollagePropertiesPanel({
 
       <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
         <div>
-          <h3 className="text-sm font-semibold">Export</h3>
+          <h3 className="text-sm font-semibold">导出</h3>
           <p className="mt-1 text-xs leading-6 text-muted-foreground">
-            与 Template 共用导出参数结构，导出内容来自当前 Collage Workspace。
+            与边框水印共用导出参数结构，导出内容来自当前拼图工作区。
           </p>
         </div>
 

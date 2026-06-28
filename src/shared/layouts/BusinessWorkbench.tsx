@@ -77,7 +77,7 @@ function ToolRail({ route }: { route: BusinessWorkbenchProps['route'] }) {
       description={isTemplate ? '模板渲染与导出' : '布局编辑与导出'}
       actions={
         isTemplate ? (
-          <Button size="sm" className="rounded-full px-3">
+          <Button size="sm">
             <Download data-icon="inline-start" />
             导出
           </Button>
@@ -216,12 +216,7 @@ function AssetsPanel({
         >
           <span className="absolute top-1/2 left-1/2 h-1 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full bg-border transition-colors hover:bg-primary" />
         </button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className="rounded-full bg-background/90"
-          onClick={onToggleCollapse}
-        >
+        <Button variant="ghost" size="icon-sm" onClick={onToggleCollapse}>
           {collapsed ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
         </Button>
       </div>
@@ -233,22 +228,12 @@ function AssetsPanel({
         </div>
         <div className="flex items-center gap-2">
           {isTemplate ? (
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full px-3"
-              onClick={() => void importViaDirectory()}
-            >
+            <Button variant="outline" size="sm" onClick={() => void importViaDirectory()}>
               <FolderOpen data-icon="inline-start" />
               文件夹导入
             </Button>
           ) : null}
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-full px-3"
-            onClick={() => void importViaDialog()}
-          >
+          <Button variant="outline" size="sm" onClick={() => void importViaDialog()}>
             <ImageIcon data-icon="inline-start" />
             导入图片
           </Button>

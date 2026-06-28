@@ -8,7 +8,6 @@ import {
   Download,
   FolderOpen,
   Info,
-  Languages,
   Palette,
   RefreshCw,
   Settings2,
@@ -139,8 +138,7 @@ function GeneralTab() {
 
         <SettingField label="语言" description="配置应用的界面语言。">
           <Select defaultValue="zh-CN">
-            <SelectTrigger className="h-9 w-[240px] rounded-none text-xs">
-              <Languages className="size-3.5" />
+            <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -155,25 +153,23 @@ function GeneralTab() {
 
         <SettingField label="启动页" description="设置应用启动后默认进入的一级页面。">
           <Select defaultValue="template">
-            <SelectTrigger className="h-9 w-[240px] rounded-none text-xs">
+            <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="template">边框水印</SelectItem>
-              <SelectItem value="collage">拼图</SelectItem>
-              <SelectItem value="settings">设置</SelectItem>
+              <SelectGroup>
+                <SelectItem value="template">边框水印</SelectItem>
+                <SelectItem value="collage">拼图</SelectItem>
+                <SelectItem value="settings">设置</SelectItem>
+              </SelectGroup>
             </SelectContent>
           </Select>
         </SettingField>
 
         <SettingField label="默认导出目录" description="指定导出图片时的默认保存位置。">
           <div className="flex max-w-2xl items-center gap-2">
-            <Input value={exportDirectory} readOnly className="h-10 rounded-none text-xs" />
-            <Button
-              variant="outline"
-              className="rounded-none px-4"
-              onClick={() => void handlePickDirectory()}
-            >
+            <Input value={exportDirectory} readOnly />
+            <Button variant="outline" onClick={() => void handlePickDirectory()}>
               <FolderOpen data-icon="inline-start" />
               选择
             </Button>
@@ -230,14 +226,16 @@ function TemplateTab() {
 
         <SettingField label="默认字体" description="控制模板文字信息的默认字体。">
           <Select defaultValue="inter">
-            <SelectTrigger className="h-9 w-[240px] rounded-none text-xs">
+            <SelectTrigger className="w-full max-w-[240px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="inter">Inter 可变字体</SelectItem>
-              <SelectItem value="ibm-plex">IBM Plex Sans</SelectItem>
-              <SelectItem value="georgia">Georgia</SelectItem>
-              <SelectItem value="sf-pro">SF Pro</SelectItem>
+              <SelectGroup>
+                <SelectItem value="inter">Inter 可变字体</SelectItem>
+                <SelectItem value="ibm-plex">IBM Plex Sans</SelectItem>
+                <SelectItem value="georgia">Georgia</SelectItem>
+                <SelectItem value="sf-pro">SF Pro</SelectItem>
+              </SelectGroup>
             </SelectContent>
           </Select>
         </SettingField>
@@ -256,17 +254,14 @@ function TemplateTab() {
               defaultValue="#ffffff"
               className="h-10 w-12 border border-border bg-background p-1"
             />
-            <Input defaultValue="#ffffff" className="h-10 rounded-none text-xs" />
+            <Input defaultValue="#ffffff" />
           </div>
         </SettingField>
 
         <SettingField label="默认 EXIF 格式" description="控制相机参数文本的默认模板。">
           <div className="grid gap-3">
-            <Input defaultValue="{Make} {Model}" className="h-10 rounded-none text-xs" />
-            <Input
-              defaultValue="{FocalLength}  f/{FNumber}  {ExposureTime}s  ISO{ISO}"
-              className="h-10 rounded-none text-xs"
-            />
+            <Input defaultValue="{Make} {Model}" />
+            <Input defaultValue="{FocalLength}  f/{FNumber}  {ExposureTime}s  ISO{ISO}" />
             <div className="max-w-md">
               <Slider value={fontScale} onValueChange={setFontScale} min={0.6} max={2} step={0.1} />
               <p className="mt-2 text-xs text-muted-foreground">
@@ -289,15 +284,17 @@ function CollageTab() {
       <FieldGroup title="拼图" description="配置拼图页面的默认布局与样式。">
         <SettingField label="默认布局" description="设置进入拼图页面时使用的默认布局模式。">
           <Select defaultValue="four-grid">
-            <SelectTrigger className="h-9 w-[240px] rounded-none text-xs">
+            <SelectTrigger className="w-full max-w-[240px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="two-columns">2 宫格</SelectItem>
-              <SelectItem value="three-columns">3 宫格</SelectItem>
-              <SelectItem value="four-grid">4 宫格</SelectItem>
-              <SelectItem value="six-grid">6 宫格</SelectItem>
-              <SelectItem value="free-layout">自由布局</SelectItem>
+              <SelectGroup>
+                <SelectItem value="two-columns">2 宫格</SelectItem>
+                <SelectItem value="three-columns">3 宫格</SelectItem>
+                <SelectItem value="four-grid">4 宫格</SelectItem>
+                <SelectItem value="six-grid">6 宫格</SelectItem>
+                <SelectItem value="free-layout">自由布局</SelectItem>
+              </SelectGroup>
             </SelectContent>
           </Select>
         </SettingField>
@@ -316,7 +313,7 @@ function CollageTab() {
               defaultValue="#ffffff"
               className="h-10 w-12 border border-border bg-background p-1"
             />
-            <Input defaultValue="#ffffff" className="h-10 rounded-none text-xs" />
+            <Input defaultValue="#ffffff" />
           </div>
         </SettingField>
 
@@ -377,11 +374,11 @@ function CacheTab() {
 
         <SettingField label="清理缓存" description="清理本地缓存并释放磁盘空间。">
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" className="rounded-none px-4">
+            <Button variant="outline">
               <Trash2 data-icon="inline-start" />
               清理缩略图缓存
             </Button>
-            <Button variant="outline" className="rounded-none px-4">
+            <Button variant="outline">
               <Trash2 data-icon="inline-start" />
               清理预览资源缓存
             </Button>
@@ -422,11 +419,7 @@ function AboutTab() {
 
         <SettingField label="检查更新" description="手动检查应用新版本。">
           <div className="flex flex-wrap items-center gap-3">
-            <Button
-              onClick={() => void handleCheckUpdate()}
-              variant="outline"
-              className="rounded-none px-4"
-            >
+            <Button onClick={() => void handleCheckUpdate()} variant="outline">
               <RefreshCw className={cn('size-3.5', checking && 'animate-spin')} />
               {checking ? '检查中...' : '检查更新'}
             </Button>
@@ -452,7 +445,7 @@ export function SettingsPage() {
           {TABS.map((tab) => {
             const Icon = tab.icon;
             return (
-              <TabsTrigger key={tab.id} value={tab.id} className="gap-2 px-3 py-2.5">
+              <TabsTrigger key={tab.id} value={tab.id}>
                 <Icon className="size-3.5" />
                 {tab.label}
               </TabsTrigger>

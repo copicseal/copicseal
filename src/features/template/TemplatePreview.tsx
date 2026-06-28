@@ -75,7 +75,6 @@ export function TemplatePreview({
               key={option.toString()}
               variant={active ? 'default' : 'outline'}
               size="sm"
-              className="rounded-full px-4"
               onClick={() => setZoomMode(option)}
             >
               {option === 'fit' ? '适应' : `${option}%`}

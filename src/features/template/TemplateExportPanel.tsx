@@ -91,7 +91,6 @@ export function TemplateExportPanel({ onExportCurrent, onExportBatch }: Template
             value={width}
             onChange={(event) => setWidth(event.target.value)}
             placeholder="自动"
-            className="h-9 rounded-none text-xs"
           />
         </div>
         <div className="space-y-1.5">
@@ -100,7 +99,6 @@ export function TemplateExportPanel({ onExportCurrent, onExportBatch }: Template
             value={height}
             onChange={(event) => setHeight(event.target.value)}
             placeholder="自动"
-            className="h-9 rounded-none text-xs"
           />
         </div>
       </div>
@@ -108,18 +106,13 @@ export function TemplateExportPanel({ onExportCurrent, onExportBatch }: Template
       <div className="grid grid-cols-2 gap-2 pt-1">
         <Button
           variant="outline"
-          className="rounded-none"
           disabled={exporting !== null}
           onClick={() => void handleExportCurrent()}
         >
           {exporting === 'single' ? <Loader2 className="size-3.5 animate-spin" /> : null}
           导出当前
         </Button>
-        <Button
-          className="rounded-none"
-          disabled={exporting !== null}
-          onClick={() => void handleExportBatch()}
-        >
+        <Button disabled={exporting !== null} onClick={() => void handleExportBatch()}>
           {exporting === 'batch' ? <Loader2 className="size-3.5 animate-spin" /> : null}
           批量导出
         </Button>

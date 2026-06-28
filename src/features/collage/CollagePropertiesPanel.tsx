@@ -128,7 +128,6 @@ export function CollagePropertiesPanel({
               <Input
                 value={present.canvas.backgroundColor}
                 onChange={(event) => updateCanvas({ backgroundColor: event.target.value })}
-                className="h-9 rounded-none text-xs"
               />
             </div>
           </label>
@@ -312,7 +311,6 @@ export function CollagePropertiesPanel({
                 value={width}
                 onChange={(event) => setWidth(event.target.value)}
                 placeholder="自动"
-                className="h-9 rounded-none text-xs"
               />
             </div>
             <div className="space-y-1.5">
@@ -321,7 +319,6 @@ export function CollagePropertiesPanel({
                 value={height}
                 onChange={(event) => setHeight(event.target.value)}
                 placeholder="自动"
-                className="h-9 rounded-none text-xs"
               />
             </div>
           </div>
@@ -329,7 +326,6 @@ export function CollagePropertiesPanel({
           <div className="grid grid-cols-2 gap-2 pt-1">
             <Button
               variant="outline"
-              className="rounded-none"
               disabled={exporting !== null || photos.length === 0}
               onClick={() => void handleExportCurrent()}
             >
@@ -337,7 +333,6 @@ export function CollagePropertiesPanel({
               导出当前
             </Button>
             <Button
-              className="rounded-none"
               disabled={exporting !== null || photos.length === 0}
               onClick={() => void handleExportBatch()}
             >

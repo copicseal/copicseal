@@ -45,7 +45,6 @@ export function CollageToolbar() {
             key={preset.layoutId}
             variant={active ? 'default' : 'outline'}
             size="sm"
-            className="rounded-full px-3"
             onClick={() => {
               updateCanvas({ layoutMode: 'grid' });
               setLayout(preset.layoutId);
@@ -60,7 +59,6 @@ export function CollageToolbar() {
       <Button
         variant="outline"
         size="sm"
-        className="rounded-full px-3"
         onClick={() => {
           updateCanvas({ layoutMode: 'grid' });
           setLayout(getAutoLayoutId(photos.length));
@@ -72,7 +70,6 @@ export function CollageToolbar() {
       <Button
         variant={present.canvas.layoutMode === 'free' ? 'default' : 'outline'}
         size="sm"
-        className="rounded-full px-3"
         onClick={() => updateCanvas({ layoutMode: 'free' })}
       >
         自由布局

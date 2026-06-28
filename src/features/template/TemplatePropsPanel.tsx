@@ -2,6 +2,7 @@ import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -50,15 +51,17 @@ export function TemplatePropsPanel({ schema, value, onChange }: TemplatePropsPan
                     updateField(field.key, next as EditableTemplateProps[typeof field.key])
                   }
                 >
-                  <SelectTrigger className="h-9 rounded-none text-xs">
+                  <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {field.options?.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
+                    <SelectGroup>
+                      {field.options?.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
               ) : null}
@@ -76,7 +79,6 @@ export function TemplatePropsPanel({ schema, value, onChange }: TemplatePropsPan
                       Number(event.target.value) as EditableTemplateProps[typeof field.key],
                     )
                   }
-                  className="h-9 rounded-none text-xs"
                 />
               ) : null}
 
@@ -101,7 +103,6 @@ export function TemplatePropsPanel({ schema, value, onChange }: TemplatePropsPan
                         event.target.value as EditableTemplateProps[typeof field.key],
                       )
                     }
-                    className="h-9 rounded-none text-xs"
                   />
                 </div>
               ) : null}
@@ -115,7 +116,6 @@ export function TemplatePropsPanel({ schema, value, onChange }: TemplatePropsPan
                       event.target.value as EditableTemplateProps[typeof field.key],
                     )
                   }
-                  className="h-9 rounded-none text-xs"
                 />
               ) : null}
             </div>

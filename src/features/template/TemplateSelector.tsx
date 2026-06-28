@@ -64,7 +64,7 @@ export function TemplateSelector({ activeTemplateId, onTemplateChange }: Templat
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="搜索模板"
-          className="h-9 rounded-none pr-3 pl-9 text-xs"
+          className="pl-9"
         />
       </div>
 

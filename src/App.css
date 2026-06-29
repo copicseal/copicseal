@@ -132,6 +132,10 @@
     @apply font-sans;
   }
   #root {
-    @apply h-screen overflow-hidden bg-background;
+    @apply h-screen overflow-hidden;
   }
+}
+
+body {
+  background-color: transparent;
 }

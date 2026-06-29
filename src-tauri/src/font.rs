@@ -21,7 +21,7 @@ pub fn list_system_fonts() -> Result<Vec<FontInfo>, String> {
         })
         .collect();
 
-    fonts.sort_by(|a, b| a.family.to_lowercase().cmp(&b.family.to_lowercase()));
+    fonts.sort_by_key(|a| a.family.to_lowercase());
     fonts.dedup_by(|a, b| a.family == b.family);
 
     Ok(fonts)

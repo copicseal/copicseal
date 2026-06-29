@@ -49,7 +49,7 @@ function AppContent() {
 
   return (
     <div
-      className="flex h-screen overflow-hidden bg-background text-foreground"
+      className="flex h-screen overflow-hidden rounded-lg border-1 border-border bg-background text-foreground"
       data-window-style={variant}
     >
       <CoSidebar route={route} onRouteChange={handleRouteChange} />

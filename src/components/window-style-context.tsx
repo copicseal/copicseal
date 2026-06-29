@@ -13,7 +13,13 @@ function detectWindowStyleVariant(): WindowStyleVariant {
     return 'win';
   }
 
-  const platform = navigator.userAgentData?.platform ?? navigator.platform ?? navigator.userAgent;
+  const navigatorWithUserAgentData = navigator as Navigator & {
+    userAgentData?: {
+      platform?: string;
+    };
+  };
+  const platform =
+    navigatorWithUserAgentData.userAgentData?.platform ?? navigator.platform ?? navigator.userAgent;
   return /mac/i.test(platform) ? 'mac' : 'win';
 }
 

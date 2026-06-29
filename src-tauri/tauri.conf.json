@@ -19,7 +19,7 @@
         "minHeight": 500,
         "decorations": false,
         "transparent": true,
-        "shadow": false,
+        "shadow": true,
         "hiddenTitle": true,
         "acceptFirstMouse": true,
         "titleBarStyle": "Overlay"

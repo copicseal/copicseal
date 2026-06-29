@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { useWindowStyle, WindowStyleProvider } from '@/components/window-style-context';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { PhotoProvider } from '@/hooks/usePhotos';
+import { cn } from '@/lib/utils';
 import { BusinessWorkbench } from '@/shared/layouts/BusinessWorkbench';
 import './App.css';
 
@@ -49,7 +50,10 @@ function AppContent() {
 
   return (
     <div
-      className="flex h-screen overflow-hidden rounded-lg border-1 border-border bg-background text-foreground"
+      className={cn(
+        'flex h-screen overflow-hidden bg-background text-foreground',
+        variant === 'win' && 'rounded-lg border border-border',
+      )}
       data-window-style={variant}
     >
       <CoSidebar route={route} onRouteChange={handleRouteChange} />

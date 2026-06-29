@@ -26,7 +26,7 @@ function navigate(route: AppRoute) {
 
 function AppContent() {
   const [route, setRoute] = useState<AppRoute>(() => normalizeRoute(window.location.pathname));
-  const { variant } = useWindowStyle();
+  const { variant, frameMode } = useWindowStyle();
 
   useEffect(() => {
     const normalized = normalizeRoute(window.location.pathname);
@@ -52,9 +52,10 @@ function AppContent() {
     <div
       className={cn(
         'flex h-screen overflow-hidden bg-background text-foreground',
-        variant === 'win' && 'rounded-lg border border-border',
+        variant === 'win' && frameMode === 'frameless' && 'rounded-lg border border-border',
       )}
       data-window-style={variant}
+      data-window-frame-mode={frameMode}
     >
       <CoSidebar route={route} onRouteChange={handleRouteChange} />
       <div className="min-h-0 min-w-0 flex-1">

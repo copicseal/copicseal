@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useWindowStyle } from '@/components/window-style-context';
 import { cn } from '@/lib/utils';
 
 const TABS = [
@@ -107,6 +108,7 @@ function OptionCard({
 
 function GeneralTab() {
   const [exportDirectory, setExportDirectory] = useState('~/Documents/Copicseal');
+  const { frameMode, frameModePending, setFrameMode } = useWindowStyle();
 
   const handlePickDirectory = async () => {
     const selected = await open({ directory: true, multiple: false });
@@ -135,6 +137,45 @@ function GeneralTab() {
               </label>
             ))}
           </RadioGroup>
+        </SettingField>
+
+        <SettingField
+          label="窗口边框"
+          description="切换使用系统边框或无边框窗口，修改后会立即生效。"
+        >
+          <div className="space-y-2">
+            <RadioGroup
+              value={frameMode}
+              className="flex flex-wrap gap-3"
+              orientation="horizontal"
+              onValueChange={(value) =>
+                void setFrameMode(value === 'native' ? 'native' : 'frameless')
+              }
+            >
+              {[
+                { value: 'native', label: '系统边框' },
+                { value: 'frameless', label: '无边框' },
+              ].map(({ value, label }) => (
+                <label
+                  key={value}
+                  htmlFor={`window-frame-${value}`}
+                  className="flex items-center gap-2"
+                >
+                  <RadioGroupItem
+                    value={value}
+                    id={`window-frame-${value}`}
+                    disabled={frameModePending}
+                  />
+                  <span className="text-sm">{label}</span>
+                </label>
+              ))}
+            </RadioGroup>
+            <p className="text-xs leading-5 text-muted-foreground">
+              {frameModePending
+                ? '正在切换窗口边框样式...'
+                : '系统边框模式将使用操作系统自带窗口外框。'}
+            </p>
+          </div>
         </SettingField>
 
         <SettingField label="语言" description="配置应用的界面语言。">

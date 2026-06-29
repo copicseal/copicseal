@@ -8,6 +8,7 @@ use std::path::PathBuf;
 pub struct AppConfig {
     pub language: String,
     pub theme: String,
+    pub window_frame_mode: String,
     pub save_directory: String,
     pub output: OutputConfig,
     pub fonts: FontConfig,
@@ -98,6 +99,7 @@ impl Default for AppConfig {
         Self {
             language: "zh-CN".to_string(),
             theme: "system".to_string(),
+            window_frame_mode: "frameless".to_string(),
             save_directory: save,
             output: OutputConfig::default(),
             fonts: FontConfig::default(),
@@ -219,6 +221,8 @@ fn load_from_db(app: &tauri::AppHandle) -> Result<AppConfig, String> {
     Ok(AppConfig {
         language: read_json_value(&conn, "language")?.unwrap_or(defaults.language),
         theme: read_json_value(&conn, "theme")?.unwrap_or(defaults.theme),
+        window_frame_mode: read_json_value(&conn, "window_frame_mode")?
+            .unwrap_or(defaults.window_frame_mode),
         save_directory: read_json_value(&conn, "save_directory")?
             .unwrap_or(defaults.save_directory),
         output: read_json_value(&conn, "output")?.unwrap_or(defaults.output),
@@ -239,6 +243,7 @@ fn save_to_db(app: &tauri::AppHandle, config: &AppConfig) -> Result<(), String> 
 
     write_json_value(&tx, "language", &config.language)?;
     write_json_value(&tx, "theme", &config.theme)?;
+    write_json_value(&tx, "window_frame_mode", &config.window_frame_mode)?;
     write_json_value(&tx, "save_directory", &config.save_directory)?;
     write_json_value(&tx, "output", &config.output)?;
     write_json_value(&tx, "fonts", &config.fonts)?;

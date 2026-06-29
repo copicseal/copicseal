@@ -22,8 +22,9 @@ function RestoreWindowIcon() {
 }
 
 export function CoWindowHeader({ icon: Icon, title, description, actions }: CoWindowHeaderProps) {
-  const { variant } = useWindowStyle();
+  const { variant, frameMode } = useWindowStyle();
   const [isMaximized, setIsMaximized] = useState(false);
+  const showCustomWindowControls = variant === 'win' && frameMode === 'frameless';
 
   useEffect(() => {
     const currentWindow = getCurrentWindow();
@@ -65,27 +66,36 @@ export function CoWindowHeader({ icon: Icon, title, description, actions }: CoWi
 
   return (
     <div
-      data-tauri-drag-region
+      data-tauri-drag-region={frameMode === 'frameless' ? true : undefined}
       className={cn(
         'relative flex items-center gap-3 border-b border-border/80 bg-background/96 px-4 py-2.5 backdrop-blur-sm',
-        variant === 'win' && 'pr-34',
+        showCustomWindowControls && 'pr-34',
       )}
     >
-      <div className="flex min-w-0 flex-1 items-center gap-3" data-tauri-drag-region>
+      <div
+        className="flex min-w-0 flex-1 items-center gap-3"
+        data-tauri-drag-region={frameMode === 'frameless' ? true : undefined}
+      >
         <div
           className="pointer-events-none flex size-9 shrink-0 items-center justify-center border border-border/80 bg-card text-primary shadow-sm"
-          data-tauri-drag-region
+          data-tauri-drag-region={frameMode === 'frameless' ? true : undefined}
         >
           <Icon className="size-4" />
         </div>
-        <div className="pointer-events-none min-w-0" data-tauri-drag-region>
+        <div
+          className="pointer-events-none min-w-0"
+          data-tauri-drag-region={frameMode === 'frameless' ? true : undefined}
+        >
           <h1
             className="truncate text-sm font-semibold tracking-tight text-foreground"
-            data-tauri-drag-region
+            data-tauri-drag-region={frameMode === 'frameless' ? true : undefined}
           >
             {title}
           </h1>
-          <p className="truncate text-[11px] text-muted-foreground" data-tauri-drag-region>
+          <p
+            className="truncate text-[11px] text-muted-foreground"
+            data-tauri-drag-region={frameMode === 'frameless' ? true : undefined}
+          >
             {description}
           </p>
         </div>
@@ -93,7 +103,7 @@ export function CoWindowHeader({ icon: Icon, title, description, actions }: CoWi
 
       <div className="flex shrink-0 items-center gap-2" data-tauri-drag-region="false">
         {actions}
-        {variant === 'win' ? (
+        {showCustomWindowControls ? (
           <div
             className="absolute top-0 right-0 flex h-10 items-stretch bg-background/96"
             data-tauri-drag-region="false"

@@ -1,12 +1,37 @@
-import { createContext, type PropsWithChildren, useContext, useMemo } from 'react';
+import {
+  createContext,
+  type PropsWithChildren,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import {
+  type AppConfig,
+  applyWindowFrameMode,
+  getConfig,
+  updateConfig,
+  type WindowFrameMode,
+} from '@/api';
 
 export type WindowStyleVariant = 'mac' | 'win';
 
+const DEFAULT_WINDOW_FRAME_MODE: WindowFrameMode = 'frameless';
+
 interface WindowStyleContextValue {
   variant: WindowStyleVariant;
+  frameMode: WindowFrameMode;
+  frameModePending: boolean;
+  setFrameMode: (mode: WindowFrameMode) => Promise<void>;
 }
 
 const WindowStyleContext = createContext<WindowStyleContextValue | null>(null);
+
+function normalizeWindowFrameMode(value: string | null | undefined): WindowFrameMode {
+  return value === 'native' ? 'native' : DEFAULT_WINDOW_FRAME_MODE;
+}
 
 function detectWindowStyleVariant(): WindowStyleVariant {
   if (typeof navigator === 'undefined') {
@@ -24,11 +49,86 @@ function detectWindowStyleVariant(): WindowStyleVariant {
 }
 
 export function WindowStyleProvider({ children }: PropsWithChildren) {
+  const configRef = useRef<AppConfig | null>(null);
+  const [frameMode, setFrameModeState] = useState<WindowFrameMode>(DEFAULT_WINDOW_FRAME_MODE);
+  const [frameModePending, setFrameModePending] = useState(false);
+
+  const ensureConfig = useCallback(async () => {
+    if (configRef.current) {
+      return configRef.current;
+    }
+
+    const config = await getConfig();
+    configRef.current = config;
+    return config;
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const syncWindowFrameMode = async () => {
+      try {
+        const config = await ensureConfig();
+        const nextMode = normalizeWindowFrameMode(config.window_frame_mode);
+        if (cancelled) {
+          return;
+        }
+
+        setFrameModeState(nextMode);
+        await applyWindowFrameMode(nextMode);
+      } catch (error) {
+        console.error('Load window frame mode failed:', error);
+      }
+    };
+
+    void syncWindowFrameMode();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ensureConfig]);
+
+  const setFrameMode = useCallback(
+    async (mode: WindowFrameMode) => {
+      const nextMode = normalizeWindowFrameMode(mode);
+      const previousMode = frameMode;
+
+      if (previousMode === nextMode) {
+        return;
+      }
+
+      setFrameModeState(nextMode);
+      setFrameModePending(true);
+
+      try {
+        await applyWindowFrameMode(nextMode);
+
+        const config = await ensureConfig();
+        const updated: AppConfig = {
+          ...config,
+          window_frame_mode: nextMode,
+        };
+
+        await updateConfig(updated);
+        configRef.current = updated;
+      } catch (error) {
+        console.error('Switch window frame mode failed:', error);
+        setFrameModeState(previousMode);
+      } finally {
+        setFrameModePending(false);
+      }
+    },
+    [ensureConfig, frameMode],
+  );
+
   const value = useMemo(
     () => ({
       variant: detectWindowStyleVariant(),
+      frameMode,
+      frameModePending,
+      setFrameMode,
     }),
-    [],
+    [frameMode, frameModePending, setFrameMode],
   );
 
   return <WindowStyleContext.Provider value={value}>{children}</WindowStyleContext.Provider>;

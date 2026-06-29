@@ -12,15 +12,15 @@
   "app": {
     "windows": [
       {
-        "title": "Copicseal",
+        "title": "",
         "width": 900,
         "height": 670,
         "minWidth": 700,
         "minHeight": 500,
-        "decorations": false,
-        "transparent": true,
+        "decorations": true,
+        "transparent": false,
         "shadow": true,
-        "hiddenTitle": true,
+        "hiddenTitle": false,
         "acceptFirstMouse": true,
         "titleBarStyle": "Overlay"
       }

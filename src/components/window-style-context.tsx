@@ -49,6 +49,7 @@ function detectWindowStyleVariant(): WindowStyleVariant {
 }
 
 export function WindowStyleProvider({ children }: PropsWithChildren) {
+  const variant = useMemo(() => detectWindowStyleVariant(), []);
   const configRef = useRef<AppConfig | null>(null);
   const [frameMode, setFrameModeState] = useState<WindowFrameMode>(DEFAULT_WINDOW_FRAME_MODE);
   const [frameModePending, setFrameModePending] = useState(false);
@@ -123,12 +124,12 @@ export function WindowStyleProvider({ children }: PropsWithChildren) {
 
   const value = useMemo(
     () => ({
-      variant: detectWindowStyleVariant(),
+      variant,
       frameMode,
       frameModePending,
       setFrameMode,
     }),
-    [frameMode, frameModePending, setFrameMode],
+    [frameMode, frameModePending, setFrameMode, variant],
   );
 
   return <WindowStyleContext.Provider value={value}>{children}</WindowStyleContext.Provider>;

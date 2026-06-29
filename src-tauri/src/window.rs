@@ -1,4 +1,4 @@
-use tauri::{AppHandle, Manager, WebviewWindow};
+use tauri::{AppHandle, Manager, TitleBarStyle, WebviewWindow};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum WindowFrameMode {
@@ -27,8 +27,12 @@ fn apply_frame_mode(window: &WebviewWindow, mode: WindowFrameMode) -> Result<(),
     match mode {
         WindowFrameMode::Native => {
             window
-                .set_decorations(true)
-                .map_err(|e| format!("启用系统边框失败: {e}"))?;
+                .set_title_bar_style(TitleBarStyle::Visible)
+                .map_err(|e| format!("切换标题栏样式失败: {e}"))?;
+
+            window
+                .set_title("Copicseal")
+                .map_err(|e| format!("恢复窗口标题失败: {e}"))?;
 
             #[cfg(not(target_os = "macos"))]
             window
@@ -37,8 +41,12 @@ fn apply_frame_mode(window: &WebviewWindow, mode: WindowFrameMode) -> Result<(),
         }
         WindowFrameMode::Frameless => {
             window
-                .set_decorations(false)
-                .map_err(|e| format!("切换为无边框窗口失败: {e}"))?;
+                .set_title_bar_style(TitleBarStyle::Overlay)
+                .map_err(|e| format!("切换标题栏样式失败: {e}"))?;
+
+            window
+                .set_title("")
+                .map_err(|e| format!("隐藏窗口标题失败: {e}"))?;
 
             #[cfg(not(target_os = "macos"))]
             window

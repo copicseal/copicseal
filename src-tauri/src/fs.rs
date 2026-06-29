@@ -39,14 +39,14 @@ pub async fn convert_heic_to_png(input: String) -> Result<String, String> {
         if !status.success() {
             return Err("sips 转换 HEIC 失败".into());
         }
+
+        Ok(output_str)
     }
 
     #[cfg(not(target_os = "macos"))]
     {
-        return Err("HEIC 转 PNG 仅在 macOS 上支持".into());
+        Err("HEIC 转 PNG 仅在 macOS 上支持".into())
     }
-
-    Ok(output_str)
 }
 
 /// 支持的图片格式

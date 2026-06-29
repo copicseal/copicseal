@@ -5,10 +5,17 @@ mod exif;
 mod font;
 mod fs;
 mod system;
+mod window;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .setup(|app| {
+            let config = config::get_config(app.handle().clone()).unwrap_or_default();
+            window::apply_main_window_frame_mode(app.handle(), &config.window_frame_mode)?;
+
+            Ok(())
+        })
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -20,6 +27,7 @@ pub fn run() {
             config::get_config,
             config::update_config,
             config::get_device_id,
+            window::apply_window_frame_mode,
             comark::list_comark_templates,
             comark::upsert_comark_template,
             comark::remove_comark_template,

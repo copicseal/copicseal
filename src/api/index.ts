@@ -23,9 +23,12 @@ export interface FontInfo {
   postscript_name: string | null;
 }
 
+export type WindowFrameMode = 'native' | 'frameless';
+
 export interface AppConfig {
   language: string;
   theme: string;
+  window_frame_mode: WindowFrameMode;
   save_directory: string;
   output: OutputConfig;
   fonts: FontConfig;
@@ -140,6 +143,10 @@ export function getConfig(): Promise<AppConfig> {
 
 export function updateConfig(config: AppConfig): Promise<void> {
   return invoke('update_config', { config });
+}
+
+export function applyWindowFrameMode(mode: WindowFrameMode): Promise<void> {
+  return invoke('apply_window_frame_mode', { mode });
 }
 
 export function getAppInfo(): Promise<AppVersion> {

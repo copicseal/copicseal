@@ -171,3 +171,10 @@ Template 不共享以下内容：
 - 页面布局逻辑
 - 属性面板状态
 - 资产栏状态
+---
+
+## 3.6 2026-06-30 实现约束补充
+
+- Template 页面组件位于 `features/template`
+- 通用工作台布局组件位于 `shared/layouts`
+- 左侧内容区拆分为上方 `Template Preview` 与下方 `Template Assets`

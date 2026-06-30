@@ -176,3 +176,18 @@ SQLite 用于存储轻量配置与索引：
 | Export 默认配置 | 格式、倍率、质量 |
 | 模板收藏与最近使用 | 提升模板选择体验 |
 | 缓存索引 | 资源缓存定位 |
+---
+
+## 6.9 2026-06-30 实现约束补充
+
+### `shared/layouts`
+
+- 只存放可复用布局组件
+- 不直接判断当前业务页面，也不直接渲染 Template / Collage 的业务内容
+- 通过 props 或 children 暴露 `Nav`、`Workspace`、`Assets`、`Properties` 等插槽
+
+### `features/*` 页面职责
+
+- `features/template` 与 `features/collage` 提供页面入口组件
+- 页面组件引用 `shared/layouts` 进行组装，而不是由布局层反向承载页面逻辑
+- 左侧内容区固定为上下分栏：上方 `Workspace`，下方 `Assets`

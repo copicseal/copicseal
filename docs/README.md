@@ -165,3 +165,10 @@ src/
 | 09 | [拼图系统](./09-collage-system.md) | 拼图页面、布局模式、属性编辑与导出 |
 | 10 | [拼图开发清单](./10-collage-todo.md) | 拼图能力专项开发清单 |
 | TODO | [总开发待办](./TODO.md) | 从零落地的整体实施计划 |
+---
+
+## 2026-06-30 补充约束
+
+- `shared/layouts` 只存放可复用布局组件，不承载 Template 或 Collage 的页面业务逻辑
+- `features/template` 与 `features/collage` 各自提供页面组件，并负责页面状态、事件编排与面板内容组合
+- 业务工作台布局固定为左侧 `Nav`，中间区域再垂直拆分为上方 `Workspace` 与下方 `Assets`，右侧为 `Properties`

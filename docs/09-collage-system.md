@@ -149,3 +149,10 @@ Export Pipeline
 - 适合自由摆放
 - 支持位置与缩放调整
 - 单图属性由 Selection 面板控制
+---
+
+## 9.7 2026-06-30 实现约束补充
+
+- Collage 页面组件位于 `features/collage`
+- 通用工作台布局组件位于 `shared/layouts`
+- 左侧内容区拆分为上方 `Collage Preview` 与下方 `Collage Assets`

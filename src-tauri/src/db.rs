@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::Manager;
 
-const DATABASE_FILENAME: &str = "copicseal";
+const DATABASE_FILENAME: &str = "data.db";
 
 pub fn open_database(app: &tauri::AppHandle) -> Result<Connection, String> {
     let path = database_path(app)?;

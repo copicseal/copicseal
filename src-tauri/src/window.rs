@@ -1,4 +1,7 @@
-use tauri::{AppHandle, Manager, TitleBarStyle, WebviewWindow};
+use tauri::{AppHandle, Manager, WebviewWindow};
+
+#[cfg(target_os = "macos")]
+use tauri::TitleBarStyle;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum WindowFrameMode {
@@ -26,32 +29,50 @@ pub fn apply_main_window_frame_mode(app: &AppHandle, mode: &str) -> Result<(), S
 fn apply_frame_mode(window: &WebviewWindow, mode: WindowFrameMode) -> Result<(), String> {
     match mode {
         WindowFrameMode::Native => {
-            window
-                .set_title_bar_style(TitleBarStyle::Visible)
-                .map_err(|e| format!("切换标题栏样式失败: {e}"))?;
+            #[cfg(target_os = "macos")]
+            {
+                window
+                    .set_title_bar_style(TitleBarStyle::Visible)
+                    .map_err(|e| format!("切换标题栏样式失败: {e}"))?;
 
-            window
-                .set_title("Copicseal")
-                .map_err(|e| format!("恢复窗口标题失败: {e}"))?;
+                window
+                    .set_title("Copicseal")
+                    .map_err(|e| format!("恢复窗口标题失败: {e}"))?;
+            }
 
-            #[cfg(not(target_os = "macos"))]
-            window
-                .set_shadow(true)
-                .map_err(|e| format!("启用窗口阴影失败: {e}"))?;
+            #[cfg(target_os = "windows")]
+            {
+                window
+                    .set_shadow(true)
+                    .map_err(|e| format!("启用窗口阴影失败: {e}"))?;
+
+                window
+                    .set_decorations(true)
+                    .map_err(|e| format!("启用窗口装饰失败: {e}"))?;
+            }
         }
         WindowFrameMode::Frameless => {
-            window
-                .set_title_bar_style(TitleBarStyle::Overlay)
-                .map_err(|e| format!("切换标题栏样式失败: {e}"))?;
+            #[cfg(target_os = "macos")]
+            {
+                window
+                    .set_title_bar_style(TitleBarStyle::Overlay)
+                    .map_err(|e| format!("切换标题栏样式失败: {e}"))?;
 
-            window
-                .set_title("")
-                .map_err(|e| format!("隐藏窗口标题失败: {e}"))?;
+                window
+                    .set_title("")
+                    .map_err(|e| format!("隐藏窗口标题失败: {e}"))?;
+            }
 
-            #[cfg(not(target_os = "macos"))]
-            window
-                .set_shadow(false)
-                .map_err(|e| format!("关闭窗口阴影失败: {e}"))?;
+            #[cfg(target_os = "windows")]
+            {
+                window
+                    .set_shadow(false)
+                    .map_err(|e| format!("关闭窗口阴影失败: {e}"))?;
+
+                window
+                    .set_decorations(false)
+                    .map_err(|e| format!("关闭窗口装饰失败: {e}"))?;
+            }
         }
     }
 

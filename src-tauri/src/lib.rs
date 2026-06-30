@@ -10,6 +10,11 @@ mod window;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(
+            tauri_plugin_sql::Builder::default()
+                .add_migrations(db::DATABASE_URL, db::migrations())
+                .build(),
+        )
         .setup(|app| {
             let config = config::get_config(app.handle().clone()).unwrap_or_default();
             window::apply_main_window_frame_mode(app.handle(), &config.window_frame_mode)?;

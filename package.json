@@ -60,6 +60,8 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "esbuild",
+      "msw",
       "simple-git-hooks"
     ]
   },

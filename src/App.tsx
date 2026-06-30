@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react';
 import { type AppRoute, CoSidebar } from '@/components/CoSidebar';
 import { Toaster } from '@/components/ui/toaster';
 import { useWindowStyle, WindowStyleProvider } from '@/components/window-style-context';
+import CollagePage from '@/features/collage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
+import TemplatePage from '@/features/template';
 import { PhotoProvider } from '@/hooks/usePhotos';
 import { cn } from '@/lib/utils';
-import { BusinessWorkbench } from '@/shared/layouts/BusinessWorkbench';
 import './App.css';
 
 const DEFAULT_ROUTE: AppRoute = '/template';
@@ -61,9 +62,13 @@ function AppContent() {
       <div className="min-h-0 min-w-0 flex-1">
         {route === '/settings' ? (
           <SettingsPage />
+        ) : route === '/template' ? (
+          <PhotoProvider key={route}>
+            <TemplatePage />
+          </PhotoProvider>
         ) : (
           <PhotoProvider key={route}>
-            <BusinessWorkbench route={route} />
+            <CollagePage />
           </PhotoProvider>
         )}
       </div>

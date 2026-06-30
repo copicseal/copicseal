@@ -1,4 +1,4 @@
-import type { TemplateProps } from '@/modules/comark/templates';
+import type { TemplateProps } from '@/features/template/templates';
 import { getBuiltinTemplateById } from './template-registry';
 
 interface TemplateRuntimeProps {

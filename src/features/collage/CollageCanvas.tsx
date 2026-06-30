@@ -1,14 +1,14 @@
 import { ImagePlus } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { usePhotos } from '@/hooks/usePhotos';
-import { cn } from '@/lib/utils';
-import { COLLAGE_LAYOUTS } from '@/modules/collage/layouts';
+import { COLLAGE_LAYOUTS } from '@/features/collage/layouts';
 import {
   createEmptySlotState,
   getAspectRatioText,
   getAspectRatioValue,
-} from '@/modules/collage/lib';
-import { useCollageStore } from '@/modules/collage/store/use-collage-store';
+} from '@/features/collage/lib';
+import { useCollageStore } from '@/features/collage/store/use-collage-store';
+import { usePhotos } from '@/hooks/usePhotos';
+import { cn } from '@/lib/utils';
 
 function useElementSize<T extends HTMLElement>(ref: React.RefObject<T | null>) {
   const [size, setSize] = useState({ width: 0, height: 0 });

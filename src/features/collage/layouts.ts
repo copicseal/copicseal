@@ -109,7 +109,7 @@ export const COLLAGE_LAYOUTS: CollageLayout[] = [
     slots: [slot(0, 0, 4, 12), slot(4, 0, 4, 6), slot(8, 0, 4, 12)],
   },
 
-  { id: 'four-grid', name: '2×2 网格', count: 4, group: '4 张图', slots: gridSlots(2, 2) },
+  { id: 'four-grid', name: '2x2 网格', count: 4, group: '4 张图', slots: gridSlots(2, 2) },
   { id: 'four-columns', name: '四列长条', count: 4, group: '4 张图', slots: gridSlots(4, 1) },
   { id: 'four-rows', name: '四行长条', count: 4, group: '4 张图', slots: gridSlots(1, 4) },
   {
@@ -243,8 +243,8 @@ export const COLLAGE_LAYOUTS: CollageLayout[] = [
     ],
   },
 
-  { id: 'six-grid', name: '3×2 网格', count: 6, group: '6 张图', slots: gridSlots(3, 2) },
-  { id: 'six-grid-tall', name: '2×3 网格', count: 6, group: '6 张图', slots: gridSlots(2, 3) },
+  { id: 'six-grid', name: '3x2 网格', count: 6, group: '6 张图', slots: gridSlots(3, 2) },
+  { id: 'six-grid-tall', name: '2x3 网格', count: 6, group: '6 张图', slots: gridSlots(2, 3) },
   { id: 'six-columns', name: '六列均分', count: 6, group: '6 张图', slots: gridSlots(6, 1) },
   { id: 'six-rows', name: '六行均分', count: 6, group: '6 张图', slots: gridSlots(1, 6) },
   {
@@ -304,7 +304,7 @@ export const COLLAGE_LAYOUTS: CollageLayout[] = [
     ],
   },
 
-  { id: 'nine-grid', name: '3×3 网格', count: 9, group: '9 张图', slots: gridSlots(3, 3) },
+  { id: 'nine-grid', name: '3x3 网格', count: 9, group: '9 张图', slots: gridSlots(3, 3) },
   { id: 'nine-columns', name: '九列长条', count: 9, group: '9 张图', slots: gridSlots(9, 1) },
   { id: 'nine-rows', name: '九行长条', count: 9, group: '9 张图', slots: gridSlots(1, 9) },
   {
@@ -342,14 +342,14 @@ export const COLLAGE_LAYOUTS: CollageLayout[] = [
     ],
   },
 
-  { id: 'twelve-grid', name: '4×3 网格', count: 12, group: '12 张图', slots: gridSlots(4, 3) },
-  { id: 'twelve-grid-tall', name: '3×4 网格', count: 12, group: '12 张图', slots: gridSlots(3, 4) },
+  { id: 'twelve-grid', name: '4x3 网格', count: 12, group: '12 张图', slots: gridSlots(4, 3) },
+  { id: 'twelve-grid-tall', name: '3x4 网格', count: 12, group: '12 张图', slots: gridSlots(3, 4) },
   { id: 'twelve-columns', name: '十二列长条', count: 12, group: '12 张图', slots: gridSlots(6, 2) },
   { id: 'twelve-rows', name: '十二行长条', count: 12, group: '12 张图', slots: gridSlots(2, 6) },
 
-  { id: 'sixteen-grid', name: '4×4 网格', count: 16, group: '16 张图', slots: gridSlots(4, 4) },
-  { id: 'sixteen-wide', name: '8×2 网格', count: 16, group: '16 张图', slots: gridSlots(8, 2) },
-  { id: 'sixteen-tall', name: '2×8 网格', count: 16, group: '16 张图', slots: gridSlots(2, 8) },
+  { id: 'sixteen-grid', name: '4x4 网格', count: 16, group: '16 张图', slots: gridSlots(4, 4) },
+  { id: 'sixteen-wide', name: '8x2 网格', count: 16, group: '16 张图', slots: gridSlots(8, 2) },
+  { id: 'sixteen-tall', name: '2x8 网格', count: 16, group: '16 张图', slots: gridSlots(2, 8) },
   { id: 'sixteen-banner', name: '横向照片墙', count: 16, group: '16 张图', slots: gridSlots(8, 2) },
 ];
 

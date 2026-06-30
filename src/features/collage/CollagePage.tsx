@@ -6,10 +6,10 @@ import { CoWindowHeader } from '@/components/CoWindowHeader';
 import { Button } from '@/components/ui/button';
 import { prepareElementForSnapshot } from '@/core/renderer';
 import { runScheduledExports } from '@/core/scheduler';
+import { useCollageStore } from '@/features/collage/store/use-collage-store';
 import { usePhotos } from '@/hooks/usePhotos';
 import { selectPhotosViaDialog } from '@/lib/import-photo';
 import { cn } from '@/lib/utils';
-import { useCollageStore } from '@/modules/collage/store/use-collage-store';
 import {
   BusinessWorkbench,
   BusinessWorkbenchAssetsPane,

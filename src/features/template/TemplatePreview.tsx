@@ -3,8 +3,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { type ExifData, readExif } from '@/bridge/assets.api';
 import { getBuiltinTemplateById } from '@/bridge/template.api';
 import { Button } from '@/components/ui/button';
+import type { TemplateProps } from '@/features/template/templates';
 import { usePhotos } from '@/hooks/usePhotos';
-import type { TemplateProps } from '@/modules/comark/templates';
 import { TemplateRuntime } from '@/runtime/template';
 
 type TemplateZoomMode = 'fit' | 50 | 100 | 200;

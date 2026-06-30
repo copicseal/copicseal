@@ -1,1 +1,1 @@
-export { useCollageStore } from '@/modules/collage/store/use-collage-store';
+export { useCollageStore } from '@/features/collage/store/use-collage-store';

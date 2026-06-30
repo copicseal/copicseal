@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { TemplateProps, TemplateSchema } from '@/modules/comark/templates';
+import type { TemplateProps, TemplateSchema } from '@/features/template/templates';
 
 type EditableTemplateProps = Omit<TemplateProps, 'photoUrl' | 'exif'>;
 

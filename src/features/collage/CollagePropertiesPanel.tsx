@@ -3,10 +3,10 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
+import { COLLAGE_EXPORT_LABELS, COLLAGE_RATIO_OPTIONS } from '@/features/collage/lib';
+import { useCollageStore } from '@/features/collage/store/use-collage-store';
 import { usePhotos } from '@/hooks/usePhotos';
 import type { ExportOptions } from '@/lib/export-photo';
-import { COLLAGE_EXPORT_LABELS, COLLAGE_RATIO_OPTIONS } from '@/modules/collage/lib';
-import { useCollageStore } from '@/modules/collage/store/use-collage-store';
 
 interface CollagePropertiesPanelProps {
   onExportCurrent: (options: ExportOptions) => Promise<void>;

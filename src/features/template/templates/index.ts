@@ -15,7 +15,7 @@ const minimalSchema: TemplateSchema = {
   fields: [
     {
       key: 'orientation',
-      label: '排版方向',
+      label: '照片方向',
       type: 'select',
       options: [
         { label: '自动', value: 'auto' },
@@ -33,12 +33,12 @@ const minimalSchema: TemplateSchema = {
     },
     {
       key: 'primaryColor',
-      label: '主色',
+      label: '主文字颜色',
       type: 'color',
     },
     {
       key: 'borderColor',
-      label: '边框色',
+      label: '边框颜色',
       type: 'color',
     },
     {
@@ -66,9 +66,9 @@ const minimalSchema: TemplateSchema = {
 export const BUILTIN_TEMPLATE: BuiltinTemplate = {
   meta: {
     id: 'minimal',
-    name: '极简',
-    description: '右下角半透明参数水印',
-    tags: ['简洁', '水印'],
+    name: '简约',
+    description: '适合展示 EXIF 与轻量文字信息的基础模板。',
+    tags: ['极简', '基础'],
   },
   component: Minimal,
   schema: minimalSchema,
@@ -80,8 +80,8 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
     meta: {
       id: 'leica',
       name: 'Leica',
-      description: '强调器材信息与简洁底标的经典模板。',
-      tags: ['相机', '编辑风格'],
+      description: '沿用极简排版，偏向相机品牌署名和经典器材展示。',
+      tags: ['器材感', '品牌署名'],
     },
     component: Minimal,
     schema: minimalSchema,
@@ -90,7 +90,7 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
     meta: {
       id: 'film',
       name: 'Film',
-      description: '偏胶片展示风格，保留较强的参数存在感。',
+      description: '偏胶片风格的文字信息组织，适合复古导出效果。',
       tags: ['胶片', '复古'],
     },
     component: Minimal,
@@ -99,9 +99,9 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
   {
     meta: {
       id: 'instagram',
-      name: '社媒',
-      description: '偏社交媒体展示的轻量模板。',
-      tags: ['社交', '移动端'],
+      name: 'Instagram',
+      description: '适合社交媒体分享的轻量信息模板。',
+      tags: ['社媒', '分享'],
     },
     component: Minimal,
     schema: minimalSchema,

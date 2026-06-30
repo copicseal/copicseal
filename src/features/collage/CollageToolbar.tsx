@@ -1,7 +1,7 @@
 import { Grid2x2, Grid3x3, LayoutGrid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useCollageStore } from '@/features/collage/store/use-collage-store';
 import { usePhotos } from '@/hooks/usePhotos';
-import { useCollageStore } from '@/modules/collage/store/use-collage-store';
 
 const GRID_PRESETS = [
   { label: '2 宫格', layoutId: 'two-columns', icon: Grid2x2 },

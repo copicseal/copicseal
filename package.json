@@ -1,13 +1,14 @@
 {
-  "name": "copicseal-tauri",
+  "name": "Copicseal",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.5.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
+    "sync:version": "node scripts/sync-version.mjs",
     "format": "biome format --write src/",
     "format:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml",
     "lint": "biome lint src/",

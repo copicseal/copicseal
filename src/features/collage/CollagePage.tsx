@@ -13,7 +13,6 @@ import { cn } from '@/lib/utils';
 import {
   BusinessWorkbench,
   BusinessWorkbenchAssetsPane,
-  type BusinessWorkbenchAssetsRenderProps,
   BusinessWorkbenchPropertiesPane,
   BusinessWorkbenchWorkspace,
 } from '@/shared/layouts/BusinessWorkbench';
@@ -30,7 +29,7 @@ function CollageHeader() {
   );
 }
 
-function CollageAssetsPanel({ collapsed, toggleCollapsed }: BusinessWorkbenchAssetsRenderProps) {
+function CollageAssetsPanel() {
   const {
     photos,
     currentIndex,
@@ -55,7 +54,7 @@ function CollageAssetsPanel({ collapsed, toggleCollapsed }: BusinessWorkbenchAss
   };
 
   return (
-    <BusinessWorkbenchAssetsPane collapsed={collapsed} onToggleCollapse={toggleCollapsed}>
+    <BusinessWorkbenchAssetsPane>
       <div className="flex items-center justify-between gap-3">
         <div>
           <h2 className="text-sm font-semibold">拼图素材</h2>
@@ -71,116 +70,114 @@ function CollageAssetsPanel({ collapsed, toggleCollapsed }: BusinessWorkbenchAss
         </div>
       </div>
 
-      {!collapsed ? (
-        <div className="mt-4 h-[calc(100%-64px)]">
-          {photos.length === 0 ? (
-            <CoDropZone
-              onFilesDrop={importViaDrop}
-              className="h-full rounded-none border-border/60 bg-muted/20"
-            >
-              <div className="flex flex-col items-center justify-center gap-3 text-center text-muted-foreground">
-                <ImageIcon className="size-6" />
-                <div>
-                  <p className="text-sm font-medium">拖入图片开始拼图</p>
-                  <p className="text-xs">或点击右上角“导入图片”从本地选择</p>
-                </div>
-              </div>
-            </CoDropZone>
-          ) : (
-            <div className="h-full overflow-x-auto overflow-y-hidden">
-              <div className="flex h-full gap-3 pb-3">
-                {photos.map((photo, index) => {
-                  const active = index === currentIndex;
-                  const selected = selectedIds.includes(photo.id);
-
-                  return (
-                    <button
-                      key={photo.id}
-                      type="button"
-                      onClick={(event) => {
-                        setCurrentIndex(index);
-                        if (event.metaKey || event.ctrlKey) {
-                          togglePhotoSelection(photo.id);
-                        } else {
-                          selectSinglePhoto(photo.id);
-                        }
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          setCurrentIndex(index);
-                          selectSinglePhoto(photo.id);
-                        }
-                      }}
-                      draggable
-                      className={cn(
-                        'group shrink-0 border bg-card text-left transition-colors',
-                        selected || active
-                          ? 'border-primary ring-1 ring-primary/20'
-                          : 'border-border hover:border-primary/40',
-                      )}
-                      style={{ width: 160 }}
-                    >
-                      <div className="flex h-full flex-col">
-                        <div
-                          className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-background/80"
-                          style={{ aspectRatio: '4 / 3' }}
-                        >
-                          <img
-                            src={photo.previewUrl}
-                            alt={photo.name}
-                            className="h-full w-full object-cover"
-                          />
-                          {selected || active ? (
-                            <div className="pointer-events-none absolute inset-0 ring-2 ring-primary/60" />
-                          ) : null}
-                        </div>
-                        <div className="border-t border-border/80 px-3 py-2">
-                          <div className="flex items-start gap-2">
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-[11px] font-medium text-foreground">
-                                {photo.name}
-                              </p>
-                              <p className="text-[10px] text-muted-foreground">
-                                {(photo.size / 1024 / 1024).toFixed(1)} MB
-                                {selected ? ' · 已选中' : ''}
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              className="shrink-0 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                removePhotoReferences(photo.id);
-                                removePhoto(photo.id);
-                              }}
-                            >
-                              删除
-                            </button>
-                          </div>
-                          <div className="mt-2 flex items-center gap-2 text-[10px] text-muted-foreground">
-                            <span>拖到上方画布即可放入拼图</span>
-                            <button
-                              type="button"
-                              className="ml-auto hover:text-foreground"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                void handleCollageReplace(photo.id);
-                              }}
-                            >
-                              替换
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
+      <div className="mt-4 h-[calc(100%-64px)]">
+        {photos.length === 0 ? (
+          <CoDropZone
+            onFilesDrop={importViaDrop}
+            className="h-full rounded-none border-border/60 bg-muted/20"
+          >
+            <div className="flex flex-col items-center justify-center gap-3 text-center text-muted-foreground">
+              <ImageIcon className="size-6" />
+              <div>
+                <p className="text-sm font-medium">拖入图片开始拼图</p>
+                <p className="text-xs">或点击右上角“导入图片”从本地选择</p>
               </div>
             </div>
-          )}
-        </div>
-      ) : null}
+          </CoDropZone>
+        ) : (
+          <div className="h-full overflow-x-auto overflow-y-hidden">
+            <div className="flex h-full gap-3 pb-3">
+              {photos.map((photo, index) => {
+                const active = index === currentIndex;
+                const selected = selectedIds.includes(photo.id);
+
+                return (
+                  <button
+                    key={photo.id}
+                    type="button"
+                    onClick={(event) => {
+                      setCurrentIndex(index);
+                      if (event.metaKey || event.ctrlKey) {
+                        togglePhotoSelection(photo.id);
+                      } else {
+                        selectSinglePhoto(photo.id);
+                      }
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        setCurrentIndex(index);
+                        selectSinglePhoto(photo.id);
+                      }
+                    }}
+                    draggable
+                    className={cn(
+                      'group shrink-0 border bg-card text-left transition-colors',
+                      selected || active
+                        ? 'border-primary ring-1 ring-primary/20'
+                        : 'border-border hover:border-primary/40',
+                    )}
+                    style={{ width: 160 }}
+                  >
+                    <div className="flex h-full flex-col">
+                      <div
+                        className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-background/80"
+                        style={{ aspectRatio: '4 / 3' }}
+                      >
+                        <img
+                          src={photo.previewUrl}
+                          alt={photo.name}
+                          className="h-full w-full object-cover"
+                        />
+                        {selected || active ? (
+                          <div className="pointer-events-none absolute inset-0 ring-2 ring-primary/60" />
+                        ) : null}
+                      </div>
+                      <div className="border-t border-border/80 px-3 py-2">
+                        <div className="flex items-start gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[11px] font-medium text-foreground">
+                              {photo.name}
+                            </p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {(photo.size / 1024 / 1024).toFixed(1)} MB
+                              {selected ? ' · 已选中' : ''}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            className="shrink-0 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              removePhotoReferences(photo.id);
+                              removePhoto(photo.id);
+                            }}
+                          >
+                            删除
+                          </button>
+                        </div>
+                        <div className="mt-2 flex items-center gap-2 text-[10px] text-muted-foreground">
+                          <span>拖到上方画布即可放入拼图</span>
+                          <button
+                            type="button"
+                            className="ml-auto hover:text-foreground"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              void handleCollageReplace(photo.id);
+                            }}
+                          >
+                            替换
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
     </BusinessWorkbenchAssetsPane>
   );
 }
@@ -247,7 +244,7 @@ export function CollagePage() {
           <CollageCanvas previewRef={previewRef} />
         </BusinessWorkbenchWorkspace>
       }
-      assets={(props) => <CollageAssetsPanel {...props} />}
+      assets={() => <CollageAssetsPanel />}
       properties={() => (
         <CollagePropertiesPane
           onExportCurrent={handleExportCurrent}

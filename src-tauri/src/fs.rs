@@ -5,7 +5,11 @@ use serde::Serialize;
 use std::fs;
 use std::fs::File;
 use std::path::{Path, PathBuf};
+use std::sync::mpsc::{self, Receiver, Sender};
+use std::sync::{Arc, Mutex};
+use std::thread;
 use std::time::{Duration, SystemTime};
+use tauri::State;
 
 const SUPPORTED_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "heic", "heif", "webp"];
 const IMAGE_DIR_NAME: &str = "images";
@@ -13,6 +17,7 @@ const PREVIEW_DIR_NAME: &str = "previews";
 const THUMBNAIL_DIR_NAME: &str = "thumbnails";
 const THUMBNAIL_SIZE: u32 = 320;
 const THUMBNAIL_JPEG_QUALITY: u8 = 82;
+const THUMBNAIL_WORKER_COUNT: usize = 2;
 
 #[derive(Debug, Serialize)]
 pub struct ImageMeta {
@@ -54,6 +59,38 @@ pub struct CacheCleanupResult {
     pub removed_bytes: u64,
 }
 
+#[derive(Debug)]
+struct ThumbnailTask {
+    source_path: PathBuf,
+    thumbnail_path: PathBuf,
+}
+
+pub struct ThumbnailTaskScheduler {
+    sender: Sender<ThumbnailTask>,
+}
+
+impl ThumbnailTaskScheduler {
+    pub fn new(worker_count: usize) -> Self {
+        let (sender, receiver) = mpsc::channel::<ThumbnailTask>();
+        let shared_receiver = Arc::new(Mutex::new(receiver));
+
+        for index in 0..worker_count.max(1) {
+            spawn_thumbnail_worker(index, Arc::clone(&shared_receiver));
+        }
+
+        Self { sender }
+    }
+
+    fn schedule(&self, source_path: PathBuf, thumbnail_path: PathBuf) -> Result<(), String> {
+        self.sender
+            .send(ThumbnailTask {
+                source_path,
+                thumbnail_path,
+            })
+            .map_err(|error| format!("failed to enqueue thumbnail task: {error}"))
+    }
+}
+
 #[tauri::command]
 pub async fn write_file(path: String, contents: Vec<u8>) -> Result<(), String> {
     fs::write(&path, contents).map_err(|e| format!("写入文件失败: {e}"))
@@ -68,6 +105,7 @@ pub async fn convert_heic_to_png(input: String) -> Result<String, String> {
 pub async fn import_image_to_cache(
     path: String,
     cache_dir: String,
+    scheduler: State<'_, ThumbnailTaskScheduler>,
 ) -> Result<CachedImageMeta, String> {
     let original_path = path.clone();
     let source_path = Path::new(&path);
@@ -85,7 +123,13 @@ pub async fn import_image_to_cache(
         .ok_or_else(|| "无法解析文件名".to_string())?;
     let bytes = fs::read(source_path).map_err(|e| format!("读取图片失败: {e}"))?;
 
-    import_bytes_to_cache_impl(file_name, bytes, &cache_dir, Some(original_path))
+    import_bytes_to_cache_impl(
+        file_name,
+        bytes,
+        &cache_dir,
+        Some(original_path),
+        &scheduler,
+    )
 }
 
 #[tauri::command]
@@ -93,8 +137,9 @@ pub async fn import_image_bytes_to_cache(
     name: String,
     contents: Vec<u8>,
     cache_dir: String,
+    scheduler: State<'_, ThumbnailTaskScheduler>,
 ) -> Result<CachedImageMeta, String> {
-    import_bytes_to_cache_impl(&name, contents, &cache_dir, None)
+    import_bytes_to_cache_impl(&name, contents, &cache_dir, None, &scheduler)
 }
 
 #[tauri::command]
@@ -117,6 +162,11 @@ pub async fn cleanup_cache(
     max_age_days: u32,
 ) -> Result<CacheCleanupResult, String> {
     cleanup_cache_impl(&cache_dir, max_age_days)
+}
+
+#[tauri::command]
+pub async fn path_exists(path: String) -> Result<bool, String> {
+    Ok(Path::new(&path).exists())
 }
 
 #[tauri::command]
@@ -232,6 +282,7 @@ fn import_bytes_to_cache_impl(
     contents: Vec<u8>,
     cache_dir: &str,
     original_path: Option<String>,
+    scheduler: &ThumbnailTaskScheduler,
 ) -> Result<CachedImageMeta, String> {
     let ext = extension_from_name(original_name)?;
     let cache_paths = create_cache_paths(cache_dir, original_name, &ext)?;
@@ -249,10 +300,10 @@ fn import_bytes_to_cache_impl(
         cache_paths.image_path.as_path()
     };
 
-    schedule_thumbnail_asset(
+    scheduler.schedule(
         thumbnail_source.to_path_buf(),
         cache_paths.thumbnail_path.clone(),
-    );
+    )?;
 
     Ok(CachedImageMeta {
         name: original_name.to_string(),
@@ -383,7 +434,7 @@ fn create_thumbnail_asset(source_path: &Path, thumbnail_path: &Path) -> Result<(
 
     let thumbnail = image
         .map_err(|e| format!("解码缩略图源文件失败: {e}"))?
-        .resize_to_fill(THUMBNAIL_SIZE, THUMBNAIL_SIZE, FilterType::Lanczos3)
+        .resize_to_fill(THUMBNAIL_SIZE, THUMBNAIL_SIZE, FilterType::Triangle)
         .to_rgb8();
 
     let file = File::create(thumbnail_path).map_err(|e| format!("创建缩略图文件失败: {e}"))?;
@@ -417,17 +468,36 @@ fn create_thumbnail_asset_atomically(
     Ok(())
 }
 
-fn schedule_thumbnail_asset(source_path: PathBuf, thumbnail_path: PathBuf) {
-    tauri::async_runtime::spawn_blocking(move || {
-        if let Err(error) = create_thumbnail_asset_atomically(&source_path, &thumbnail_path) {
-            eprintln!(
-                "generate thumbnail failed for {} -> {}: {}",
-                source_path.display(),
-                thumbnail_path.display(),
-                error
-            );
-        }
-    });
+fn spawn_thumbnail_worker(index: usize, receiver: Arc<Mutex<Receiver<ThumbnailTask>>>) {
+    thread::Builder::new()
+        .name(format!("thumbnail-worker-{index}"))
+        .spawn(move || loop {
+            let task = match receiver.lock() {
+                Ok(guard) => guard.recv(),
+                Err(_) => return,
+            };
+
+            let task = match task {
+                Ok(task) => task,
+                Err(_) => return,
+            };
+
+            if let Err(error) =
+                create_thumbnail_asset_atomically(&task.source_path, &task.thumbnail_path)
+            {
+                eprintln!(
+                    "generate thumbnail failed for {} -> {}: {}",
+                    task.source_path.display(),
+                    task.thumbnail_path.display(),
+                    error
+                );
+            }
+        })
+        .expect("failed to spawn thumbnail worker");
+}
+
+pub fn create_thumbnail_scheduler() -> ThumbnailTaskScheduler {
+    ThumbnailTaskScheduler::new(THUMBNAIL_WORKER_COUNT)
 }
 
 fn convert_heic_to_png_path(input_path: &Path) -> Result<String, String> {

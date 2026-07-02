@@ -235,6 +235,10 @@ export function cleanupCache(cacheDir: string, maxAgeDays: number): Promise<Cach
   return invoke<CacheCleanupResult>('cleanup_cache', { cacheDir, maxAgeDays });
 }
 
+export function pathExists(path: string): Promise<boolean> {
+  return invoke<boolean>('path_exists', { path });
+}
+
 export function openDirectory(path: string): Promise<void> {
   return invoke('open_directory', { path });
 }

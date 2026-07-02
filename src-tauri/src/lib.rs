@@ -9,7 +9,10 @@ mod window;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let thumbnail_scheduler = fs::create_thumbnail_scheduler();
+
     tauri::Builder::default()
+        .manage(thumbnail_scheduler)
         .plugin(
             tauri_plugin_sql::Builder::default()
                 .add_migrations(db::DATABASE_URL, db::migrations())
@@ -37,6 +40,7 @@ pub fn run() {
             fs::get_cache_overview,
             fs::clear_cache,
             fs::cleanup_cache,
+            fs::path_exists,
             fs::open_directory,
             config::get_config,
             config::update_config,

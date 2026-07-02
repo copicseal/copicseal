@@ -1,6 +1,6 @@
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
-import { getConfig } from '@/api';
+import { getConfig, pathExists } from '@/api';
 import {
   clearPreviewResourceCache,
   clearThumbnailCache,
@@ -75,31 +75,47 @@ function waitForThumbnail(
   }
 
   let attempts = 0;
-  const maxAttempts = 40;
+  const startedAt = Date.now();
+  const maxWaitMs = 10 * 60 * 1000;
 
   const probe = () => {
-    if (attempts >= maxAttempts) {
+    if (Date.now() - startedAt >= maxWaitMs) {
+      console.warn('Thumbnail generation timed out', {
+        photoPath: photo.path,
+        thumbnailPath,
+      });
       return;
     }
 
     attempts += 1;
-    const nextThumbnailUrl = `${convertFileSrc(thumbnailPath)}?v=${Date.now()}-${attempts}`;
-    const image = new Image();
+    void pathExists(thumbnailPath)
+      .then((exists) => {
+        if (!exists) {
+          window.setTimeout(probe, Math.min(250 * attempts, 1500));
+          return;
+        }
 
-    image.onload = () => {
-      setThumbnailCache(photo.path, nextThumbnailUrl);
-      onPhotoUpdated?.({
-        ...photo,
-        thumbnailUrl: nextThumbnailUrl,
-        thumbnailReady: true,
+        const nextThumbnailUrl = `${convertFileSrc(thumbnailPath)}?v=${Date.now()}-${attempts}`;
+        const image = new Image();
+
+        image.onload = () => {
+          setThumbnailCache(photo.path, nextThumbnailUrl);
+          onPhotoUpdated?.({
+            ...photo,
+            thumbnailUrl: nextThumbnailUrl,
+            thumbnailReady: true,
+          });
+        };
+
+        image.onerror = () => {
+          window.setTimeout(probe, Math.min(250 * attempts, 1500));
+        };
+
+        image.src = nextThumbnailUrl;
+      })
+      .catch(() => {
+        window.setTimeout(probe, Math.min(250 * attempts, 1500));
       });
-    };
-
-    image.onerror = () => {
-      window.setTimeout(probe, Math.min(200 * attempts, 1200));
-    };
-
-    image.src = nextThumbnailUrl;
   };
 
   probe();

@@ -150,6 +150,7 @@ export interface CachedImageMeta {
   path: string;
   preview_path: string;
   thumbnail_path: string;
+  thumbnail_ready: boolean;
   size: number;
   ext: string;
   mime_type: string;

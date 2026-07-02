@@ -21,6 +21,8 @@ export interface ImportedPhoto {
   previewUrl: string;
   /** 素材列表使用的缩略图 URL */
   thumbnailUrl: string;
+  /** 缂╃暐鍥炬槸鍚﹀凡缁忓氨缁? */
+  thumbnailReady: boolean;
   /** 文件大小（字节） */
   size: number;
   /** MIME 类型 */

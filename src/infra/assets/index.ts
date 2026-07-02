@@ -17,6 +17,18 @@ import {
 } from '@/infra/fs';
 import { type ImportedPhoto, SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_IMAGE_TYPES } from '@/lib/photo';
 
+export interface ImportProgressSnapshot {
+  current: number;
+  total: number;
+  currentName?: string;
+}
+
+interface ImportPhotosOptions {
+  onPhotoImported?: (photo: ImportedPhoto) => void;
+  onPhotoUpdated?: (photo: ImportedPhoto) => void;
+  onProgress?: (progress: ImportProgressSnapshot) => void;
+}
+
 function uid(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
@@ -30,9 +42,11 @@ function isSupportedExt(name: string): boolean {
 }
 
 function toImportedPhoto(meta: CachedImageMeta): ImportedPhoto {
-  const cachedThumbnail = getThumbnailCache(meta.path);
-  const thumbnailUrl = cachedThumbnail ?? convertFileSrc(meta.thumbnail_path);
   const previewUrl = getPreviewResourceCache(meta.path) ?? convertFileSrc(meta.preview_path);
+  const cachedThumbnail = getThumbnailCache(meta.path);
+  const thumbnailUrl = meta.thumbnail_ready
+    ? (cachedThumbnail ?? convertFileSrc(meta.thumbnail_path))
+    : previewUrl;
 
   setThumbnailCache(meta.path, thumbnailUrl);
   setPreviewResourceCache(meta.path, previewUrl);
@@ -46,8 +60,49 @@ function toImportedPhoto(meta: CachedImageMeta): ImportedPhoto {
     mimeType: meta.mime_type,
     previewUrl,
     thumbnailUrl,
+    thumbnailReady: meta.thumbnail_ready,
     isHeic: meta.ext === 'heic' || meta.ext === 'heif',
   };
+}
+
+function waitForThumbnail(
+  photo: ImportedPhoto,
+  thumbnailPath: string,
+  onPhotoUpdated?: (photo: ImportedPhoto) => void,
+) {
+  if (typeof window === 'undefined' || typeof Image === 'undefined') {
+    return;
+  }
+
+  let attempts = 0;
+  const maxAttempts = 40;
+
+  const probe = () => {
+    if (attempts >= maxAttempts) {
+      return;
+    }
+
+    attempts += 1;
+    const nextThumbnailUrl = `${convertFileSrc(thumbnailPath)}?v=${Date.now()}-${attempts}`;
+    const image = new Image();
+
+    image.onload = () => {
+      setThumbnailCache(photo.path, nextThumbnailUrl);
+      onPhotoUpdated?.({
+        ...photo,
+        thumbnailUrl: nextThumbnailUrl,
+        thumbnailReady: true,
+      });
+    };
+
+    image.onerror = () => {
+      window.setTimeout(probe, Math.min(200 * attempts, 1200));
+    };
+
+    image.src = nextThumbnailUrl;
+  };
+
+  probe();
 }
 
 async function resolveCacheDirectory(): Promise<string> {
@@ -55,7 +110,9 @@ async function resolveCacheDirectory(): Promise<string> {
   return config.cache.directory;
 }
 
-export async function selectPhotosViaDialog(): Promise<ImportedPhoto[]> {
+export async function selectPhotosViaDialog(
+  options?: ImportPhotosOptions,
+): Promise<ImportedPhoto[]> {
   const selected = await open({
     multiple: true,
     filters: [
@@ -71,10 +128,12 @@ export async function selectPhotosViaDialog(): Promise<ImportedPhoto[]> {
   }
 
   const paths = Array.isArray(selected) ? selected : [selected];
-  return importPhotosViaPaths(paths);
+  return importPhotosViaPaths(paths, options);
 }
 
-export async function selectPhotosFromDirectory(): Promise<ImportedPhoto[]> {
+export async function selectPhotosFromDirectory(
+  options?: ImportPhotosOptions,
+): Promise<ImportedPhoto[]> {
   const selected = await open({
     directory: true,
     multiple: false,
@@ -89,34 +148,67 @@ export async function selectPhotosFromDirectory(): Promise<ImportedPhoto[]> {
     return [];
   }
 
-  return importPhotosViaPaths(filePaths);
+  return importPhotosViaPaths(filePaths, options);
 }
 
-export async function importPhotosViaPaths(filePaths: string[]): Promise<ImportedPhoto[]> {
+export async function importPhotosViaPaths(
+  filePaths: string[],
+  options?: ImportPhotosOptions,
+): Promise<ImportedPhoto[]> {
   const cacheDir = await resolveCacheDirectory();
   const photos: ImportedPhoto[] = [];
+  options?.onProgress?.({
+    current: 0,
+    total: filePaths.length,
+  });
 
-  for (const filePath of filePaths) {
+  for (const [index, filePath] of filePaths.entries()) {
     const meta = await importImageToCache(filePath, cacheDir);
-    photos.push(toImportedPhoto(meta));
+    const photo = toImportedPhoto(meta);
+    photos.push(photo);
+    options?.onPhotoImported?.(photo);
+    if (!meta.thumbnail_ready) {
+      waitForThumbnail(photo, meta.thumbnail_path, options?.onPhotoUpdated);
+    }
+    options?.onProgress?.({
+      current: index + 1,
+      total: filePaths.length,
+      currentName: photo.name,
+    });
   }
 
   return photos;
 }
 
-export async function processDroppedFiles(files: FileList | File[]): Promise<ImportedPhoto[]> {
+export async function processDroppedFiles(
+  files: FileList | File[],
+  options?: ImportPhotosOptions,
+): Promise<ImportedPhoto[]> {
   const fileArr = Array.from(files);
   const cacheDir = await resolveCacheDirectory();
   const photos: ImportedPhoto[] = [];
+  const importableFiles = fileArr.filter(
+    (file) => SUPPORTED_IMAGE_TYPES.includes(file.type) || isSupportedExt(file.name),
+  );
+  options?.onProgress?.({
+    current: 0,
+    total: importableFiles.length,
+  });
 
-  for (const file of fileArr) {
-    if (!SUPPORTED_IMAGE_TYPES.includes(file.type) && !isSupportedExt(file.name)) {
-      continue;
-    }
-
+  for (const [index, file] of importableFiles.entries()) {
     const contents = Array.from(new Uint8Array(await file.arrayBuffer()));
     const meta = await importImageBytesToCache(file.name, contents, cacheDir);
-    photos.push(toImportedPhoto(meta));
+    const photo = toImportedPhoto(meta);
+    photos.push(photo);
+    options?.onPhotoImported?.(photo);
+    if (!meta.thumbnail_ready) {
+      waitForThumbnail(photo, meta.thumbnail_path, options?.onPhotoUpdated);
+    }
+    options?.onProgress?.({
+      current: index + 1,
+      total: importableFiles.length,
+      currentName: photo.name,
+    });
   }
 
   return photos;

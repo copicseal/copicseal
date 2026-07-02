@@ -1,4 +1,5 @@
 export {
+  type ImportProgressSnapshot,
   importPhotosViaPaths,
   processDroppedFiles,
   selectPhotosFromDirectory,

@@ -18,6 +18,41 @@ import {
 } from '@/shared/layouts/BusinessWorkbench';
 import { CollageCanvas, CollagePropertiesPanel, CollageToolbar } from './exports';
 
+function ImportProgressPanel({
+  current,
+  total,
+  currentName,
+}: {
+  current: number;
+  total: number;
+  currentName: string | null;
+}) {
+  const progress = total > 0 ? Math.min((current / total) * 100, 100) : 0;
+
+  return (
+    <div className="mt-4 border border-border/80 bg-muted/30 px-4 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground">正在导入图片</p>
+          <p className="mt-1 truncate text-xs text-muted-foreground">
+            {total > 0 ? `已导入 ${current} / ${total}` : '正在准备导入...'}
+            {currentName ? ` · ${currentName}` : ''}
+          </p>
+        </div>
+        <p className="shrink-0 text-xs font-medium text-muted-foreground">
+          {Math.round(progress)}%
+        </p>
+      </div>
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-border/60">
+        <div
+          className="h-full rounded-full bg-primary transition-[width] duration-200 ease-out"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function CollageHeader() {
   return (
     <CoWindowHeader
@@ -41,6 +76,7 @@ function CollageAssetsPanel() {
     selectSinglePhoto,
     importViaDialog,
     importViaDrop,
+    importState,
   } = usePhotos();
   const { removePhotoReferences } = useCollageStore();
 
@@ -70,7 +106,17 @@ function CollageAssetsPanel() {
         </div>
       </div>
 
-      <div className="mt-4 h-[calc(100%-64px)]">
+      {importState.active ? (
+        <ImportProgressPanel
+          current={importState.current}
+          total={importState.total}
+          currentName={importState.currentName}
+        />
+      ) : null}
+
+      <div
+        className={cn('mt-4', importState.active ? 'h-[calc(100%-152px)]' : 'h-[calc(100%-64px)]')}
+      >
         {photos.length === 0 ? (
           <CoDropZone
             onFilesDrop={importViaDrop}
@@ -79,8 +125,14 @@ function CollageAssetsPanel() {
             <div className="flex flex-col items-center justify-center gap-3 text-center text-muted-foreground">
               <ImageIcon className="size-6" />
               <div>
-                <p className="text-sm font-medium">拖入图片开始拼图</p>
-                <p className="text-xs">或点击右上角“导入图片”从本地选择</p>
+                <p className="text-sm font-medium">
+                  {importState.active ? '图片正在导入中…' : '拖入图片开始拼图'}
+                </p>
+                <p className="text-xs">
+                  {importState.active
+                    ? '导入过程中会逐步生成缩略图并加入当前素材区'
+                    : '或点击右上角“导入图片”从本地选择'}
+                </p>
               </div>
             </div>
           </CoDropZone>
@@ -92,86 +144,99 @@ function CollageAssetsPanel() {
                 const selected = selectedIds.includes(photo.id);
 
                 return (
-                  <button
+                  <div
                     key={photo.id}
-                    type="button"
-                    onClick={(event) => {
-                      setCurrentIndex(index);
-                      if (event.metaKey || event.ctrlKey) {
-                        togglePhotoSelection(photo.id);
-                      } else {
-                        selectSinglePhoto(photo.id);
-                      }
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        setCurrentIndex(index);
-                        selectSinglePhoto(photo.id);
-                      }
-                    }}
                     draggable
                     className={cn(
-                      'group shrink-0 border bg-card text-left transition-colors',
+                      'group shrink-0 border bg-card transition-colors',
                       selected || active
                         ? 'border-primary ring-1 ring-primary/20'
                         : 'border-border hover:border-primary/40',
                     )}
                     style={{ width: 160 }}
                   >
-                    <div className="flex h-full flex-col">
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        setCurrentIndex(index);
+                        if (event.metaKey || event.ctrlKey) {
+                          togglePhotoSelection(photo.id);
+                        } else {
+                          selectSinglePhoto(photo.id);
+                        }
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setCurrentIndex(index);
+                          selectSinglePhoto(photo.id);
+                        }
+                      }}
+                      className="flex h-full w-full flex-col text-left"
+                    >
                       <div
                         className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-background/80"
                         style={{ aspectRatio: '4 / 3' }}
                       >
-                        <img
-                          src={photo.thumbnailUrl}
-                          alt={photo.name}
-                          className="h-full w-full object-cover"
-                        />
+                        {photo.thumbnailReady ? (
+                          <img
+                            src={photo.thumbnailUrl}
+                            alt={photo.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-muted/40 px-4 text-center">
+                            <span className="line-clamp-3 text-xs font-medium text-foreground">
+                              {photo.name}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground">
+                              正在生成缩略图
+                            </span>
+                          </div>
+                        )}
                         {selected || active ? (
                           <div className="pointer-events-none absolute inset-0 ring-2 ring-primary/60" />
                         ) : null}
                       </div>
                       <div className="border-t border-border/80 px-3 py-2">
-                        <div className="flex items-start gap-2">
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-[11px] font-medium text-foreground">
-                              {photo.name}
-                            </p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {(photo.size / 1024 / 1024).toFixed(1)} MB
-                              {selected ? ' · 已选中' : ''}
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            className="shrink-0 text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              removePhotoReferences(photo.id);
-                              removePhoto(photo.id);
-                            }}
-                          >
-                            删除
-                          </button>
+                        <div className="min-w-0">
+                          <p className="truncate text-[11px] font-medium text-foreground">
+                            {photo.name}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {(photo.size / 1024 / 1024).toFixed(1)} MB
+                            {selected ? ' · 已选中' : ''}
+                          </p>
                         </div>
-                        <div className="mt-2 flex items-center gap-2 text-[10px] text-muted-foreground">
-                          <span>拖到上方画布即可放入拼图</span>
-                          <button
-                            type="button"
-                            className="ml-auto hover:text-foreground"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              void handleCollageReplace(photo.id);
-                            }}
-                          >
-                            替换
-                          </button>
+                        <div className="mt-2 text-[10px] text-muted-foreground">
+                          拖到上方画布即可放入拼图
                         </div>
                       </div>
+                    </button>
+                    <div className="border-t border-border/80 px-3 pb-2">
+                      <div className="flex items-center justify-between gap-2 text-[10px]">
+                        <button
+                          type="button"
+                          className="text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
+                          onClick={() => {
+                            removePhotoReferences(photo.id);
+                            removePhoto(photo.id);
+                          }}
+                        >
+                          删除
+                        </button>
+                        <button
+                          type="button"
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={() => {
+                            void handleCollageReplace(photo.id);
+                          }}
+                        >
+                          替换
+                        </button>
+                      </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>

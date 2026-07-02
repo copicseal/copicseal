@@ -9,6 +9,7 @@ import {
   useState,
 } from 'react';
 import {
+  type ImportProgressSnapshot,
   importPhotosViaPaths,
   processDroppedFiles,
   selectPhotosFromDirectory,
@@ -16,12 +17,23 @@ import {
 } from '@/lib/import-photo';
 import type { ImportedPhoto } from '@/lib/photo';
 
+type PhotoImportSource = 'dialog' | 'directory' | 'drop';
+
+interface PhotoImportState {
+  active: boolean;
+  source: PhotoImportSource | null;
+  current: number;
+  total: number;
+  currentName: string | null;
+}
+
 interface PhotoContextValue {
   photos: ImportedPhoto[];
   currentIndex: number;
   currentPhoto: ImportedPhoto | null;
   selectedIds: string[];
   isDraggingOver: boolean;
+  importState: PhotoImportState;
   addPhotos: (photos: ImportedPhoto[]) => void;
   removePhoto: (id: string) => void;
   removeSelectedPhotos: () => void;
@@ -48,10 +60,23 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [importState, setImportState] = useState<PhotoImportState>({
+    active: false,
+    source: null,
+    current: 0,
+    total: 0,
+    currentName: null,
+  });
 
   const addPhotos = useCallback((newPhotos: ImportedPhoto[]) => {
     setPhotos((prev) => [...prev, ...newPhotos]);
     setSelectedIds((prev) => [...prev, ...newPhotos.map((photo) => photo.id)]);
+  }, []);
+
+  const updatePhoto = useCallback((nextPhoto: ImportedPhoto) => {
+    setPhotos((prev) =>
+      prev.map((photo) => (photo.id === nextPhoto.id ? { ...photo, ...nextPhoto } : photo)),
+    );
   }, []);
 
   const removePhoto = useCallback((id: string) => {
@@ -105,22 +130,82 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
     });
   }, []);
 
+  const startImport = useCallback((source: PhotoImportSource) => {
+    setImportState({
+      active: true,
+      source,
+      current: 0,
+      total: 0,
+      currentName: null,
+    });
+  }, []);
+
+  const updateImportProgress = useCallback(
+    (source: PhotoImportSource, progress: ImportProgressSnapshot) => {
+      setImportState({
+        active: progress.current < progress.total,
+        source,
+        current: progress.current,
+        total: progress.total,
+        currentName: progress.currentName ?? null,
+      });
+    },
+    [],
+  );
+
+  const finishImport = useCallback((source: PhotoImportSource) => {
+    setImportState((prev) => ({
+      active: false,
+      source,
+      current: prev.current,
+      total: prev.total,
+      currentName: prev.currentName,
+    }));
+  }, []);
+
   const importViaDialog = useCallback(async () => {
-    const result = await selectPhotosViaDialog();
-    if (result.length) addPhotos(result);
-  }, [addPhotos]);
+    startImport('dialog');
+    const result = await selectPhotosViaDialog({
+      onProgress: (progress) => updateImportProgress('dialog', progress),
+      onPhotoImported: (photo) => addPhotos([photo]),
+      onPhotoUpdated: updatePhoto,
+    });
+    if (!result.length) {
+      finishImport('dialog');
+      return;
+    }
+    finishImport('dialog');
+  }, [addPhotos, finishImport, startImport, updateImportProgress, updatePhoto]);
 
   const importViaDirectory = useCallback(async () => {
-    const result = await selectPhotosFromDirectory();
-    if (result.length) addPhotos(result);
-  }, [addPhotos]);
+    startImport('directory');
+    const result = await selectPhotosFromDirectory({
+      onProgress: (progress) => updateImportProgress('directory', progress),
+      onPhotoImported: (photo) => addPhotos([photo]),
+      onPhotoUpdated: updatePhoto,
+    });
+    if (!result.length) {
+      finishImport('directory');
+      return;
+    }
+    finishImport('directory');
+  }, [addPhotos, finishImport, startImport, updateImportProgress, updatePhoto]);
 
   const importViaDrop = useCallback(
     async (files: FileList | File[]) => {
-      const result = await processDroppedFiles(files);
-      if (result.length) addPhotos(result);
+      startImport('drop');
+      const result = await processDroppedFiles(files, {
+        onProgress: (progress) => updateImportProgress('drop', progress),
+        onPhotoImported: (photo) => addPhotos([photo]),
+        onPhotoUpdated: updatePhoto,
+      });
+      if (!result.length) {
+        finishImport('drop');
+        return;
+      }
+      finishImport('drop');
     },
-    [addPhotos],
+    [addPhotos, finishImport, startImport, updateImportProgress, updatePhoto],
   );
 
   useEffect(() => {
@@ -142,8 +227,17 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
             break;
           case 'drop': {
             setIsDraggingOver(false);
-            const result = await importPhotosViaPaths(event.payload.paths);
-            if (result.length) addPhotos(result);
+            startImport('drop');
+            const result = await importPhotosViaPaths(event.payload.paths, {
+              onProgress: (progress) => updateImportProgress('drop', progress),
+              onPhotoImported: (photo) => addPhotos([photo]),
+              onPhotoUpdated: updatePhoto,
+            });
+            if (!result.length) {
+              finishImport('drop');
+              break;
+            }
+            finishImport('drop');
             break;
           }
         }
@@ -159,7 +253,7 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
     return () => {
       cleanup?.();
     };
-  }, [addPhotos]);
+  }, [addPhotos, finishImport, startImport, updateImportProgress, updatePhoto]);
 
   const currentPhoto = photos[currentIndex] ?? null;
 
@@ -189,6 +283,7 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
         currentPhoto,
         selectedIds,
         isDraggingOver,
+        importState,
         addPhotos,
         removePhoto,
         removeSelectedPhotos,

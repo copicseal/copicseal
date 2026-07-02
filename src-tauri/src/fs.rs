@@ -30,6 +30,7 @@ pub struct CachedImageMeta {
     pub path: String,
     pub preview_path: String,
     pub thumbnail_path: String,
+    pub thumbnail_ready: bool,
     pub size: u64,
     pub ext: String,
     pub mime_type: String,
@@ -248,7 +249,10 @@ fn import_bytes_to_cache_impl(
         cache_paths.image_path.as_path()
     };
 
-    create_thumbnail_asset(thumbnail_source, &cache_paths.thumbnail_path)?;
+    schedule_thumbnail_asset(
+        thumbnail_source.to_path_buf(),
+        cache_paths.thumbnail_path.clone(),
+    );
 
     Ok(CachedImageMeta {
         name: original_name.to_string(),
@@ -256,6 +260,7 @@ fn import_bytes_to_cache_impl(
         path: cache_paths.image_path.to_string_lossy().to_string(),
         preview_path: preview_path.to_string_lossy().to_string(),
         thumbnail_path: cache_paths.thumbnail_path.to_string_lossy().to_string(),
+        thumbnail_ready: false,
         size: contents.len() as u64,
         ext: ext.clone(),
         mime_type: mime_type_for_ext(&ext).to_string(),
@@ -386,6 +391,43 @@ fn create_thumbnail_asset(source_path: &Path, thumbnail_path: &Path) -> Result<(
     encoder
         .encode_image(&thumbnail)
         .map_err(|e| format!("写入 JPEG 缩略图失败: {e}"))
+}
+
+fn create_thumbnail_asset_atomically(
+    source_path: &Path,
+    thumbnail_path: &Path,
+) -> Result<(), String> {
+    let temp_thumbnail_path = thumbnail_path.with_extension("jpg.part");
+
+    if temp_thumbnail_path.exists() {
+        fs::remove_file(&temp_thumbnail_path)
+            .map_err(|e| format!("failed to remove temporary thumbnail file: {e}"))?;
+    }
+
+    create_thumbnail_asset(source_path, &temp_thumbnail_path)?;
+
+    fs::rename(&temp_thumbnail_path, thumbnail_path).map_err(|e| {
+        format!(
+            "failed to replace thumbnail file {} -> {}: {e}",
+            temp_thumbnail_path.display(),
+            thumbnail_path.display()
+        )
+    })?;
+
+    Ok(())
+}
+
+fn schedule_thumbnail_asset(source_path: PathBuf, thumbnail_path: PathBuf) {
+    tauri::async_runtime::spawn_blocking(move || {
+        if let Err(error) = create_thumbnail_asset_atomically(&source_path, &thumbnail_path) {
+            eprintln!(
+                "generate thumbnail failed for {} -> {}: {}",
+                source_path.display(),
+                thumbnail_path.display(),
+                error
+            );
+        }
+    });
 }
 
 fn convert_heic_to_png_path(input_path: &Path) -> Result<String, String> {

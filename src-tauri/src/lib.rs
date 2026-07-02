@@ -17,6 +17,9 @@ pub fn run() {
         )
         .setup(|app| {
             let config = config::get_config(app.handle().clone()).unwrap_or_default();
+            if config.cache.auto_cleanup_on_startup {
+                let _ = fs::auto_cleanup_cache(&config.cache.directory, config.cache.max_age_days);
+            }
             window::apply_main_window_frame_mode(app.handle(), &config.window_frame_mode)?;
 
             Ok(())
@@ -29,6 +32,12 @@ pub fn run() {
             fs::list_image_files_in_directory,
             fs::write_file,
             fs::convert_heic_to_png,
+            fs::import_image_to_cache,
+            fs::import_image_bytes_to_cache,
+            fs::get_cache_overview,
+            fs::clear_cache,
+            fs::cleanup_cache,
+            fs::open_directory,
             config::get_config,
             config::update_config,
             config::get_device_id,

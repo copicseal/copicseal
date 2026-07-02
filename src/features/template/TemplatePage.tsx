@@ -181,7 +181,7 @@ function TemplateAssetsPanel() {
                         style={{ aspectRatio: '4 / 3' }}
                       >
                         <img
-                          src={photo.previewUrl}
+                          src={photo.thumbnailUrl}
                           alt={photo.name}
                           className="h-full w-full object-cover"
                         />

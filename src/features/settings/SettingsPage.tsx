@@ -13,7 +13,9 @@ import {
   Settings2,
   Trash2,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { toast } from 'sonner';
+import { type AppConfig, getConfig, openDirectory, updateConfig } from '@/api';
 import { CoWindowHeader } from '@/components/CoWindowHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,8 +29,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useWindowStyle } from '@/components/window-style-context';
+import { clearAssetCaches } from '@/infra/assets';
+import { type CacheOverview, cleanupCache, clearCache, getCacheOverview } from '@/infra/fs';
 import { cn } from '@/lib/utils';
 
 const TABS = [
@@ -39,6 +44,29 @@ const TABS = [
   { id: 'cache', label: '缓存', icon: Database },
   { id: 'about', label: '关于', icon: Info },
 ] as const;
+
+function defaultCacheDirectory(saveDirectory: string): string {
+  const separator = saveDirectory.includes('\\') ? '\\' : '/';
+  const normalized = saveDirectory.replace(/[\\/]+$/, '');
+  return `${normalized}${separator}cache`;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+
+  const units = ['KB', 'MB', 'GB'];
+  let value = bytes / 1024;
+  let index = 0;
+
+  while (value >= 1024 && index < units.length - 1) {
+    value /= 1024;
+    index += 1;
+  }
+
+  return `${value.toFixed(value >= 100 ? 0 : 1)} ${units[index]}`;
+}
 
 function FieldGroup({
   title,
@@ -105,39 +133,129 @@ function OptionCard({
   );
 }
 
-function GeneralTab() {
-  const [exportDirectory, setExportDirectory] = useState('~/Documents/Copicseal');
-  const { frameMode, frameModePending, setFrameMode } = useWindowStyle();
+function StorageSummary({ overview }: { overview: CacheOverview | null }) {
+  const total = overview?.total_bytes ?? 0;
+  const segments = [
+    {
+      key: 'images',
+      label: '图片副本',
+      count: overview?.image_count ?? 0,
+      bytes: overview?.image_bytes ?? 0,
+      color: 'bg-sky-400',
+      tint: 'bg-sky-50',
+      ring: 'ring-sky-200',
+    },
+    {
+      key: 'previews',
+      label: '预览缓存',
+      count: overview?.preview_count ?? 0,
+      bytes: overview?.preview_bytes ?? 0,
+      color: 'bg-emerald-400',
+      tint: 'bg-emerald-50',
+      ring: 'ring-emerald-200',
+    },
+    {
+      key: 'thumbnails',
+      label: '缩略图缓存',
+      count: overview?.thumbnail_count ?? 0,
+      bytes: overview?.thumbnail_bytes ?? 0,
+      color: 'bg-amber-400',
+      tint: 'bg-amber-50',
+      ring: 'ring-amber-200',
+    },
+  ];
 
-  const handlePickDirectory = async () => {
-    const selected = await open({ directory: true, multiple: false });
-    if (selected && !Array.isArray(selected)) {
-      setExportDirectory(selected);
-    }
-  };
+  return (
+    <div className="rounded-2xl border border-border/80 bg-background/70 p-4">
+      <div className="overflow-hidden rounded-full bg-muted/80 ring-1 ring-border/70">
+        <div className="flex h-4 w-full">
+          {segments.map((segment) => {
+            const width =
+              total > 0 ? Math.max((segment.bytes / total) * 100, segment.bytes > 0 ? 6 : 0) : 0;
+            return (
+              <div
+                key={segment.key}
+                className={cn('h-full transition-[width] duration-300', segment.color)}
+                style={{ width: `${width}%` }}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 xl:grid-cols-3">
+        {segments.map((segment) => (
+          <div
+            key={segment.key}
+            className={cn(
+              'rounded-2xl px-4 py-3 ring-1 shadow-sm transition-colors xl:px-4 xl:py-3',
+              'sm:px-3.5 sm:py-2.5 xl:sm:px-4 xl:sm:py-3',
+              segment.tint,
+              segment.ring,
+            )}
+          >
+            <div className="flex items-center gap-2">
+              <span className={cn('size-2.5 rounded-full', segment.color)} />
+              <p className="text-xs font-semibold tracking-[0.14em] text-foreground/80 uppercase">
+                {segment.label}
+              </p>
+            </div>
+            <div className="mt-2 flex items-end justify-between gap-3 xl:mt-3 xl:block">
+              <p className="text-lg font-semibold text-foreground sm:text-xl xl:text-2xl">
+                {formatBytes(segment.bytes)}
+              </p>
+              <p className="text-[11px] text-muted-foreground sm:text-xs xl:mt-1">
+                {segment.count} 个文件
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+        <span>总占用</span>
+        <span className="font-medium text-foreground">{formatBytes(total)}</span>
+      </div>
+    </div>
+  );
+}
+
+function PlaceholderTab({
+  title,
+  description,
+  cards,
+}: {
+  title: string;
+  description: string;
+  cards: Array<{ title: string; description: string; active?: boolean }>;
+}) {
+  return (
+    <div className="space-y-4">
+      <FieldGroup title={title} description={description}>
+        <div className="grid gap-3 md:grid-cols-2">
+          {cards.map((card) => (
+            <OptionCard key={card.title} title={card.title} active={card.active}>
+              {card.description}
+            </OptionCard>
+          ))}
+        </div>
+      </FieldGroup>
+    </div>
+  );
+}
+
+function GeneralTab({
+  config,
+  onSelectSaveDirectory,
+}: {
+  config: AppConfig;
+  onSelectSaveDirectory: () => Promise<void>;
+}) {
+  const { frameMode, frameModePending, setFrameMode } = useWindowStyle();
 
   return (
     <div className="space-y-4">
-      <FieldGroup title="通用" description="控制应用的全局行为与启动体验。">
-        <SettingField label="主题" description="切换浅色、深色或跟随系统。">
-          <RadioGroup
-            defaultValue="system"
-            className="flex flex-wrap gap-3"
-            orientation="horizontal"
-          >
-            {[
-              { value: 'light', label: '浅色' },
-              { value: 'dark', label: '深色' },
-              { value: 'system', label: '跟随系统' },
-            ].map(({ value, label }) => (
-              <label key={value} htmlFor={`theme-${value}`} className="flex items-center gap-2">
-                <RadioGroupItem value={value} id={`theme-${value}`} />
-                <span className="text-sm">{label}</span>
-              </label>
-            ))}
-          </RadioGroup>
-        </SettingField>
-
+      <FieldGroup title="通用" description="控制应用的全局行为与默认保存位置。">
         <SettingField
           label="窗口边框"
           description="切换使用系统边框或无边框窗口，修改后会立即生效。"
@@ -171,257 +289,143 @@ function GeneralTab() {
             </RadioGroup>
             <p className="text-xs leading-5 text-muted-foreground">
               {frameModePending
-                ? '正在切换窗口边框样式...'
+                ? '正在切换窗口样式...'
                 : '系统边框模式将使用操作系统自带窗口外框。'}
             </p>
           </div>
         </SettingField>
 
-        <SettingField label="语言" description="配置应用的界面语言。">
-          <Select defaultValue="zh-CN">
-            <SelectTrigger className="w-full">
+        <SettingField label="语言" description="当前界面语言来自持久化配置。">
+          <Select value={config.language} disabled>
+            <SelectTrigger className="w-full max-w-[240px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
                 <SelectItem value="zh-CN">简体中文</SelectItem>
-                <SelectItem value="en">英语</SelectItem>
-                <SelectItem value="ja">日语</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>
         </SettingField>
 
-        <SettingField label="启动页" description="设置应用启动后默认进入的一级页面。">
-          <Select defaultValue="template">
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem value="template">边框水印</SelectItem>
-                <SelectItem value="collage">拼图</SelectItem>
-                <SelectItem value="settings">设置</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </SettingField>
-
-        <SettingField label="默认导出目录" description="指定导出图片时的默认保存位置。">
-          <div className="flex max-w-2xl items-center gap-2">
-            <Input value={exportDirectory} readOnly />
-            <Button variant="outline" onClick={() => void handlePickDirectory()}>
+        <SettingField
+          label="默认保存目录"
+          description="缓存目录默认位于该目录下的 cache 文件夹。修改后如果缓存目录仍是默认值，会一起跟随更新。"
+        >
+          <div className="flex max-w-3xl items-center gap-2">
+            <Input value={config.save_directory} readOnly />
+            <Button variant="outline" onClick={() => void onSelectSaveDirectory()}>
               <FolderOpen data-icon="inline-start" />
               选择
             </Button>
           </div>
         </SettingField>
 
-        <SettingField label="自动更新" description="决定是否在应用中主动检查更新。">
-          <RadioGroup
-            defaultValue="enabled"
-            className="flex flex-wrap gap-3"
-            orientation="horizontal"
-          >
-            {[
-              { value: 'enabled', label: '开启' },
-              { value: 'disabled', label: '关闭' },
-            ].map(({ value, label }) => (
-              <label
-                key={value}
-                htmlFor={`autoupdate-${value}`}
-                className="flex items-center gap-2"
-              >
-                <RadioGroupItem value={value} id={`autoupdate-${value}`} />
-                <span className="text-sm">{label}</span>
-              </label>
-            ))}
-          </RadioGroup>
+        <SettingField label="默认导出目录" description="导出默认使用当前保存目录。">
+          <Input value={config.output.default_path} readOnly className="max-w-3xl" />
         </SettingField>
       </FieldGroup>
     </div>
   );
 }
 
-function TemplateTab() {
-  const [borderWidth, setBorderWidth] = useState([24]);
-  const [fontScale, setFontScale] = useState([1]);
+function CacheTab({
+  config,
+  overview,
+  loading,
+  onSelectCacheDirectory,
+  onOpenCacheDirectory,
+  onToggleAutoCleanup,
+  onChangeMaxAgeDays,
+  onCleanupExpired,
+  onClearThumbnails,
+  onClearAll,
+}: {
+  config: AppConfig;
+  overview: CacheOverview | null;
+  loading: boolean;
+  onSelectCacheDirectory: () => Promise<void>;
+  onOpenCacheDirectory: () => Promise<void>;
+  onToggleAutoCleanup: (checked: boolean) => Promise<void>;
+  onChangeMaxAgeDays: (days: number) => Promise<void>;
+  onCleanupExpired: () => Promise<void>;
+  onClearThumbnails: () => Promise<void>;
+  onClearAll: () => Promise<void>;
+}) {
+  const [draftMaxAgeDays, setDraftMaxAgeDays] = useState(config.cache.max_age_days);
+
+  useEffect(() => {
+    setDraftMaxAgeDays(config.cache.max_age_days);
+  }, [config.cache.max_age_days]);
 
   return (
     <div className="space-y-4">
-      <FieldGroup title="边框水印" description="配置边框水印页面的默认模板与样式参数。">
-        <SettingField label="默认模板" description="设置进入边框水印页面时默认选中的模板。">
-          <div className="grid gap-3 md:grid-cols-2">
-            {[
-              { name: 'Leica', description: '经典相机信息排版' },
-              { name: 'Film', description: '胶片边框与颗粒风格' },
-              { name: '极简', description: '最简边框水印方案' },
-              { name: '社媒', description: '社交媒体风格展示卡片' },
-            ].map((item, index) => (
-              <OptionCard key={item.name} title={item.name} active={index === 2}>
-                {item.description}
-              </OptionCard>
-            ))}
+      <FieldGroup title="缓存" description="管理导入图片副本、缩略图与自动清理策略。">
+        <SettingField
+          label="缓存目录"
+          description="导入后的图片副本、预览文件与缩略图都会保存在这里。"
+        >
+          <div className="flex max-w-3xl items-center gap-2">
+            <Input value={config.cache.directory} readOnly />
+            <Button variant="outline" onClick={() => void onOpenCacheDirectory()}>
+              <FolderOpen data-icon="inline-start" />
+              打开
+            </Button>
+            <Button variant="outline" onClick={() => void onSelectCacheDirectory()}>
+              <FolderOpen data-icon="inline-start" />
+              选择
+            </Button>
           </div>
         </SettingField>
 
-        <SettingField label="默认字体" description="控制模板文字信息的默认字体。">
-          <Select defaultValue="inter">
-            <SelectTrigger className="w-full max-w-[240px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem value="inter">Inter 可变字体</SelectItem>
-                <SelectItem value="ibm-plex">IBM Plex Sans</SelectItem>
-                <SelectItem value="georgia">Georgia</SelectItem>
-                <SelectItem value="sf-pro">SF Pro</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+        <SettingField
+          label="缓存摘要"
+          description="从当前缓存目录实时扫描图片副本、预览副本和缩略图占用。"
+        >
+          <StorageSummary overview={overview} />
         </SettingField>
 
-        <SettingField label="默认边框宽度" description="控制模板边框的基础宽度。">
-          <div className="max-w-md">
-            <Slider value={borderWidth} onValueChange={setBorderWidth} min={0} max={80} step={1} />
-            <p className="mt-2 text-xs text-muted-foreground">{borderWidth[0]} px</p>
-          </div>
-        </SettingField>
-
-        <SettingField label="默认背景颜色" description="设置模板默认背景色。">
-          <div className="flex max-w-md items-center gap-2">
-            <input
-              type="color"
-              defaultValue="#ffffff"
-              className="h-10 w-12 border border-border bg-background p-1"
-            />
-            <Input defaultValue="#ffffff" />
-          </div>
-        </SettingField>
-
-        <SettingField label="默认 EXIF 格式" description="控制相机参数文本的默认模板。">
-          <div className="grid gap-3">
-            <Input defaultValue="{Make} {Model}" />
-            <Input defaultValue="{FocalLength}  f/{FNumber}  {ExposureTime}s  ISO{ISO}" />
+        <SettingField label="自动清理" description="应用启动时自动清理超过保留天数的缓存文件。">
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Switch
+                checked={config.cache.auto_cleanup_on_startup}
+                onCheckedChange={(checked) => void onToggleAutoCleanup(checked)}
+              />
+              <span className="text-sm">
+                {config.cache.auto_cleanup_on_startup ? '已开启自动清理' : '已关闭自动清理'}
+              </span>
+            </div>
             <div className="max-w-md">
-              <Slider value={fontScale} onValueChange={setFontScale} min={0.6} max={2} step={0.1} />
+              <Slider
+                key={config.cache.max_age_days}
+                defaultValue={[config.cache.max_age_days]}
+                onValueChange={([days]) => setDraftMaxAgeDays(days)}
+                onValueCommit={([days]) => void onChangeMaxAgeDays(days)}
+                min={1}
+                max={90}
+                step={1}
+              />
               <p className="mt-2 text-xs text-muted-foreground">
-                字体倍率 {fontScale[0].toFixed(1)}x
+                当前保留时长 {draftMaxAgeDays} 天
               </p>
             </div>
           </div>
         </SettingField>
-      </FieldGroup>
-    </div>
-  );
-}
 
-function CollageTab() {
-  const [gap, setGap] = useState([12]);
-  const [radius, setRadius] = useState([18]);
-
-  return (
-    <div className="space-y-4">
-      <FieldGroup title="拼图" description="配置拼图页面的默认布局与样式。">
-        <SettingField label="默认布局" description="设置进入拼图页面时使用的默认布局模式。">
-          <Select defaultValue="four-grid">
-            <SelectTrigger className="w-full max-w-[240px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem value="two-columns">2 宫格</SelectItem>
-                <SelectItem value="three-columns">3 宫格</SelectItem>
-                <SelectItem value="four-grid">4 宫格</SelectItem>
-                <SelectItem value="six-grid">6 宫格</SelectItem>
-                <SelectItem value="free-layout">自由布局</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </SettingField>
-
-        <SettingField label="默认间距" description="控制拼图项之间的默认间距。">
-          <div className="max-w-md">
-            <Slider value={gap} onValueChange={setGap} min={0} max={48} step={1} />
-            <p className="mt-2 text-xs text-muted-foreground">{gap[0]} px</p>
-          </div>
-        </SettingField>
-
-        <SettingField label="默认背景色" description="设置拼图画布的默认背景色。">
-          <div className="flex max-w-md items-center gap-2">
-            <input
-              type="color"
-              defaultValue="#ffffff"
-              className="h-10 w-12 border border-border bg-background p-1"
-            />
-            <Input defaultValue="#ffffff" />
-          </div>
-        </SettingField>
-
-        <SettingField label="默认圆角" description="控制拼图项的默认圆角。">
-          <div className="max-w-md">
-            <Slider value={radius} onValueChange={setRadius} min={0} max={48} step={1} />
-            <p className="mt-2 text-xs text-muted-foreground">{radius[0]} px</p>
-          </div>
-        </SettingField>
-      </FieldGroup>
-    </div>
-  );
-}
-
-function ExportTab() {
-  const [scale, setScale] = useState([1]);
-  const [quality, setQuality] = useState([90]);
-
-  return (
-    <div className="space-y-4">
-      <FieldGroup title="导出" description="设置共享导出管线的默认格式、倍率与质量。">
-        <SettingField label="默认格式" description="控制导出的默认文件格式。">
-          <div className="grid gap-3 md:grid-cols-3">
-            {['PNG', 'JPG', 'WEBP'].map((item, index) => (
-              <OptionCard key={item} title={item} active={index === 0} />
-            ))}
-          </div>
-        </SettingField>
-
-        <SettingField label="默认倍率" description="控制默认导出的缩放倍率。">
-          <div className="max-w-md">
-            <Slider value={scale} onValueChange={setScale} min={0.5} max={3} step={0.1} />
-            <p className="mt-2 text-xs text-muted-foreground">{scale[0].toFixed(1)}x</p>
-          </div>
-        </SettingField>
-
-        <SettingField label="默认质量" description="控制 JPG / WEBP 导出的质量。">
-          <div className="max-w-md">
-            <Slider value={quality} onValueChange={setQuality} min={1} max={100} step={1} />
-            <p className="mt-2 text-xs text-muted-foreground">{quality[0]}</p>
-          </div>
-        </SettingField>
-      </FieldGroup>
-    </div>
-  );
-}
-
-function CacheTab() {
-  return (
-    <div className="space-y-4">
-      <FieldGroup title="缓存" description="管理缩略图缓存、预览资源缓存与清理策略。">
-        <SettingField label="缓存摘要" description="查看当前缓存状态与预计占用。">
-          <div className="grid gap-3 md:grid-cols-2">
-            <OptionCard title="缩略图缓存">约 128 MB，用于素材栏缩略图加载。</OptionCard>
-            <OptionCard title="预览资源缓存">约 256 MB，用于模板与拼图预览。</OptionCard>
-          </div>
-        </SettingField>
-
-        <SettingField label="清理缓存" description="清理本地缓存并释放磁盘空间。">
+        <SettingField label="清理缓存" description="可单独清理缩略图，或清理过期/全部缓存。">
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline">
-              <Trash2 data-icon="inline-start" />
-              清理缩略图缓存
+            <Button variant="outline" disabled={loading} onClick={() => void onCleanupExpired()}>
+              <RefreshCw data-icon="inline-start" className={cn(loading && 'animate-spin')} />
+              清理过期缓存
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" disabled={loading} onClick={() => void onClearThumbnails()}>
               <Trash2 data-icon="inline-start" />
-              清理预览资源缓存
+              清理缩略图
+            </Button>
+            <Button variant="outline" disabled={loading} onClick={() => void onClearAll()}>
+              <Trash2 data-icon="inline-start" />
+              清理全部缓存
             </Button>
           </div>
         </SettingField>
@@ -473,12 +477,213 @@ function AboutTab() {
 }
 
 export function SettingsPage() {
+  const [config, setConfig] = useState<AppConfig | null>(null);
+  const [overview, setOverview] = useState<CacheOverview | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [cacheActionPending, setCacheActionPending] = useState(false);
+
+  const loadConfig = useCallback(async () => {
+    setLoading(true);
+    try {
+      const nextConfig = await getConfig();
+      setConfig(nextConfig);
+      const nextOverview = await getCacheOverview(nextConfig.cache.directory);
+      setOverview(nextOverview);
+    } catch (error) {
+      console.error('Load settings failed:', error);
+      toast.error('读取设置失败');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadConfig();
+  }, [loadConfig]);
+
+  const saveConfig = useCallback(async (nextConfig: AppConfig) => {
+    setConfig(nextConfig);
+    await updateConfig(nextConfig);
+    const nextOverview = await getCacheOverview(nextConfig.cache.directory);
+    setOverview(nextOverview);
+  }, []);
+
+  const withCacheAction = useCallback(async (runner: () => Promise<void>) => {
+    setCacheActionPending(true);
+    try {
+      await runner();
+    } catch (error) {
+      console.error('Cache settings action failed:', error);
+      toast.error('缓存设置操作失败');
+    } finally {
+      setCacheActionPending(false);
+    }
+  }, []);
+
+  const handleSelectSaveDirectory = useCallback(async () => {
+    if (!config) {
+      return;
+    }
+
+    const selected = await open({ directory: true, multiple: false });
+    if (!selected || Array.isArray(selected)) {
+      return;
+    }
+
+    const followsDefaultCache =
+      config.cache.directory === defaultCacheDirectory(config.save_directory);
+    const nextConfig: AppConfig = {
+      ...config,
+      save_directory: selected,
+      output: {
+        ...config.output,
+        default_path: selected,
+      },
+      cache: followsDefaultCache
+        ? {
+            ...config.cache,
+            directory: defaultCacheDirectory(selected),
+          }
+        : config.cache,
+    };
+
+    await withCacheAction(async () => {
+      await saveConfig(nextConfig);
+      toast.success('默认保存目录已更新');
+    });
+  }, [config, saveConfig, withCacheAction]);
+
+  const handleSelectCacheDirectory = useCallback(async () => {
+    if (!config) {
+      return;
+    }
+
+    const selected = await open({ directory: true, multiple: false });
+    if (!selected || Array.isArray(selected)) {
+      return;
+    }
+
+    await withCacheAction(async () => {
+      await saveConfig({
+        ...config,
+        cache: {
+          ...config.cache,
+          directory: selected,
+        },
+      });
+      clearAssetCaches();
+      toast.success('缓存目录已更新');
+    });
+  }, [config, saveConfig, withCacheAction]);
+
+  const handleOpenCacheDirectory = useCallback(async () => {
+    if (!config) {
+      return;
+    }
+
+    try {
+      await openDirectory(config.cache.directory);
+    } catch (error) {
+      console.error('Open cache directory failed:', error);
+      toast.error('打开缓存目录失败');
+    }
+  }, [config]);
+
+  const handleToggleAutoCleanup = useCallback(
+    async (checked: boolean) => {
+      if (!config) {
+        return;
+      }
+
+      await withCacheAction(async () => {
+        await saveConfig({
+          ...config,
+          cache: {
+            ...config.cache,
+            auto_cleanup_on_startup: checked,
+          },
+        });
+      });
+    },
+    [config, saveConfig, withCacheAction],
+  );
+
+  const handleChangeMaxAgeDays = useCallback(
+    async (days: number) => {
+      if (!config || days === config.cache.max_age_days) {
+        return;
+      }
+
+      await withCacheAction(async () => {
+        await saveConfig({
+          ...config,
+          cache: {
+            ...config.cache,
+            max_age_days: days,
+          },
+        });
+      });
+    },
+    [config, saveConfig, withCacheAction],
+  );
+
+  const handleCleanupExpired = useCallback(async () => {
+    if (!config) {
+      return;
+    }
+
+    await withCacheAction(async () => {
+      const result = await cleanupCache(config.cache.directory, config.cache.max_age_days);
+      const nextOverview = await getCacheOverview(config.cache.directory);
+      setOverview(nextOverview);
+      clearAssetCaches();
+      toast.success(`已清理 ${result.removed_files} 个过期缓存文件`);
+    });
+  }, [config, withCacheAction]);
+
+  const handleClearThumbnails = useCallback(async () => {
+    if (!config) {
+      return;
+    }
+
+    await withCacheAction(async () => {
+      const nextOverview = await clearCache(config.cache.directory, 'thumbnails');
+      setOverview(nextOverview);
+      clearAssetCaches();
+      toast.success('缩略图缓存已清理');
+    });
+  }, [config, withCacheAction]);
+
+  const handleClearAll = useCallback(async () => {
+    if (!config) {
+      return;
+    }
+
+    await withCacheAction(async () => {
+      const nextOverview = await clearCache(config.cache.directory, 'all');
+      setOverview(nextOverview);
+      clearAssetCaches();
+      toast.success('全部缓存已清理');
+    });
+  }, [config, withCacheAction]);
+
+  if (loading || !config) {
+    return (
+      <div className="flex h-full min-h-0 flex-col bg-background">
+        <CoWindowHeader icon={Settings2} title="设置" description="正在读取配置与缓存状态。" />
+        <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
+          正在加载设置...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
       <CoWindowHeader
         icon={Settings2}
         title="设置"
-        description="管理软件行为、边框水印默认配置、拼图默认配置与导出策略。"
+        description="管理软件行为、缓存目录、缩略图生成与自动清理策略。"
       />
 
       <Tabs defaultValue="general" orientation="vertical" className="min-h-0 flex-1 p-4">
@@ -497,19 +702,51 @@ export function SettingsPage() {
         <div className="min-h-0 flex-1 overflow-y-auto pl-4">
           <div className="mx-auto w-full max-w-5xl">
             <TabsContent value="general" className="mt-0">
-              <GeneralTab />
+              <GeneralTab config={config} onSelectSaveDirectory={handleSelectSaveDirectory} />
             </TabsContent>
             <TabsContent value="template" className="mt-0">
-              <TemplateTab />
+              <PlaceholderTab
+                title="边框水印"
+                description="模板默认项仍保持占位状态，本次优先落地素材缓存链路。"
+                cards={[
+                  { title: '默认模板', description: '后续与模板系统联动。' },
+                  { title: '默认字体', description: '后续与字体收藏和模板 schema 联动。' },
+                ]}
+              />
             </TabsContent>
             <TabsContent value="collage" className="mt-0">
-              <CollageTab />
+              <PlaceholderTab
+                title="拼图"
+                description="拼图默认项仍保持占位状态，本次优先落地素材缓存链路。"
+                cards={[
+                  { title: '默认布局', description: '后续与拼图布局预设联动。' },
+                  { title: '默认画布样式', description: '后续与拼图渲染设置联动。' },
+                ]}
+              />
             </TabsContent>
             <TabsContent value="export" className="mt-0">
-              <ExportTab />
+              <PlaceholderTab
+                title="导出"
+                description="导出默认项仍保持占位状态，本次优先落地素材缓存链路。"
+                cards={[
+                  { title: '默认导出格式', description: '后续与导出管线默认值联动。' },
+                  { title: '默认倍率与质量', description: '后续与导出面板联动。' },
+                ]}
+              />
             </TabsContent>
             <TabsContent value="cache" className="mt-0">
-              <CacheTab />
+              <CacheTab
+                config={config}
+                overview={overview}
+                loading={cacheActionPending}
+                onSelectCacheDirectory={handleSelectCacheDirectory}
+                onOpenCacheDirectory={handleOpenCacheDirectory}
+                onToggleAutoCleanup={handleToggleAutoCleanup}
+                onChangeMaxAgeDays={handleChangeMaxAgeDays}
+                onCleanupExpired={handleCleanupExpired}
+                onClearThumbnails={handleClearThumbnails}
+                onClearAll={handleClearAll}
+              />
             </TabsContent>
             <TabsContent value="about" className="mt-0">
               <AboutTab />

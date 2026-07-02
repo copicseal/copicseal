@@ -1,5 +1,6 @@
-import { convertFileSrc, invoke } from '@tauri-apps/api/core';
+import { convertFileSrc } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
+import { getConfig } from '@/api';
 import {
   clearPreviewResourceCache,
   clearThumbnailCache,
@@ -8,7 +9,12 @@ import {
   setPreviewResourceCache,
   setThumbnailCache,
 } from '@/infra/cache';
-import { listImageFilesInDirectory, readImageFile } from '@/infra/fs';
+import {
+  type CachedImageMeta,
+  importImageBytesToCache,
+  importImageToCache,
+  listImageFilesInDirectory,
+} from '@/infra/fs';
 import { type ImportedPhoto, SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_IMAGE_TYPES } from '@/lib/photo';
 
 function uid(): string {
@@ -23,30 +29,30 @@ function isSupportedExt(name: string): boolean {
   return SUPPORTED_IMAGE_EXTENSIONS.some((ext) => name.toLowerCase().endsWith(ext));
 }
 
-async function resolvePreviewUrl(path: string, ext: string): Promise<string> {
-  const cached = getThumbnailCache(path);
-  if (cached) {
-    return cached;
-  }
+function toImportedPhoto(meta: CachedImageMeta): ImportedPhoto {
+  const cachedThumbnail = getThumbnailCache(meta.path);
+  const thumbnailUrl = cachedThumbnail ?? convertFileSrc(meta.thumbnail_path);
+  const previewUrl = getPreviewResourceCache(meta.path) ?? convertFileSrc(meta.preview_path);
 
-  const isHeic = ext === 'heic';
-  let previewUrl: string;
+  setThumbnailCache(meta.path, thumbnailUrl);
+  setPreviewResourceCache(meta.path, previewUrl);
 
-  if (isHeic) {
-    try {
-      const pngPath = await invoke<string>('convert_heic_to_png', {
-        input: path,
-      });
-      previewUrl = convertFileSrc(pngPath);
-    } catch {
-      previewUrl = convertFileSrc(path);
-    }
-  } else {
-    previewUrl = convertFileSrc(path);
-  }
+  return {
+    id: photoId(meta.name),
+    name: meta.name,
+    path: meta.path,
+    originalPath: meta.original_path ?? undefined,
+    size: meta.size,
+    mimeType: meta.mime_type,
+    previewUrl,
+    thumbnailUrl,
+    isHeic: meta.ext === 'heic' || meta.ext === 'heif',
+  };
+}
 
-  setThumbnailCache(path, previewUrl);
-  return previewUrl;
+async function resolveCacheDirectory(): Promise<string> {
+  const config = await getConfig();
+  return config.cache.directory;
 }
 
 export async function selectPhotosViaDialog(): Promise<ImportedPhoto[]> {
@@ -87,22 +93,12 @@ export async function selectPhotosFromDirectory(): Promise<ImportedPhoto[]> {
 }
 
 export async function importPhotosViaPaths(filePaths: string[]): Promise<ImportedPhoto[]> {
+  const cacheDir = await resolveCacheDirectory();
   const photos: ImportedPhoto[] = [];
 
   for (const filePath of filePaths) {
-    const meta = await readImageFile(filePath);
-    const previewUrl = await resolvePreviewUrl(meta.path, meta.ext);
-    const isHeic = meta.ext === 'heic';
-
-    photos.push({
-      id: photoId(meta.name),
-      name: meta.name,
-      path: meta.path,
-      size: meta.size,
-      mimeType: isHeic ? 'image/png' : meta.mime_type,
-      previewUrl,
-      isHeic,
-    });
+    const meta = await importImageToCache(filePath, cacheDir);
+    photos.push(toImportedPhoto(meta));
   }
 
   return photos;
@@ -110,6 +106,7 @@ export async function importPhotosViaPaths(filePaths: string[]): Promise<Importe
 
 export async function processDroppedFiles(files: FileList | File[]): Promise<ImportedPhoto[]> {
   const fileArr = Array.from(files);
+  const cacheDir = await resolveCacheDirectory();
   const photos: ImportedPhoto[] = [];
 
   for (const file of fileArr) {
@@ -117,23 +114,9 @@ export async function processDroppedFiles(files: FileList | File[]): Promise<Imp
       continue;
     }
 
-    const isHeic =
-      file.type === 'image/heic' ||
-      file.type === 'image/heif' ||
-      file.name.toLowerCase().endsWith('.heic') ||
-      file.name.toLowerCase().endsWith('.heif');
-    const previewUrl = URL.createObjectURL(file);
-    setPreviewResourceCache(file.name, previewUrl);
-
-    photos.push({
-      id: photoId(file.name),
-      name: file.name,
-      file,
-      size: file.size,
-      mimeType: file.type || 'image/jpeg',
-      previewUrl,
-      isHeic,
-    });
+    const contents = Array.from(new Uint8Array(await file.arrayBuffer()));
+    const meta = await importImageBytesToCache(file.name, contents, cacheDir);
+    photos.push(toImportedPhoto(meta));
   }
 
   return photos;
@@ -142,8 +125,4 @@ export async function processDroppedFiles(files: FileList | File[]): Promise<Imp
 export function clearAssetCaches() {
   clearThumbnailCache();
   clearPreviewResourceCache();
-}
-
-export function getCachedPreviewResource(key: string): string | null {
-  return getPreviewResourceCache(key);
 }

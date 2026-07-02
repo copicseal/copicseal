@@ -10,6 +10,14 @@
     "core:window:allow-toggle-maximize",
     "core:window:allow-close",
     "opener:default",
+    {
+      "identifier": "opener:allow-open-path",
+      "allow": [
+        {
+          "path": "*"
+        }
+      ]
+    },
     "updater:default",
     "dialog:default"
   ]

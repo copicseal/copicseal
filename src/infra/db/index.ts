@@ -1,5 +1,6 @@
 export {
   type AppConfig,
+  type CacheConfig,
   type ComarkTemplateRecord,
   type FontInfo,
   getConfig,

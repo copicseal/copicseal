@@ -1,7 +1,7 @@
 use crate::db;
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(default)]
@@ -10,12 +10,21 @@ pub struct AppConfig {
     pub theme: String,
     pub window_frame_mode: String,
     pub save_directory: String,
+    pub cache: CacheConfig,
     pub output: OutputConfig,
     pub fonts: FontConfig,
     pub template_presets: Vec<TemplatePreset>,
     pub template_list: TemplateListConfig,
     pub user_devices: Vec<UserDevice>,
     pub device_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(default)]
+pub struct CacheConfig {
+    pub directory: String,
+    pub auto_cleanup_on_startup: bool,
+    pub max_age_days: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -94,13 +103,14 @@ pub struct UserDevice {
 
 impl Default for AppConfig {
     fn default() -> Self {
-        let save = default_save_directory();
+        let save_directory = default_save_directory();
 
         Self {
             language: "zh-CN".to_string(),
             theme: "system".to_string(),
             window_frame_mode: "frameless".to_string(),
-            save_directory: save,
+            save_directory: save_directory.clone(),
+            cache: CacheConfig::with_save_directory(&save_directory),
             output: OutputConfig::default(),
             fonts: FontConfig::default(),
             template_presets: Vec::new(),
@@ -108,6 +118,22 @@ impl Default for AppConfig {
             user_devices: Vec::new(),
             device_id: String::new(),
         }
+    }
+}
+
+impl CacheConfig {
+    pub fn with_save_directory(save_directory: &str) -> Self {
+        Self {
+            directory: default_cache_directory(save_directory),
+            auto_cleanup_on_startup: true,
+            max_age_days: 30,
+        }
+    }
+}
+
+impl Default for CacheConfig {
+    fn default() -> Self {
+        Self::with_save_directory(&default_save_directory())
     }
 }
 
@@ -179,6 +205,13 @@ fn default_save_directory() -> String {
         .to_string()
 }
 
+pub fn default_cache_directory(save_directory: &str) -> String {
+    Path::new(save_directory)
+        .join("cache")
+        .to_string_lossy()
+        .to_string()
+}
+
 impl Default for UserDevice {
     fn default() -> Self {
         Self {
@@ -214,17 +247,32 @@ where
     db::set_config_value(conn, key, &content)
 }
 
+fn normalize_cache_config(cache: Option<CacheConfig>, save_directory: &str) -> CacheConfig {
+    let mut next = cache.unwrap_or_else(|| CacheConfig::with_save_directory(save_directory));
+    if next.directory.trim().is_empty() {
+        next.directory = default_cache_directory(save_directory);
+    }
+    if next.max_age_days == 0 {
+        next.max_age_days = 30;
+    }
+    next
+}
+
 fn load_from_db(app: &tauri::AppHandle) -> Result<AppConfig, String> {
     let conn = db::open_database(app)?;
     let defaults = AppConfig::default();
+
+    let save_directory =
+        read_json_value(&conn, "save_directory")?.unwrap_or(defaults.save_directory);
+    let cache = normalize_cache_config(read_json_value(&conn, "cache")?, &save_directory);
 
     Ok(AppConfig {
         language: read_json_value(&conn, "language")?.unwrap_or(defaults.language),
         theme: read_json_value(&conn, "theme")?.unwrap_or(defaults.theme),
         window_frame_mode: read_json_value(&conn, "window_frame_mode")?
             .unwrap_or(defaults.window_frame_mode),
-        save_directory: read_json_value(&conn, "save_directory")?
-            .unwrap_or(defaults.save_directory),
+        save_directory,
+        cache,
         output: read_json_value(&conn, "output")?.unwrap_or(defaults.output),
         fonts: read_json_value(&conn, "fonts")?.unwrap_or(defaults.fonts),
         template_presets: read_json_value(&conn, "template_presets")?
@@ -245,6 +293,7 @@ fn save_to_db(app: &tauri::AppHandle, config: &AppConfig) -> Result<(), String> 
     write_json_value(&tx, "theme", &config.theme)?;
     write_json_value(&tx, "window_frame_mode", &config.window_frame_mode)?;
     write_json_value(&tx, "save_directory", &config.save_directory)?;
+    write_json_value(&tx, "cache", &config.cache)?;
     write_json_value(&tx, "output", &config.output)?;
     write_json_value(&tx, "fonts", &config.fonts)?;
     write_json_value(&tx, "template_presets", &config.template_presets)?;

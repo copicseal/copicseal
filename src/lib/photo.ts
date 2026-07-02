@@ -13,12 +13,14 @@ export const SUPPORTED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.heic', '.h
 export interface ImportedPhoto {
   id: string;
   name: string;
-  /** 原始文件路径（本地路径，来自 Tauri dialog） */
-  path?: string;
-  /** 文件对象（拖拽导入时） */
-  file?: File;
+  /** 缓存后的本地文件路径 */
+  path: string;
+  /** 原始文件路径（如果存在） */
+  originalPath?: string;
   /** 前端预览 URL */
   previewUrl: string;
+  /** 素材列表使用的缩略图 URL */
+  thumbnailUrl: string;
   /** 文件大小（字节） */
   size: number;
   /** MIME 类型 */

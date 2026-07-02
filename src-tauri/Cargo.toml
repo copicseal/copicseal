@@ -30,3 +30,4 @@ kamadak-exif = "0.6"
 font-kit = "0.14"
 rusqlite = { version = "0.32", features = ["bundled"] }
 uuid = { version = "1", features = ["v4"] }
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }

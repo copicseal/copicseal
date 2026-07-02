@@ -23,6 +23,14 @@ export interface FontInfo {
   postscript_name: string | null;
 }
 
+export interface ImageFileMeta {
+  name: string;
+  path: string;
+  size: number;
+  ext: string;
+  mime_type: string;
+}
+
 export type WindowFrameMode = 'native' | 'frameless';
 
 export interface AppConfig {
@@ -30,12 +38,19 @@ export interface AppConfig {
   theme: string;
   window_frame_mode: WindowFrameMode;
   save_directory: string;
+  cache: CacheConfig;
   output: OutputConfig;
   fonts: FontConfig;
   template_presets: TemplatePreset[];
   template_list: TemplateListConfig;
   user_devices: UserDevice[];
   device_id: string;
+}
+
+export interface CacheConfig {
+  directory: string;
+  auto_cleanup_on_startup: boolean;
+  max_age_days: number;
 }
 
 export interface OutputConfig {
@@ -129,8 +144,47 @@ export interface AppVersion {
   name: string;
 }
 
+export interface CachedImageMeta {
+  name: string;
+  original_path: string | null;
+  path: string;
+  preview_path: string;
+  thumbnail_path: string;
+  size: number;
+  ext: string;
+  mime_type: string;
+}
+
+export interface CacheOverview {
+  directory: string;
+  image_count: number;
+  preview_count: number;
+  thumbnail_count: number;
+  image_bytes: number;
+  preview_bytes: number;
+  thumbnail_bytes: number;
+  total_bytes: number;
+}
+
+export interface CacheCleanupResult {
+  removed_files: number;
+  removed_bytes: number;
+}
+
 export function readExif(path: string): Promise<ExifData> {
   return invoke<ExifData>('read_exif', { path });
+}
+
+export function readImageFile(path: string): Promise<ImageFileMeta> {
+  return invoke<ImageFileMeta>('read_image_file', { path });
+}
+
+export function writeBinaryFile(path: string, contents: number[]): Promise<void> {
+  return invoke('write_file', { path, contents });
+}
+
+export function listImageFilesInDirectory(path: string): Promise<string[]> {
+  return invoke<string[]>('list_image_files_in_directory', { path });
 }
 
 export function listSystemFonts(): Promise<FontInfo[]> {
@@ -151,6 +205,37 @@ export function applyWindowFrameMode(mode: WindowFrameMode): Promise<void> {
 
 export function getAppInfo(): Promise<AppVersion> {
   return invoke<AppVersion>('get_app_info');
+}
+
+export function importImageToCache(path: string, cacheDir: string): Promise<CachedImageMeta> {
+  return invoke<CachedImageMeta>('import_image_to_cache', { path, cacheDir });
+}
+
+export function importImageBytesToCache(
+  name: string,
+  contents: number[],
+  cacheDir: string,
+): Promise<CachedImageMeta> {
+  return invoke<CachedImageMeta>('import_image_bytes_to_cache', { name, contents, cacheDir });
+}
+
+export function getCacheOverview(cacheDir: string): Promise<CacheOverview> {
+  return invoke<CacheOverview>('get_cache_overview', { cacheDir });
+}
+
+export function clearCache(
+  cacheDir: string,
+  scope?: 'all' | 'thumbnails' | 'previews',
+): Promise<CacheOverview> {
+  return invoke<CacheOverview>('clear_cache', { cacheDir, scope });
+}
+
+export function cleanupCache(cacheDir: string, maxAgeDays: number): Promise<CacheCleanupResult> {
+  return invoke<CacheCleanupResult>('cleanup_cache', { cacheDir, maxAgeDays });
+}
+
+export function openDirectory(path: string): Promise<void> {
+  return invoke('open_directory', { path });
 }
 
 export function getDeviceId(): Promise<string> {

@@ -1,4 +1,4 @@
-import { invoke } from '@tauri-apps/api/core';
+import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import {
   clearPreviewResourceCache,
@@ -37,12 +37,12 @@ async function resolvePreviewUrl(path: string, ext: string): Promise<string> {
       const pngPath = await invoke<string>('convert_heic_to_png', {
         input: path,
       });
-      previewUrl = `asset://localhost/${encodeURIComponent(pngPath)}`;
+      previewUrl = convertFileSrc(pngPath);
     } catch {
-      previewUrl = `asset://localhost/${encodeURIComponent(path)}`;
+      previewUrl = convertFileSrc(path);
     }
   } else {
-    previewUrl = `asset://localhost/${encodeURIComponent(path)}`;
+    previewUrl = convertFileSrc(path);
   }
 
   setThumbnailCache(path, previewUrl);

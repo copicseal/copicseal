@@ -7,75 +7,77 @@ use tauri_plugin_sql::{Migration, MigrationKind};
 
 const DATABASE_FILENAME: &str = "data.db";
 pub const DATABASE_URL: &str = "sqlite:data.db";
+const INITIAL_SCHEMA_SQL: &str = r#"
+    CREATE TABLE IF NOT EXISTS config_entries (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS comark_templates (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        version TEXT NOT NULL,
+        description TEXT,
+        author TEXT,
+        license TEXT,
+        source_type TEXT NOT NULL,
+        registry_url TEXT,
+        local_path TEXT,
+        enabled INTEGER NOT NULL,
+        installed_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_comark_templates_source_type
+    ON comark_templates (source_type);
+
+    CREATE INDEX IF NOT EXISTS idx_comark_templates_enabled
+    ON comark_templates (enabled);
+"#;
+const SEED_BUILTIN_TEMPLATE_SQL: &str = r#"
+    INSERT OR IGNORE INTO comark_templates (
+        id,
+        name,
+        version,
+        description,
+        author,
+        license,
+        source_type,
+        registry_url,
+        local_path,
+        enabled,
+        installed_at,
+        updated_at
+    )
+    VALUES (
+        'minimal',
+        '极简',
+        '1.0.0',
+        '右下角半透明参数水印',
+        'Copicseal',
+        'Proprietary',
+        'built_in',
+        NULL,
+        NULL,
+        1,
+        CAST(strftime('%s', 'now') AS TEXT),
+        CAST(strftime('%s', 'now') AS TEXT)
+    );
+"#;
 
 pub fn migrations() -> Vec<Migration> {
     vec![
         Migration {
             version: 1,
             description: "create_initial_tables",
-            sql: r#"
-                                CREATE TABLE IF NOT EXISTS config_entries (
-                                    key TEXT PRIMARY KEY,
-                                    value TEXT NOT NULL,
-                                    updated_at TEXT NOT NULL
-                                );
-
-                                CREATE TABLE IF NOT EXISTS comark_templates (
-                                    id TEXT PRIMARY KEY,
-                                    name TEXT NOT NULL,
-                                    version TEXT NOT NULL,
-                                    description TEXT,
-                                    author TEXT,
-                                    license TEXT,
-                                    source_type TEXT NOT NULL,
-                                    registry_url TEXT,
-                                    local_path TEXT,
-                                    enabled INTEGER NOT NULL,
-                                    installed_at TEXT NOT NULL,
-                                    updated_at TEXT NOT NULL
-                                );
-
-                                CREATE INDEX IF NOT EXISTS idx_comark_templates_source_type
-                                ON comark_templates (source_type);
-
-                                CREATE INDEX IF NOT EXISTS idx_comark_templates_enabled
-                                ON comark_templates (enabled);
-                        "#,
+            sql: INITIAL_SCHEMA_SQL,
             kind: MigrationKind::Up,
         },
         Migration {
             version: 2,
             description: "seed_builtin_templates",
-            sql: r#"
-                                INSERT OR IGNORE INTO comark_templates (
-                                    id,
-                                    name,
-                                    version,
-                                    description,
-                                    author,
-                                    license,
-                                    source_type,
-                                    registry_url,
-                                    local_path,
-                                    enabled,
-                                    installed_at,
-                                    updated_at
-                                )
-                                VALUES (
-                                    'minimal',
-                                    '极简',
-                                    '1.0.0',
-                                    '右下角半透明参数水印',
-                                    'Copicseal',
-                                    'Proprietary',
-                                    'built_in',
-                                    NULL,
-                                    NULL,
-                                    1,
-                                    CAST(strftime('%s', 'now') AS TEXT),
-                                    CAST(strftime('%s', 'now') AS TEXT)
-                                );
-                        "#,
+            sql: SEED_BUILTIN_TEMPLATE_SQL,
             kind: MigrationKind::Up,
         },
     ]
@@ -83,7 +85,9 @@ pub fn migrations() -> Vec<Migration> {
 
 pub fn open_database(app: &tauri::AppHandle) -> Result<Connection, String> {
     let path = database_path(app)?;
-    Connection::open(path).map_err(|e| format!("打开数据库失败: {e}"))
+    let conn = Connection::open(path).map_err(|e| format!("打开数据库失败: {e}"))?;
+    ensure_schema(&conn)?;
+    Ok(conn)
 }
 
 pub fn get_config_value(conn: &Connection, key: &str) -> Result<Option<String>, String> {
@@ -118,6 +122,14 @@ pub fn now_timestamp() -> String {
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_secs().to_string())
         .unwrap_or_else(|_| "0".to_string())
+}
+
+fn ensure_schema(conn: &Connection) -> Result<(), String> {
+    conn.execute_batch(INITIAL_SCHEMA_SQL)
+        .map_err(|e| format!("初始化数据库结构失败: {e}"))?;
+    conn.execute_batch(SEED_BUILTIN_TEMPLATE_SQL)
+        .map_err(|e| format!("初始化内置模板失败: {e}"))?;
+    Ok(())
 }
 
 fn database_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {

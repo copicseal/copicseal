@@ -33,7 +33,7 @@ export function BusinessWorkbench({
             <ResizableHandle withHandle />
             <ResizablePanel
               defaultSize={180}
-              minSize={12}
+              minSize={100}
               maxSize={300}
               className="min-h-0 min-w-0"
             >

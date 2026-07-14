@@ -61,7 +61,7 @@ function toImportedPhoto(meta: CachedImageMeta): ImportedPhoto {
     previewUrl,
     thumbnailUrl,
     thumbnailReady: meta.thumbnail_ready,
-    isHeic: meta.ext === 'heic' || meta.ext === 'heif',
+    isHeic: meta.ext === 'heic' || meta.ext === 'heif' || meta.ext === 'hif',
   };
 }
 

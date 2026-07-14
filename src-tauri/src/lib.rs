@@ -34,7 +34,7 @@ pub fn run() {
             fs::read_image_file,
             fs::list_image_files_in_directory,
             fs::write_file,
-            fs::convert_heic_to_png,
+            fs::convert_heic_to_jpeg,
             fs::import_image_to_cache,
             fs::import_image_bytes_to_cache,
             fs::get_cache_overview,

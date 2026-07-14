@@ -30,4 +30,14 @@ kamadak-exif = "0.6"
 font-kit = "0.14"
 rusqlite = { version = "0.32", features = ["bundled"] }
 uuid = { version = "1", features = ["v4"] }
+fast_image_resize = { version = "6", features = ["image"] }
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+zune-core = "0.5"
+zune-jpeg = "0.5"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+windows = { version = "0.61", features = [
+  "Win32_Foundation",
+  "Win32_Graphics_Imaging",
+  "Win32_System_Com",
+] }

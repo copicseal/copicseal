@@ -7,7 +7,15 @@ export const SUPPORTED_IMAGE_TYPES = [
   'image/webp',
 ];
 
-export const SUPPORTED_IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.heic', '.heif', '.webp'];
+export const SUPPORTED_IMAGE_EXTENSIONS = [
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.heic',
+  '.heif',
+  '.hif',
+  '.webp',
+];
 
 /** 导入的照片实体 */
 export interface ImportedPhoto {

@@ -3,11 +3,46 @@ import type * as React from 'react';
 
 import { cn } from '@/lib/utils';
 
+type ScrollbarOrientation = 'vertical' | 'horizontal' | 'both';
+
 function ScrollArea({
   className,
   children,
+  horizontalWheelScroll = false,
+  scrollbarOrientation = 'vertical',
+  viewportClassName,
   ...props
-}: React.ComponentProps<typeof ScrollAreaPrimitive.Root>) {
+}: React.ComponentProps<typeof ScrollAreaPrimitive.Root> & {
+  horizontalWheelScroll?: boolean;
+  scrollbarOrientation?: ScrollbarOrientation;
+  viewportClassName?: string;
+}) {
+  const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+    if (
+      !horizontalWheelScroll ||
+      event.ctrlKey ||
+      Math.abs(event.deltaY) <= Math.abs(event.deltaX)
+    ) {
+      return;
+    }
+
+    const viewport = event.currentTarget;
+    const maxScrollLeft = viewport.scrollWidth - viewport.clientWidth;
+
+    if (maxScrollLeft <= 0) {
+      return;
+    }
+
+    const nextScrollLeft = Math.min(maxScrollLeft, Math.max(0, viewport.scrollLeft + event.deltaY));
+
+    if (nextScrollLeft === viewport.scrollLeft) {
+      return;
+    }
+
+    event.preventDefault();
+    viewport.scrollLeft = nextScrollLeft;
+  };
+
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
@@ -16,12 +51,17 @@ function ScrollArea({
     >
       <ScrollAreaPrimitive.Viewport
         data-slot="scroll-area-viewport"
-        className="size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1"
+        onWheel={handleWheel}
+        className={cn(
+          'size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1',
+          viewportClassName,
+        )}
       >
         {children}
       </ScrollAreaPrimitive.Viewport>
-      <ScrollBar />
-      <ScrollAreaPrimitive.Corner />
+      {scrollbarOrientation !== 'horizontal' ? <ScrollBar orientation="vertical" /> : null}
+      {scrollbarOrientation !== 'vertical' ? <ScrollBar orientation="horizontal" /> : null}
+      {scrollbarOrientation === 'both' ? <ScrollAreaPrimitive.Corner /> : null}
     </ScrollAreaPrimitive.Root>
   );
 }

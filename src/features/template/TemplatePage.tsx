@@ -1,10 +1,20 @@
-import { Download, FolderOpen, ImageIcon, LayoutTemplate, MoveHorizontal } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import {
+  ChevronDown,
+  ChevronUp,
+  Download,
+  FolderOpen,
+  ImageIcon,
+  LayoutTemplate,
+  Trash2,
+} from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import { exportSingle } from '@/bridge/export.api';
 import { getBuiltinTemplateSchema } from '@/bridge/template.api';
 import { CoDropZone } from '@/components/CoDropZone';
 import { CoWindowHeader } from '@/components/CoWindowHeader';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { prepareElementForSnapshot } from '@/core/renderer';
 import { runScheduledExports } from '@/core/scheduler';
 import { usePhotos } from '@/hooks/usePhotos';
@@ -35,25 +45,20 @@ function ImportProgressPanel({
   const progress = total > 0 ? Math.min((current / total) * 100, 100) : 0;
 
   return (
-    <div className="mt-4 border border-border/80 bg-muted/30 px-4 py-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-foreground">正在导入图片</p>
-          <p className="mt-1 truncate text-xs text-muted-foreground">
-            {total > 0 ? `已导入 ${current} / ${total}` : '正在准备导入...'}
-            {currentName ? ` · ${currentName}` : ''}
-          </p>
-        </div>
-        <p className="shrink-0 text-xs font-medium text-muted-foreground">
-          {Math.round(progress)}%
-        </p>
-      </div>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-border/60">
+    <div className="flex h-6 shrink-0 items-center gap-3 rounded-full border border-border/80 bg-muted/30 px-2">
+      <p className="min-w-0 flex-1 truncate text-[10px] text-muted-foreground">
+        {total > 0 ? `正在导入 ${current} / ${total}` : '正在准备导入...'}
+        {currentName ? ` · ${currentName}` : ''}
+      </p>
+      <div className="h-1 w-24 shrink-0 overflow-hidden rounded-full bg-border/60">
         <div
           className="h-full rounded-full bg-primary transition-[width] duration-200 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>
+      <p className="w-7 shrink-0 text-right text-[10px] font-medium text-muted-foreground">
+        {Math.round(progress)}%
+      </p>
     </div>
   );
 }
@@ -74,7 +79,13 @@ function TemplateHeader() {
   );
 }
 
-function TemplateAssetsPanel() {
+function TemplateAssetsPanel({
+  collapsed,
+  toggleCollapsed,
+}: {
+  collapsed: boolean;
+  toggleCollapsed: () => void;
+}) {
   const {
     photos,
     currentIndex,
@@ -82,7 +93,6 @@ function TemplateAssetsPanel() {
     selectedIds,
     removePhoto,
     removeSelectedPhotos,
-    movePhoto,
     togglePhotoSelection,
     selectSinglePhoto,
     selectAllPhotos,
@@ -91,7 +101,7 @@ function TemplateAssetsPanel() {
     importViaDrop,
     importState,
   } = usePhotos();
-  const [draggedPhotoId, setDraggedPhotoId] = useState<string | null>(null);
+  const currentPhoto = photos[currentIndex];
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -126,170 +136,181 @@ function TemplateAssetsPanel() {
   }, [importViaDrop, removeSelectedPhotos, selectAllPhotos, selectedIds.length]);
 
   return (
-    <BusinessWorkbenchAssetsPane>
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-semibold">边框水印素材</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            当前工作流内的图片缩略图列表，支持拖拽排序、粘贴与文件夹导入。
-          </p>
+    <BusinessWorkbenchAssetsPane className="overflow-visible border-t border-border p-0">
+      <TooltipProvider>
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-0.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="button"
+                variant="plain"
+                size="icon"
+                aria-expanded={!collapsed}
+                aria-controls="template-assets-content"
+                aria-label={collapsed ? '展开素材面板' : '收起素材面板'}
+                onClick={toggleCollapsed}
+              >
+                {collapsed ? <ChevronUp /> : <ChevronDown />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" sideOffset={6}>
+              {collapsed ? '展开素材面板' : '收起素材面板'}
+            </TooltipContent>
+          </Tooltip>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => void importViaDirectory()}>
-            <FolderOpen data-icon="inline-start" />
-            导入文件夹
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => void importViaDialog()}>
-            <ImageIcon data-icon="inline-start" />
-            导入图片
-          </Button>
-        </div>
-      </div>
 
-      {importState.active ? (
-        <ImportProgressPanel
-          current={importState.current}
-          total={importState.total}
-          currentName={importState.currentName}
-        />
-      ) : null}
-
-      <div
-        className={cn('mt-4', importState.active ? 'h-[calc(100%-152px)]' : 'h-[calc(100%-64px)]')}
-      >
-        {photos.length === 0 ? (
-          <CoDropZone
-            onFilesDrop={importViaDrop}
-            className="h-full rounded-none border-border/60 bg-muted/20"
-          >
-            <div className="flex flex-col items-center justify-center gap-3 text-center text-muted-foreground">
-              <ImageIcon className="size-6" />
-              <div>
-                <p className="text-sm font-medium">
-                  {importState.active ? '图片正在导入中…' : '拖入图片开始边框水印'}
-                </p>
-                <p className="text-xs">
-                  {importState.active
-                    ? '导入过程中会逐步生成缩略图并加入当前素材区'
-                    : '或点击右上角“导入图片”从本地选择'}
-                </p>
-              </div>
-            </div>
-          </CoDropZone>
-        ) : (
-          <div className="h-full overflow-x-auto overflow-y-hidden">
-            <div className="flex h-full gap-3 pb-3">
-              {photos.map((photo, index) => {
-                const active = index === currentIndex;
-                const selected = selectedIds.includes(photo.id);
-
-                return (
-                  <div
-                    key={photo.id}
-                    className={cn(
-                      'group shrink-0 cursor-grab border bg-card transition-colors active:cursor-grabbing',
-                      selected || active
-                        ? 'border-primary ring-1 ring-primary/20'
-                        : 'border-border hover:border-primary/40',
-                    )}
-                    style={{ width: 160 }}
-                  >
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        setCurrentIndex(index);
-                        if (event.metaKey || event.ctrlKey) {
-                          togglePhotoSelection(photo.id);
-                        } else {
-                          selectSinglePhoto(photo.id);
-                        }
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          setCurrentIndex(index);
-                          selectSinglePhoto(photo.id);
-                        }
-                      }}
-                      draggable
-                      onDragStart={(event) => {
-                        event.dataTransfer.effectAllowed = 'move';
-                        event.dataTransfer.setData('text/copicseal-photo-id', photo.id);
-                        setDraggedPhotoId(photo.id);
-                      }}
-                      onDragOver={(event) => {
-                        event.preventDefault();
-                      }}
-                      onDrop={(event) => {
-                        event.preventDefault();
-                        if (draggedPhotoId && draggedPhotoId !== photo.id) {
-                          movePhoto(draggedPhotoId, photo.id);
-                        }
-                        setDraggedPhotoId(null);
-                      }}
-                      onDragEnd={() => setDraggedPhotoId(null)}
-                      className="flex h-full w-full flex-col text-left"
+        <div className="flex h-full min-h-0 flex-col overflow-hidden">
+          <div className="flex shrink-0 items-center justify-between gap-3 p-3">
+            <div className="min-w-0 flex-1">
+              {importState.active ? (
+                <ImportProgressPanel
+                  current={importState.current}
+                  total={importState.total}
+                  currentName={importState.currentName}
+                />
+              ) : (
+                <div className="flex h-6 min-w-0 flex-col justify-center">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <h2 className="shrink-0 text-xs/3 font-semibold">素材库</h2>
+                    {currentPhoto ? (
+                      <span className="shrink-0 text-[10px]/3 font-medium text-muted-foreground tabular-nums">
+                        {currentIndex + 1} / {photos.length}
+                      </span>
+                    ) : null}
+                  </div>
+                  {currentPhoto ? (
+                    <p
+                      className="truncate text-[10px]/3 text-muted-foreground"
+                      title={currentPhoto.name}
                     >
-                      <div
-                        className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-background/80"
-                        style={{ aspectRatio: '4 / 3' }}
-                      >
-                        {photo.thumbnailReady ? (
-                          <img
-                            src={photo.thumbnailUrl}
-                            alt={photo.name}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-muted/40 px-4 text-center">
-                            <span className="line-clamp-3 text-xs font-medium text-foreground">
-                              {photo.name}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">
-                              正在生成缩略图
-                            </span>
-                          </div>
-                        )}
-                        {selected || active ? (
-                          <div className="pointer-events-none absolute inset-0 ring-2 ring-primary/60" />
-                        ) : null}
-                      </div>
-                      <div className="border-t border-border/80 px-3 py-2">
-                        <div className="min-w-0">
-                          <p className="truncate text-[11px] font-medium text-foreground">
-                            {photo.name}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {(photo.size / 1024 / 1024).toFixed(1)} MB
-                            {selected ? ' · 已选中' : ''}
-                          </p>
-                        </div>
-                        <div className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground">
-                          <MoveHorizontal className="size-3" />
-                          <span>拖拽排序</span>
-                        </div>
-                      </div>
-                    </button>
-                    <div className="border-t border-border/80 px-3 pb-2">
-                      <div className="flex justify-end">
-                        <button
-                          type="button"
-                          className="text-[10px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
-                          onClick={() => {
-                            removePhoto(photo.id);
-                          }}
-                        >
-                          删除
-                        </button>
+                      {currentPhoto.name}
+                    </p>
+                  ) : null}
+                </div>
+              )}
+            </div>
+            {!collapsed ? (
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => void importViaDirectory()}>
+                  <FolderOpen data-icon="inline-start" />
+                  导入文件夹
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => void importViaDialog()}>
+                  <ImageIcon data-icon="inline-start" />
+                  导入图片
+                </Button>
+              </div>
+            ) : null}
+          </div>
+
+          {!collapsed ? (
+            <div id="template-assets-content" className="h-[140px] min-h-0 shrink-0">
+              {photos.length === 0 ? (
+                <div className="h-full px-3 pb-3">
+                  <CoDropZone
+                    onFilesDrop={importViaDrop}
+                    className="h-full rounded-none border-border/60 bg-muted/20"
+                  >
+                    <div className="flex flex-col items-center justify-center gap-2 text-center text-muted-foreground">
+                      <ImageIcon className="size-5" />
+                      <div>
+                        <p className="text-xs font-medium">
+                          {importState.active ? '图片正在导入中…' : '拖入图片开始边框水印'}
+                        </p>
+                        <p className="text-[10px]">
+                          {importState.active
+                            ? '素材会逐步加入当前列表'
+                            : '或点击右上角导入本地图片'}
+                        </p>
                       </div>
                     </div>
+                  </CoDropZone>
+                </div>
+              ) : (
+                <ScrollArea
+                  horizontalWheelScroll
+                  scrollbarOrientation="horizontal"
+                  viewportClassName="[&>div]:h-full"
+                  className="h-full w-full overflow-hidden"
+                >
+                  <div className="flex h-full w-max min-w-full gap-2 px-3 pb-3">
+                    {photos.map((photo, index) => {
+                      const active = index === currentIndex;
+                      const selected = selectedIds.includes(photo.id);
+
+                      return (
+                        <div
+                          key={photo.id}
+                          className={cn(
+                            'group relative size-32 shrink-0 overflow-hidden border bg-card transition-colors',
+                            selected || active
+                              ? 'border-primary ring-1 ring-primary/20'
+                              : 'border-border hover:border-primary/40',
+                          )}
+                        >
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              setCurrentIndex(index);
+                              if (event.metaKey || event.ctrlKey) {
+                                togglePhotoSelection(photo.id);
+                              } else {
+                                selectSinglePhoto(photo.id);
+                              }
+                            }}
+                            className="flex h-full w-full min-h-0 flex-col text-left"
+                          >
+                            <div className="relative flex min-h-8 flex-1 items-center justify-center overflow-hidden bg-background/80">
+                              {photo.thumbnailReady ? (
+                                <img
+                                  src={photo.thumbnailUrl}
+                                  alt={photo.name}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center bg-muted/40 px-2 text-center">
+                                  <span className="text-[9px] text-muted-foreground">
+                                    生成缩略图中
+                                  </span>
+                                </div>
+                              )}
+                              {selected || active ? (
+                                <div className="pointer-events-none absolute inset-0 ring-2 ring-primary/60" />
+                              ) : null}
+                            </div>
+                            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-popover/90 px-2 py-1.5 opacity-0 backdrop-blur-sm transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+                              <p className="truncate text-[10px] font-medium text-popover-foreground">
+                                {photo.name}
+                              </p>
+                            </div>
+                          </button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="default"
+                                size="icon-sm"
+                                className="absolute top-1.5 right-1.5 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"
+                                aria-label={`删除 ${photo.name}`}
+                                onClick={() => removePhoto(photo.id)}
+                              >
+                                <Trash2 />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" sideOffset={6}>
+                              删除素材
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </ScrollArea>
+              )}
             </div>
-          </div>
-        )}
-      </div>
+          ) : null}
+        </div>
+      </TooltipProvider>
     </BusinessWorkbenchAssetsPane>
   );
 }
@@ -389,6 +410,7 @@ export function TemplatePage() {
   return (
     <BusinessWorkbench
       header={<TemplateHeader />}
+      assetsResizable={false}
       workspace={
         <BusinessWorkbenchWorkspace>
           <div className="flex h-full w-full min-h-0 min-w-0 items-center justify-center">
@@ -400,7 +422,7 @@ export function TemplatePage() {
           </div>
         </BusinessWorkbenchWorkspace>
       }
-      assets={() => <TemplateAssetsPanel />}
+      assets={(assetsState) => <TemplateAssetsPanel {...assetsState} />}
       properties={() => (
         <TemplatePropertiesPanel
           activeTemplateId={templateId}

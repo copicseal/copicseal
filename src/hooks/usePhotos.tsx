@@ -38,7 +38,6 @@ interface PhotoContextValue {
   removePhoto: (id: string) => void;
   removeSelectedPhotos: () => void;
   replacePhoto: (id: string, nextPhoto: ImportedPhoto) => void;
-  movePhoto: (activeId: string, overId: string) => void;
   setCurrentIndex: (index: number) => void;
   togglePhotoSelection: (id: string) => void;
   selectSinglePhoto: (id: string) => void;
@@ -108,26 +107,6 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
           : photo,
       ),
     );
-  }, []);
-
-  const movePhoto = useCallback((activeId: string, overId: string) => {
-    if (activeId === overId) {
-      return;
-    }
-
-    setPhotos((prev) => {
-      const activeIndex = prev.findIndex((photo) => photo.id === activeId);
-      const overIndex = prev.findIndex((photo) => photo.id === overId);
-
-      if (activeIndex === -1 || overIndex === -1) {
-        return prev;
-      }
-
-      const next = [...prev];
-      const [moved] = next.splice(activeIndex, 1);
-      next.splice(overIndex, 0, moved);
-      return next;
-    });
   }, []);
 
   const startImport = useCallback((source: PhotoImportSource) => {
@@ -288,7 +267,6 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
         removePhoto,
         removeSelectedPhotos,
         replacePhoto,
-        movePhoto,
         setCurrentIndex,
         togglePhotoSelection,
         selectSinglePhoto,

@@ -3,7 +3,7 @@ import type * as React from 'react';
 
 import { cn } from '@/lib/utils';
 
-type ScrollbarOrientation = 'vertical' | 'horizontal' | 'both';
+type ScrollbarOrientation = 'none' | 'vertical' | 'horizontal' | 'both';
 
 function ScrollArea({
   className,
@@ -59,8 +59,12 @@ function ScrollArea({
       >
         {children}
       </ScrollAreaPrimitive.Viewport>
-      {scrollbarOrientation !== 'horizontal' ? <ScrollBar orientation="vertical" /> : null}
-      {scrollbarOrientation !== 'vertical' ? <ScrollBar orientation="horizontal" /> : null}
+      {scrollbarOrientation === 'vertical' || scrollbarOrientation === 'both' ? (
+        <ScrollBar orientation="vertical" />
+      ) : null}
+      {scrollbarOrientation === 'horizontal' || scrollbarOrientation === 'both' ? (
+        <ScrollBar orientation="horizontal" />
+      ) : null}
       {scrollbarOrientation === 'both' ? <ScrollAreaPrimitive.Corner /> : null}
     </ScrollAreaPrimitive.Root>
   );

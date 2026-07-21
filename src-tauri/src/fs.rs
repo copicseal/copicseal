@@ -17,7 +17,7 @@ use zune_core::options::DecoderOptions;
 use zune_jpeg::JpegDecoder as ZuneJpegDecoder;
 
 #[cfg(target_os = "windows")]
-use windows::core::PCWSTR;
+use windows::core::{Interface, PCWSTR};
 #[cfg(target_os = "windows")]
 use windows::Win32::Foundation::GENERIC_READ;
 #[cfg(target_os = "windows")]
@@ -38,6 +38,7 @@ const PREVIEW_DIR_NAME: &str = "previews";
 const THUMBNAIL_DIR_NAME: &str = "thumbnails";
 const THUMBNAIL_SIZE: u32 = 320;
 const THUMBNAIL_JPEG_QUALITY: u8 = 82;
+const PREVIEW_JPEG_QUALITY: u8 = 92;
 const THUMBNAIL_WORKER_COUNT: usize = 2;
 
 #[derive(Debug, Serialize)]
@@ -475,7 +476,13 @@ fn create_preview_asset(
         Ok(preview_path.to_path_buf())
     }
 
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "windows")]
+    {
+        convert_heic_to_jpeg_path(image_path, preview_path)?;
+        Ok(preview_path.to_path_buf())
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
         let _ = preview_path;
         Ok(image_path.to_path_buf())
@@ -691,10 +698,34 @@ fn convert_heic_to_jpeg_path(input_path: &Path, output_path: &Path) -> Result<()
         Ok(())
     }
 
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(target_os = "windows")]
+    {
+        let started_at = Instant::now();
+        let image = decode_image_with_wic(input_path).map_err(|error| {
+            format!(
+                "Windows 无法解码 HEIC/HEIF 图片。请从 Microsoft Store 安装“HEIF 图像扩展”；若图片使用 HEVC 编码，还需安装“HEVC 视频扩展”。WIC 错误: {error}"
+            )
+        })?;
+        let file = File::create(output_path).map_err(|e| format!("创建 JPEG 预览失败: {e}"))?;
+        let mut encoder = JpegEncoder::new_with_quality(file, PREVIEW_JPEG_QUALITY);
+        encoder
+            .encode_image(&image)
+            .map_err(|e| format!("写入 JPEG 预览失败: {e}"))?;
+
+        println!(
+            "[thumbnail][heic] windows wic jpeg preview source={} output={} elapsed_ms={}",
+            input_path.display(),
+            output_path.display(),
+            started_at.elapsed().as_millis()
+        );
+
+        Ok(())
+    }
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
         let _ = output_path;
-        Err("HEIC 转 JPEG 仅在 macOS 上支持".to_string())
+        Err("当前系统不支持 HEIC 转 JPEG".to_string())
     }
 }
 
@@ -947,6 +978,84 @@ fn try_create_thumbnail_with_wic(source_path: &Path) -> Result<image::RgbImage, 
 
         create_thumbnail_from_wic_frame(&factory, &frame)
             .or_else(|_| create_thumbnail_from_wic_scaler(&factory, &frame))
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn decode_image_with_wic(source_path: &Path) -> Result<image::RgbImage, String> {
+    unsafe {
+        CoInitializeEx(None, COINIT_MULTITHREADED)
+            .ok()
+            .map_err(|e| format!("初始化 WIC 失败: {e}"))?;
+
+        struct ComGuard;
+        impl Drop for ComGuard {
+            fn drop(&mut self) {
+                unsafe {
+                    CoUninitialize();
+                }
+            }
+        }
+
+        let _guard = ComGuard;
+        let factory: IWICImagingFactory =
+            CoCreateInstance(&CLSID_WICImagingFactory, None, CLSCTX_INPROC_SERVER)
+                .map_err(|e| format!("创建 WIC 工厂失败: {e}"))?;
+        let wide_path = source_path
+            .as_os_str()
+            .to_string_lossy()
+            .encode_utf16()
+            .chain(std::iter::once(0))
+            .collect::<Vec<u16>>();
+        let decoder = factory
+            .CreateDecoderFromFilename(
+                PCWSTR(wide_path.as_ptr()),
+                None,
+                GENERIC_READ,
+                WICDecodeMetadataCacheOnDemand,
+            )
+            .map_err(|e| format!("WIC 打开图片失败: {e}"))?;
+        let frame = decoder
+            .GetFrame(0)
+            .map_err(|e| format!("WIC 读取图像帧失败: {e}"))?;
+        let source: IWICBitmapSource = frame
+            .cast()
+            .map_err(|e| format!("WIC 图像源转换失败: {e}"))?;
+        let converter = factory
+            .CreateFormatConverter()
+            .map_err(|e| format!("创建 WIC 格式转换器失败: {e}"))?;
+        converter
+            .Initialize(
+                &source,
+                &GUID_WICPixelFormat24bppRGB,
+                WICBitmapDitherTypeNone,
+                None,
+                0.0,
+                WICBitmapPaletteTypeCustom,
+            )
+            .map_err(|e| format!("初始化 WIC 格式转换器失败: {e}"))?;
+        let converter_source: IWICBitmapSource = converter
+            .cast()
+            .map_err(|e| format!("WIC 格式转换器图像源转换失败: {e}"))?;
+        let mut width = 0;
+        let mut height = 0;
+        converter_source
+            .GetSize(&mut width, &mut height)
+            .map_err(|e| format!("读取 WIC 图片尺寸失败: {e}"))?;
+
+        let stride = width
+            .checked_mul(3)
+            .ok_or_else(|| "WIC 图片行宽溢出".to_string())?;
+        let buffer_size = stride
+            .checked_mul(height)
+            .ok_or_else(|| "WIC 图片缓冲区大小溢出".to_string())?;
+        let mut buffer = vec![0; buffer_size as usize];
+        converter_source
+            .CopyPixels(std::ptr::null(), stride, &mut buffer)
+            .map_err(|e| format!("WIC 复制图片像素失败: {e}"))?;
+
+        image::RgbImage::from_raw(width, height, buffer)
+            .ok_or_else(|| "创建 WIC 图片缓冲区失败".to_string())
     }
 }
 

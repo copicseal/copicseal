@@ -2,13 +2,15 @@
 
 ## 产品定位
 
-Copicseal（可图匠）是一个以图片处理为核心的桌面应用，当前聚焦三项能力：
+Copicseal（可图匠）是一个以图片处理为核心的 Web-first 跨平台应用，当前聚焦三项能力：
 
 1. 边框水印
 2. 拼图
 3. 设置中心
 
 这不是通用设计软件，也不是素材管理平台。产品聚焦于“快速导入、即时预览、直接导出”的图片生产体验。
+
+浏览器是独立可运行的一等平台，应可完成核心导入、预览、编辑和导出流程。Tauri 是高性能桌面宿主，为图片处理、本地文件、存储和系统集成提供增强能力；浏览器确实无法实现的能力必须明确标注，而不是伪造桌面行为。
 
 ---
 
@@ -18,6 +20,7 @@ Copicseal（可图匠）是一个以图片处理为核心的桌面应用，当�
 - 把真实预览作为主要交互中心，而不是表单或项目树
 - 让 Template 与 Collage 成为两个互不干扰的独立功能域
 - 通过统一导出管线输出稳定一致的最终图片
+- 让业务功能只依赖统一的平台能力接口，而不绑定具体宿主
 
 ---
 
@@ -28,6 +31,7 @@ Preview First
 Feature Oriented
 No Project System
 No Global Asset Workspace
+Web-first, Desktop Enhanced
 ```
 
 ### Preview First
@@ -54,6 +58,12 @@ No Global Asset Workspace
 - Template Assets 与 Collage Assets 分别归属于对应页面
 - 仅底层缓存、缩略图和文件访问能力可复用
 
+### Web-first, Desktop Enhanced
+
+- 核心业务在 Web 与 Tauri 中使用同一套 React 代码和平台 Contract
+- Tauri 优先使用 Rust 与原生系统能力；单项能力未实现或不支持时，才按规则降级到 Web Provider
+- Web 不要求模拟托盘、任意路径写入或自动更新等桌面专有能力，但必须提供清晰的可用替代方案
+
 ---
 
 ## 页面边界
@@ -74,7 +84,7 @@ No Global Asset Workspace
 
 ### Settings
 
-- 软件行为设置
+- 跨平台行为与能力设置
 - Template 默认行为
 - Collage 默认行为
 - Export 默认行为

@@ -7,7 +7,7 @@
 
 ## 1. 产品定义
 
-Copicseal 是一个以图片处理为核心的桌面应用，当前仅包含三个一级页面：
+Copicseal 是一个以图片处理为核心的 Web-first 跨平台应用，当前仅包含三个一级页面：
 
 - Template
 - Collage
@@ -20,6 +20,7 @@ Preview First
 Feature Oriented
 No Project System
 No Global Asset Workspace
+Web-first, Desktop Enhanced
 ```
 
 ---
@@ -276,8 +277,8 @@ Collage 与 Template 完全独立，禁止：
 - 主题
 - 语言
 - 启动页
-- 默认导出目录
-- 自动更新
+- 默认导出目录（由当前平台支持时提供）
+- 自动更新（仅桌面端支持）
 
 ### 5.2 Template
 
@@ -312,6 +313,7 @@ Collage 与 Template 完全独立，禁止：
 - 支持 PNG / JPG / WEBP
 - 支持质量与倍率设置
 - 支持批量导出
+- 浏览器环境可使用下载完成导出；桌面环境可选择并写入导出目录
 
 ---
 
@@ -321,3 +323,4 @@ Collage 与 Template 完全独立，禁止：
 - 不引入全局素材工作区
 - Template 与 Collage 分别维护各自的素材与状态
 - 仅默认配置、收藏、最近使用、缓存索引进入持久化
+- 业务层通过统一 Platform Contract 访问图片、文件、存储和系统能力，不直接调用宿主 API

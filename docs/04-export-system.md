@@ -4,7 +4,7 @@
 
 导出系统是 Template 与 Collage 共用的底层能力，用于将 Workspace 中的真实渲染结果输出为图片文件。
 
-导出系统属于基础设施层，不属于任何单个 feature。
+导出系统属于基础设施层，不属于任何单个 feature。渲染结果的编码与保存通过 Platform Contract 完成，以支持 Web 与 Tauri 两种运行环境。
 
 ---
 
@@ -14,6 +14,7 @@
 - 支持 Template 与 Collage 两类来源
 - 支持单次导出与批量导出
 - 支持稳定的进度、取消与错误反馈
+- Web 与桌面端均可完成导出；根据平台能力选择目录保存或下载
 
 ---
 
@@ -26,7 +27,9 @@ DOM
 ↓
 snapDOM
 ↓
-PNG / JPG / WEBP
+Platform Export Service
+├── encode PNG / JPG / WEBP
+└── save to directory / download
 ```
 
 ### 说明
@@ -35,6 +38,7 @@ PNG / JPG / WEBP
 - 不允许维护一套与预览分离的隐藏导出模板
 - 渲染稳定性由 `core/renderer` 负责
 - 导出任务调度由 `core/scheduler` 负责
+- Platform Provider 负责格式编码和宿主相关的保存方式
 
 ---
 
@@ -98,6 +102,8 @@ Collage 导出支持：
 - 默认导出目录
 - 用户选择导出目录
 - 按来源生成默认文件名
+
+浏览器不支持目录选择或直接写入时，系统应以下载方式导出，并保留建议的文件名；不得将桌面目录选择器作为 Web 的前置条件。
 
 Template 建议命名：
 

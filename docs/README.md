@@ -1,8 +1,8 @@
 # Copicseal 架构设计书
 
 > **项目**：Copicseal（可图匠）
-> **定位**：以图片处理为核心的桌面应用
-> **架构**：Tauri 2 + React 19 + Rust
+> **定位**：以图片处理为核心的 Web-first 跨平台应用
+> **架构**：React 19 + Web Platform，Tauri 2 + Rust 提供桌面增强
 > **版本**：v1.0.0（重构版文档）
 > **日期**：2026-06-27
 
@@ -10,7 +10,7 @@
 
 ## 产品方向
 
-Copicseal 是一个以图片处理为核心的桌面应用，当前只聚焦三个一级能力：
+Copicseal 是一个以图片处理为核心的跨平台应用，当前只聚焦三个一级能力：
 
 - 边框水印
 - 拼图
@@ -35,6 +35,7 @@ No Global Asset Workspace
 - 功能独立：Template 与 Collage 各自拥有独立页面、状态、交互与资产栏
 - 无项目系统：不引入工程、画册、工作区或长期编辑项目模型
 - 无全局素材库：素材只属于当前功能页，跨页面只共享底层缓存能力
+- Web-first：浏览器可独立完成核心工作流；Tauri 为桌面端提供高性能与系统增强能力
 
 ---
 
@@ -119,7 +120,8 @@ runtime    → 模板运行系统
 core       → 渲染与调度核心
 infra      → 基础设施层（IO / Export / Assets）
 shared     → 通用 UI 与工具
-bridge     → Tauri 通信层
+platform   → 平台能力 Contract、Provider 与选择性降级
+bridge     → 迁移期间的 Tauri 内部适配层
 ```
 
 ```txt
@@ -142,6 +144,7 @@ src/
 │   ├── fs/
 │   ├── cache/
 │   └── db/
+├── platform/
 ├── bridge/
 ├── shared/
 ├── store/
@@ -159,11 +162,12 @@ src/
 | 03 | [模板系统](./03-template-system.md) | 边框水印页面、模板运行、模板属性与导出 |
 | 04 | [导出系统](./04-export-system.md) | 统一导出管线与批量导出规范 |
 | 05 | [数据模型与配置](./05-data-models.md) | Template、Collage、导出与设置数据模型 |
-| 06 | [系统集成与存储](./06-system-integration.md) | 前端分层、Tauri 通信、缓存与持久化 |
+| 06 | [系统集成与存储](./06-system-integration.md) | 前端分层、平台能力、缓存与持久化 |
 | 07 | [EXIF 元数据与相机信息](./07-exif-metadata.md) | EXIF 字段、映射、编辑与变量 |
 | 08 | [产品需求规格](./08-product-requirements.md) | 完整功能需求清单 |
 | 09 | [拼图系统](./09-collage-system.md) | 拼图页面、布局模式、属性编辑与导出 |
 | 10 | [拼图开发清单](./10-collage-todo.md) | 拼图能力专项开发清单 |
+| 11 | [平台能力抽象与 Provider 改造方案](./11-platform-abstraction.md) | Web-first 平台边界、Provider 链与迁移计划 |
 | TODO | [总开发待办](./TODO.md) | 从零落地的整体实施计划 |
 ---
 

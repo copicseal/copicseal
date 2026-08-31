@@ -2,7 +2,7 @@
 
 ## 概述
 
-本章定义前端分层、Tauri 通信边界、素材基础设施与持久化策略。
+本章定义前端分层、平台能力边界、素材基础设施与持久化策略。平台 Contract 的完整设计见 [11 — 平台能力抽象与 Provider 改造方案](./11-platform-abstraction.md)。
 
 ---
 
@@ -30,7 +30,11 @@ src/
 │   ├── fs/
 │   ├── cache/
 │   └── db/
-├── bridge/
+├── platform/
+│   ├── contracts/
+│   ├── services/
+│   └── providers/
+├── bridge/           # 迁移期间仅供 Tauri Provider 内部使用
 ├── shared/
 ├── store/
 └── utils/
@@ -72,9 +76,16 @@ src/
 
 ### `bridge`
 
-- 前端到 Rust 的统一 API 封装
-- 类型安全 `invoke`
-- 错误边界统一处理
+- 迁移期间封装 Tauri `invoke`
+- 仅作为 `platform/providers/tauri` 的内部适配层
+- 不作为 feature、runtime 或 core 的公开依赖
+
+### `platform`
+
+- 向业务公开图片、文件、存储、对话框、剪贴板、系统和窗口等稳定 Contract
+- 负责根据宿主注册 Tauri、Web 或 WASM Provider
+- 由 Service 统一执行 Provider 编排、错误归一化和选择性降级
+- 提供 UI 可用的能力声明；不负责伪造不具备的宿主能力
 
 ---
 
@@ -93,24 +104,28 @@ Collage 与 Template 完全独立，禁止：
 
 ---
 
-## 6.4 Tauri 通信层
+## 6.4 平台通信与 Provider
 
 建议结构：
 
 ```txt
-bridge/
-├── tauri.ts
-├── export.api.ts
-├── assets.api.ts
-├── template.api.ts
-└── collage.api.ts
+platform/
+├── contracts/
+├── services/
+├── providers/
+│   ├── tauri/
+│   └── web/
+├── capabilities.ts
+├── errors.ts
+└── index.ts
 ```
 
 职责：
 
-- 隔离页面组件与 Tauri 命令细节
-- 统一封装参数与返回类型
-- 统一转换错误消息
+- 隔离业务代码与 Tauri、浏览器、WASM 等宿主细节
+- Provider 彼此独立，Service 统一决定调用顺序与降级
+- 只允许 `PLATFORM_NOT_IMPLEMENTED` 与 `PLATFORM_UNSUPPORTED` 触发降级
+- 实际解码、权限、参数、I/O 和存储错误必须原样转换后向上抛出
 
 ---
 
@@ -162,6 +177,8 @@ bridge/
 | 缩略图缓存 | 为素材栏提供快速展示 |
 | 预览资源缓存 | 降低重复读取成本 |
 
+桌面端可通过 Tauri 访问用户明确授权的本地路径；Web 端使用浏览器 File API 与 File System Access API。浏览器不支持选择目录或直接写入时，导出必须降级为用户可见的下载操作。
+
 ---
 
 ## 6.8 数据库存储
@@ -176,6 +193,8 @@ SQLite 用于存储轻量配置与索引：
 | Export 默认配置 | 格式、倍率、质量 |
 | 模板收藏与最近使用 | 提升模板选择体验 |
 | 缓存索引 | 资源缓存定位 |
+
+Web 端使用 IndexedDB 与浏览器缓存承载等价的配置和索引语义。业务层只能通过 Storage Contract 访问它们。
 ---
 
 ## 6.9 2026-06-30 实现约束补充
@@ -191,3 +210,12 @@ SQLite 用于存储轻量配置与索引：
 - `features/template` 与 `features/collage` 提供页面入口组件
 - 页面组件引用 `shared/layouts` 进行组装，而不是由布局层反向承载页面逻辑
 - 左侧内容区固定为上下分栏：上方 `Workspace`，下方 `Assets`
+
+---
+
+## 6.10 运行环境原则
+
+- Web 是一等运行环境，不加载或等待 Tauri 才能启动。
+- Tauri 是桌面增强宿主，优先提供 Rust 图片处理、SQLite、原生文件与系统能力。
+- UI 使用 `platform.capabilities` 决定是否展示桌面专有操作；调用时仍由 Provider 链处理实际支持情况。
+- 不允许在页面组件中散落 `isTauri()`、`window.__TAURI__` 或浏览器 API 分支。

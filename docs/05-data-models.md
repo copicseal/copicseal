@@ -129,8 +129,8 @@ Collage 页面的当前工作状态：
 | theme | 主题 |
 | language | 语言 |
 | startupPage | 启动页 |
-| defaultExportDir | 默认导出目录 |
-| autoUpdate | 自动更新 |
+| defaultExportDir | 默认导出目录；仅在当前平台支持目录写入时生效 |
+| autoUpdate | 自动更新；仅桌面端生效 |
 
 ### Template
 

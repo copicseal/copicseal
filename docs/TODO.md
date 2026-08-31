@@ -193,3 +193,19 @@
 - [x] 验证 `biome check`
 - [x] 验证 `vite build`
 - [x] 验证 Tauri 构建链路
+
+---
+
+## Phase 11 — Web-first 平台抽象改造
+
+- [ ] 建立 `platform/contracts`、`services`、`providers`、错误类型与能力声明
+- [ ] 盘点并标记所有 Tauri `invoke`、浏览器 API、图片处理、文件和存储调用点
+- [ ] 建立 Tauri / Web Provider 注册与选择性降级机制
+- [ ] 定义仅 `PLATFORM_NOT_IMPLEMENTED`、`PLATFORM_UNSUPPORTED` 可触发降级的错误规则
+- [ ] 迁移图片读取、缩略图、缩放、编码与导出调用到 Image Contract
+- [ ] 为 HEIC/HIF 导出实现原始素材的临时高质量源，并清理或短期缓存该源
+- [ ] 迁移导入、保存、目录选择和浏览器下载到 File / Dialog Contract
+- [ ] 迁移设置、收藏、最近使用和缓存索引到 Storage Contract
+- [ ] 将托盘、窗口、自动更新等能力限制为桌面增强，并在 Web 提供能力提示
+- [ ] 为各 Provider 与降级路径补充单元测试
+- [ ] 验证纯 Web 构建、Tauri 构建、核心导出流和预览/导出一致性

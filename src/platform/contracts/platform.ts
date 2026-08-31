@@ -56,6 +56,8 @@ export interface StorageServiceContract {
   listSystemFonts(): Promise<FontInfo[]>;
 }
 
+export interface StorageAdapter extends StorageServiceContract {}
+
 export interface CacheServiceContract {
   getThumbnailCache(path: string): string | null;
   setThumbnailCache(path: string, value: string): void;

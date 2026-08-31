@@ -1,27 +1,23 @@
+import type { FileAdapter } from '@/platform/contracts/file';
 import type { FileServiceContract } from '@/platform/contracts/platform';
-import {
-  cleanupCache as tauriCleanupCache,
-  clearCache as tauriClearCache,
-  getCacheOverview as tauriGetCacheOverview,
-  importImageBytesToCache as tauriImportImageBytesToCache,
-  importImageToCache as tauriImportImageToCache,
-  listImageFilesInDirectory as tauriListImageFilesInDirectory,
-  readImageFile as tauriReadImageFile,
-  writeBinaryFile as tauriWriteBinaryFile,
-} from '@/platform/providers/tauri/api';
 
 export class FileService implements FileServiceContract {
-  readImageFile = tauriReadImageFile;
-  writeBinaryFile = tauriWriteBinaryFile;
-  listImageFilesInDirectory = tauriListImageFilesInDirectory;
-  importImageToCache = tauriImportImageToCache;
-  importImageBytesToCache = tauriImportImageBytesToCache;
-  getCacheOverview = tauriGetCacheOverview;
-  clearCache = tauriClearCache;
-  cleanupCache = tauriCleanupCache;
-}
+  constructor(private readonly adapter: FileAdapter) {}
 
-export const fileService = new FileService();
+  readImageFile = (path: string) => this.adapter.readImageFile(path);
+  writeBinaryFile = (path: string, contents: number[]) =>
+    this.adapter.writeBinaryFile(path, contents);
+  listImageFilesInDirectory = (path: string) => this.adapter.listImageFilesInDirectory(path);
+  importImageToCache = (path: string, cacheDir: string) =>
+    this.adapter.importImageToCache(path, cacheDir);
+  importImageBytesToCache = (name: string, contents: number[], cacheDir: string) =>
+    this.adapter.importImageBytesToCache(name, contents, cacheDir);
+  getCacheOverview = (cacheDir: string) => this.adapter.getCacheOverview(cacheDir);
+  clearCache = (cacheDir: string, scope?: 'all' | 'thumbnails' | 'previews') =>
+    this.adapter.clearCache(cacheDir, scope);
+  cleanupCache = (cacheDir: string, maxAgeDays: number) =>
+    this.adapter.cleanupCache(cacheDir, maxAgeDays);
+}
 
 export type {
   CacheCleanupResult,

@@ -1,9 +1,11 @@
+import type { AppConfig, FontInfo } from '@/platform/contracts';
 import { PlatformError } from '@/platform/contracts';
+import type { StorageAdapter } from '@/platform/contracts/platform';
 
 type StorageValue = unknown;
 
 /** IndexedDB-backed key/value storage with an in-memory fallback. */
-export class WebStorageAdapter {
+export class WebStorageAdapter implements StorageAdapter {
   private readonly memory = new Map<string, StorageValue>();
   private database: Promise<IDBDatabase | null> | null = null;
 
@@ -60,5 +62,23 @@ export class WebStorageAdapter {
           }),
         );
     });
+  }
+
+  async getConfig(): Promise<AppConfig> {
+    const config = await this.get<AppConfig>('app-config');
+    if (!config)
+      throw new PlatformError('Web configuration is not initialized', {
+        code: 'STORAGE_FAILED',
+        provider: 'web',
+      });
+    return config;
+  }
+
+  updateConfig(config: AppConfig): Promise<void> {
+    return this.set('app-config', config);
+  }
+
+  async listSystemFonts(): Promise<FontInfo[]> {
+    return [];
   }
 }

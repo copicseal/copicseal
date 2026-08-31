@@ -1,3 +1,4 @@
+import type { FileAdapter } from '@/platform/contracts/file';
 import {
   cleanupCache,
   clearCache,
@@ -9,7 +10,7 @@ import {
   writeBinaryFile,
 } from './api';
 
-export class TauriFileAdapter {
+export class TauriFileAdapter implements FileAdapter {
   readonly readImageFile = readImageFile;
   readonly writeBinaryFile = writeBinaryFile;
   readonly listImageFilesInDirectory = listImageFilesInDirectory;

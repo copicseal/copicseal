@@ -1,17 +1,12 @@
-import type { StorageServiceContract } from '@/platform/contracts/platform';
-import {
-  getConfig as tauriGetConfig,
-  listSystemFonts as tauriListSystemFonts,
-  updateConfig as tauriUpdateConfig,
-} from '@/platform/providers/tauri/api';
-
+import type { StorageAdapter, StorageServiceContract } from '@/platform/contracts/platform';
 export class StorageService implements StorageServiceContract {
-  getConfig = tauriGetConfig;
-  updateConfig = tauriUpdateConfig;
-  listSystemFonts = tauriListSystemFonts;
-}
+  constructor(private readonly adapter: StorageAdapter) {}
 
-export const storageService = new StorageService();
+  getConfig = () => this.adapter.getConfig();
+  updateConfig = (config: Parameters<StorageAdapter['updateConfig']>[0]) =>
+    this.adapter.updateConfig(config);
+  listSystemFonts = () => this.adapter.listSystemFonts();
+}
 
 export type {
   AppConfig,

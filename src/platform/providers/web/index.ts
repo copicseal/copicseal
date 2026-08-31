@@ -28,7 +28,14 @@ const files: WebFileProvider = {
   },
 
   async save(data, fileName) {
-    const blob = data instanceof Blob ? data : new Blob([data]);
+    const blob =
+      data instanceof Blob
+        ? data
+        : (() => {
+            const buffer = new ArrayBuffer(data.byteLength);
+            new Uint8Array(buffer).set(data);
+            return new Blob([buffer]);
+          })();
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;

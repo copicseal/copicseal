@@ -22,12 +22,6 @@ src/
 │   ├── scheduler/
 │   ├── lifecycle/
 │   └── constants/
-├── infra/
-│   ├── export/
-│   ├── assets/
-│   ├── fs/
-│   ├── cache/
-│   └── db/
 ├── platform/
 │   ├── contracts/
 │   ├── services/
@@ -60,10 +54,9 @@ src/
 - 导出任务调度
 - 生命周期管理
 
-### `infra`
+### `platform services`
 
-- Export Pipeline
-- Asset Infrastructure
+- Export Pipeline、Asset Infrastructure
 - 文件访问与缓存
 - 数据库存储
 

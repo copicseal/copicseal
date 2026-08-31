@@ -1,6 +1,8 @@
 const thumbnailCache = new Map<string, string>();
 const previewResourceCache = new Map<string, string>();
 
+import type { CacheServiceContract } from '@/platform/contracts/platform';
+
 export function getThumbnailCache(path: string): string | null {
   return thumbnailCache.get(path) ?? null;
 }
@@ -24,3 +26,14 @@ export function setPreviewResourceCache(key: string, value: string) {
 export function clearPreviewResourceCache() {
   previewResourceCache.clear();
 }
+
+export class CacheService implements CacheServiceContract {
+  getThumbnailCache = getThumbnailCache;
+  setThumbnailCache = setThumbnailCache;
+  clearThumbnailCache = clearThumbnailCache;
+  getPreviewResourceCache = getPreviewResourceCache;
+  setPreviewResourceCache = setPreviewResourceCache;
+  clearPreviewResourceCache = clearPreviewResourceCache;
+}
+
+export const cacheService = new CacheService();

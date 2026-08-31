@@ -1,3 +1,22 @@
+import type { AssetServiceContract, ImportPhotoOptions } from '@/platform/contracts/platform';
+import {
+  type CachedImageMeta,
+  getConfig,
+  importImageBytesToCache,
+  importImageToCache,
+  isNativeWindowAvailable,
+  listImageFilesInDirectory,
+  openDirectoryDialog,
+  openImageDialog,
+  pathExists,
+  toNativeFileUrl,
+} from '@/platform/providers/tauri/api';
+import { webFiles } from '@/platform/providers/web/web-platform-provider';
+import {
+  type ImportedPhoto,
+  SUPPORTED_IMAGE_EXTENSIONS,
+  SUPPORTED_IMAGE_TYPES,
+} from '@/shared/types/photo';
 import {
   clearPreviewResourceCache,
   clearThumbnailCache,
@@ -5,37 +24,7 @@ import {
   getThumbnailCache,
   setPreviewResourceCache,
   setThumbnailCache,
-} from '@/infra/cache';
-import {
-  type CachedImageMeta,
-  importImageBytesToCache,
-  importImageToCache,
-  listImageFilesInDirectory,
-} from '@/infra/fs';
-import {
-  getConfig,
-  openDirectoryDialog,
-  openImageDialog,
-  pathExists,
-  toNativeFileUrl,
-} from '@/platform';
-import {
-  type ImportedPhoto,
-  SUPPORTED_IMAGE_EXTENSIONS,
-  SUPPORTED_IMAGE_TYPES,
-} from '@/shared/types/photo';
-
-export interface ImportProgressSnapshot {
-  current: number;
-  total: number;
-  currentName?: string;
-}
-
-interface ImportPhotosOptions {
-  onPhotoImported?: (photo: ImportedPhoto) => void;
-  onPhotoUpdated?: (photo: ImportedPhoto) => void;
-  onProgress?: (progress: ImportProgressSnapshot) => void;
-}
+} from './cache-service';
 
 function uid(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -70,6 +59,21 @@ function toImportedPhoto(meta: CachedImageMeta): ImportedPhoto {
     thumbnailUrl,
     thumbnailReady: meta.thumbnail_ready,
     isHeic: meta.ext === 'heic' || meta.ext === 'heif' || meta.ext === 'hif',
+  };
+}
+
+function toImportedPhotoFromFile(file: File): ImportedPhoto {
+  const previewUrl = webFiles.toUrl(file);
+  return {
+    id: photoId(file.name),
+    name: file.name,
+    path: file.name,
+    size: file.size,
+    mimeType: file.type || 'application/octet-stream',
+    previewUrl,
+    thumbnailUrl: previewUrl,
+    thumbnailReady: true,
+    isHeic: /\.(heic|heif|hif)$/i.test(file.name),
   };
 }
 
@@ -135,8 +139,13 @@ async function resolveCacheDirectory(): Promise<string> {
 }
 
 export async function selectPhotosViaDialog(
-  options?: ImportPhotosOptions,
+  options?: ImportPhotoOptions,
 ): Promise<ImportedPhoto[]> {
+  if (!isNativeWindowAvailable()) {
+    const selection = await webFiles.pickImages();
+    return processDroppedFiles(selection.files, options);
+  }
+
   const selected = await openImageDialog();
 
   if (!selected) {
@@ -148,7 +157,7 @@ export async function selectPhotosViaDialog(
 }
 
 export async function selectPhotosFromDirectory(
-  options?: ImportPhotosOptions,
+  options?: ImportPhotoOptions,
 ): Promise<ImportedPhoto[]> {
   const selected = await openDirectoryDialog();
 
@@ -166,7 +175,7 @@ export async function selectPhotosFromDirectory(
 
 export async function importPhotosViaPaths(
   filePaths: string[],
-  options?: ImportPhotosOptions,
+  options?: ImportPhotoOptions,
 ): Promise<ImportedPhoto[]> {
   const cacheDir = await resolveCacheDirectory();
   const photos: ImportedPhoto[] = [];
@@ -195,7 +204,7 @@ export async function importPhotosViaPaths(
 
 export async function processDroppedFiles(
   files: FileList | File[],
-  options?: ImportPhotosOptions,
+  options?: ImportPhotoOptions,
 ): Promise<ImportedPhoto[]> {
   const fileArr = Array.from(files);
   const cacheDir = await resolveCacheDirectory();
@@ -207,6 +216,15 @@ export async function processDroppedFiles(
     current: 0,
     total: importableFiles.length,
   });
+
+  if (!isNativeWindowAvailable()) {
+    const photos = importableFiles.map(toImportedPhotoFromFile);
+    photos.forEach((photo, index) => {
+      options?.onPhotoImported?.(photo);
+      options?.onProgress?.({ current: index + 1, total: photos.length, currentName: photo.name });
+    });
+    return photos;
+  }
 
   for (const [index, file] of importableFiles.entries()) {
     const contents = Array.from(new Uint8Array(await file.arrayBuffer()));
@@ -231,3 +249,12 @@ export function clearAssetCaches() {
   clearThumbnailCache();
   clearPreviewResourceCache();
 }
+
+export class AssetService implements AssetServiceContract {
+  selectPhotosViaDialog = selectPhotosViaDialog;
+  selectPhotosFromDirectory = selectPhotosFromDirectory;
+  processDroppedFiles = processDroppedFiles;
+  clearAssetCaches = clearAssetCaches;
+}
+
+export const assetService = new AssetService();

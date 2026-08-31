@@ -3,7 +3,7 @@ import { useRef } from 'react';
 import { prepareElementForSnapshot } from '@/core/renderer';
 import { runScheduledExports } from '@/core/scheduler';
 import { useCollageStore } from '@/features/collage/store/use-collage-store';
-import { exportSingle } from '@/infra/export';
+import { exportSingle } from '@/platform';
 import { CoDropZone } from '@/shared/components/co-drop-zone';
 import { CoWindowHeader } from '@/shared/components/co-window-header';
 import { usePhotos } from '@/shared/hooks/use-photos';

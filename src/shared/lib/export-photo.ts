@@ -7,4 +7,4 @@ export {
   exportBatch,
   exportSingle,
   getExportTaskState,
-} from '@/infra/export';
+} from '@/platform';

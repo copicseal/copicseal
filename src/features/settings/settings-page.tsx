@@ -13,11 +13,14 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { clearAssetCaches } from '@/infra/assets';
-import { type CacheOverview, cleanupCache, clearCache, getCacheOverview } from '@/infra/fs';
 import {
   type AppConfig,
+  type CacheOverview,
   checkForUpdate,
+  cleanupCache,
+  clearAssetCaches,
+  clearCache,
+  getCacheOverview,
   getConfig,
   openDirectory,
   openDirectoryDialog,

@@ -1,4 +1,4 @@
-import { createExportTask, getExportTaskState } from '@/infra/export';
+import { createExportTask, getExportTaskState } from '@/platform';
 
 export async function runScheduledExports<T>({
   items,

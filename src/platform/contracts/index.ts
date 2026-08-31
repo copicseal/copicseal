@@ -200,24 +200,12 @@ export interface CacheCleanupResult {
   removed_bytes: number;
 }
 
-export type WindowFrameMode = 'native' | 'frameless';
-
-export interface PlatformCapabilities {
-  image: { resize: boolean; composite: boolean; heicDecode: boolean };
-  files: { pickImages: boolean; saveToDirectory: boolean; download: boolean };
-  system: { tray: boolean; openPath: boolean; autoUpdate: boolean };
-}
-
-export interface ImageResult {
-  data: Blob | Uint8Array;
-  mimeType: string;
-  meta: { provider: string; durationMs: number; fallbackFrom?: string[] };
-}
-
 export interface WebFileSelection {
   files: File[];
   cancelled: boolean;
 }
+
+export type WindowFrameMode = 'native' | 'frameless';
 
 export interface WebFileProvider {
   pickImages(): Promise<WebFileSelection>;
@@ -225,7 +213,5 @@ export interface WebFileProvider {
   toUrl(file: Blob | File): string;
 }
 
-export interface PlatformProvider {
-  readonly id: string;
-  readonly capabilities: PlatformCapabilities;
-}
+export * from './platform';
+export * from './services';

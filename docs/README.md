@@ -117,7 +117,6 @@ Template 与 Collage 采用统一三栏布局：
 app        → 应用入口
 features   → 用户可见功能
 core       → 渲染与调度核心
-infra      → 基础设施层（IO / Export / Assets）
 shared     → 通用 UI 与工具
 platform   → 平台能力 Contract、Provider 与选择性降级
 bridge     → 迁移期间的 Tauri 内部适配层
@@ -135,13 +134,10 @@ src/
 │   ├── scheduler/
 │   ├── lifecycle/
 │   └── constants/
-├── infra/
-│   ├── export/
-│   ├── assets/
-│   ├── fs/
-│   ├── cache/
-│   └── db/
 ├── platform/
+│   ├── contracts/
+│   ├── services/
+│   └── providers/
 ├── bridge/
 ├── shared/
 ├── store/

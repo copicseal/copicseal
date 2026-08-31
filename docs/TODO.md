@@ -154,11 +154,11 @@
 
 ## Phase 8 — 基础设施
 
-- [x] 建立 `infra/assets/`
-- [x] 建立 `infra/export/`
-- [x] 建立 `infra/fs/`
-- [x] 建立 `infra/cache/`
-- [x] 建立 `infra/db/`
+- [x] 建立 `platform/services/asset-service.ts`
+- [x] 建立 `platform/services/export-service.ts`
+- [x] 建立 `platform/services/file-service.ts`
+- [x] 建立 `platform/services/cache-service.ts`
+- [x] 建立 `platform/services/storage-service.ts`
 - [x] 建立统一导入能力
 - [x] 建立缩略图缓存能力
 - [x] 建立预览资源缓存能力

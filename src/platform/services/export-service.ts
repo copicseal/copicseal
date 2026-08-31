@@ -1,6 +1,13 @@
 import { snapdom } from '@zumer/snapdom';
-import { writeBinaryFile } from '@/infra/fs';
-import { extractJpegExif, insertJpegExif, saveImageDialog } from '@/platform';
+import type { ExportServiceContract } from '@/platform/contracts/platform';
+import {
+  extractJpegExif,
+  insertJpegExif,
+  isNativeWindowAvailable,
+  saveImageDialog,
+  writeBinaryFile,
+} from '@/platform/providers/tauri/api';
+import { webFiles } from '@/platform/providers/web/web-platform-provider';
 import type { ExportFormat, ExportOptions } from '@/shared/types/export';
 
 export type { ExportFormat, ExportOptions } from '@/shared/types/export';
@@ -114,7 +121,16 @@ export async function exportSingle(
   }
 
   const ext = options.format === 'jpeg' ? 'jpg' : options.format;
-  const filePath = await saveImageDialog(`copicseal-export.${ext}`, ext);
+  const fileName = `copicseal-export.${ext}`;
+  if (!isNativeWindowAvailable()) {
+    const buffer = new ArrayBuffer(bytes.byteLength);
+    new Uint8Array(buffer).set(bytes);
+    await webFiles.save(new Blob([buffer]), fileName);
+    if (setBaseSize) await setBaseSize(initialBaseSize);
+    return;
+  }
+
+  const filePath = await saveImageDialog(fileName, ext);
 
   if (!filePath) {
     if (setBaseSize) await setBaseSize(initialBaseSize);
@@ -160,3 +176,12 @@ export async function exportBatch(
     }
   }
 }
+
+export class ExportService implements ExportServiceContract {
+  exportSingle = exportSingle;
+  createExportTask = createExportTask;
+  getExportTaskState = getExportTaskState;
+  cancelExportTask = cancelExportTask;
+}
+
+export const exportService = new ExportService();

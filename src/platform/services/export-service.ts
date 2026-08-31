@@ -1,14 +1,16 @@
 import { snapdom } from '@zumer/snapdom';
 import type { ExportServiceContract } from '@/platform/contracts/platform';
-import {
+import { platformRuntime } from '@/platform/providers/platform-runtime';
+import { webFiles } from '@/platform/providers/web/web-platform-provider';
+import type { ExportFormat, ExportOptions } from '@/shared/types/export';
+
+const {
   extractJpegExif,
   insertJpegExif,
   isNativeWindowAvailable,
   saveImageDialog,
   writeBinaryFile,
-} from '@/platform/providers/tauri/api';
-import { webFiles } from '@/platform/providers/web/web-platform-provider';
-import type { ExportFormat, ExportOptions } from '@/shared/types/export';
+} = platformRuntime;
 
 export type { ExportFormat, ExportOptions } from '@/shared/types/export';
 

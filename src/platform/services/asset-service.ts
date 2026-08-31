@@ -1,16 +1,6 @@
+import type { CachedImageMeta } from '@/platform/contracts';
 import type { AssetServiceContract, ImportPhotoOptions } from '@/platform/contracts/platform';
-import {
-  type CachedImageMeta,
-  getConfig,
-  importImageBytesToCache,
-  importImageToCache,
-  isNativeWindowAvailable,
-  listImageFilesInDirectory,
-  openDirectoryDialog,
-  openImageDialog,
-  pathExists,
-  toNativeFileUrl,
-} from '@/platform/providers/tauri/api';
+import { platformRuntime } from '@/platform/providers/platform-runtime';
 import { webFiles } from '@/platform/providers/web/web-platform-provider';
 import {
   type ImportedPhoto,
@@ -25,6 +15,18 @@ import {
   setPreviewResourceCache,
   setThumbnailCache,
 } from './cache-service';
+
+const {
+  getConfig,
+  importImageBytesToCache,
+  importImageToCache,
+  isNativeWindowAvailable,
+  listImageFilesInDirectory,
+  openDirectoryDialog,
+  openImageDialog,
+  pathExists,
+  toNativeFileUrl,
+} = platformRuntime;
 
 function uid(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;

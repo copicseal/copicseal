@@ -1,4 +1,4 @@
-import type { ExifData } from '@/api';
+import type { ExifData } from '@/platform';
 
 export interface TemplateProps {
   photoUrl: string;

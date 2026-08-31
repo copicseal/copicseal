@@ -167,9 +167,9 @@
 
 ---
 
-## Phase 9 — Runtime / Core / Bridge
+## Phase 9 — Template Runtime / Core / Bridge
 
-- [x] 建立 `runtime/template/`
+- [x] 建立 `features/template/runtime/`
 - [x] 建立模板注册与执行能力
 - [x] 建立 `core/renderer/`
 - [x] 建立 DOM 稳定性控制

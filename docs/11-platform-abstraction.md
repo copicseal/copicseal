@@ -24,14 +24,14 @@ await platform.files.save(output);
 await platform.dialog.pickImages();
 ```
 
-禁止在 `features/`、`runtime/` 或 `core/` 中直接调用 `invoke`、`window.__TAURI__`、`showOpenFilePicker` 等宿主 API。
+禁止在 `features/`、`features/template/runtime/` 或 `core/` 中直接调用 `invoke`、`window.__TAURI__`、`showOpenFilePicker` 等宿主 API。
 
 ---
 
 ## 11.2 分层与目录建议
 
 ```txt
-features / runtime / core
+features / core
           │
           ▼
        platform
@@ -222,7 +222,7 @@ Web：Canvas / WebCodecs / WASM
 
 ## 11.9 验收标准
 
-- `features`、`runtime` 和 `core` 不再直接导入宿主 API。
+- `features`、`core` 和 `features/template/runtime` 不再直接导入宿主 API。
 - Web 环境可完成核心图片处理流程，无法提供的系统能力有明确提示或可用替代方案。
 - Tauri 环境优先使用桌面 Provider，并且仅对 `PLATFORM_NOT_IMPLEMENTED` / `PLATFORM_UNSUPPORTED` 进行降级。
 - 每个 Provider 与降级路径均有独立测试。

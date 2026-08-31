@@ -1,1 +1,1 @@
-export { TemplatePage as default } from './TemplatePage';
+export { TemplatePage as default } from './components/template-page';

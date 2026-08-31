@@ -1,6 +1,0 @@
-export { TemplateRuntime } from './TemplateRuntime';
-export {
-  getBuiltinTemplateById,
-  getBuiltinTemplateSchema,
-  listBuiltinTemplates,
-} from './template-registry';

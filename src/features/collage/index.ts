@@ -1,1 +1,1 @@
-export { CollagePage as default } from './CollagePage';
+export { CollagePage as default } from './components/collage-page';

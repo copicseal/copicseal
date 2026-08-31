@@ -17,8 +17,6 @@ src/
 │   ├── template/
 │   ├── collage/
 │   └── settings/
-├── runtime/
-│   └── template/
 ├── core/
 │   ├── renderer/
 │   ├── scheduler/
@@ -56,11 +54,6 @@ src/
 - `collage`：拼图业务
 - `settings`：设置中心业务
 
-### `runtime`
-
-- 仅负责 Template 的 React 模板运行系统
-- 管理模板注册、渲染与 props schema
-
 ### `core`
 
 - 渲染稳定性控制
@@ -78,7 +71,7 @@ src/
 
 - 迁移期间封装 Tauri `invoke`
 - 仅作为 `platform/providers/tauri` 的内部适配层
-- 不作为 feature、runtime 或 core 的公开依赖
+- 不作为 feature、`features/template/runtime` 或 core 的公开依赖
 
 ### `platform`
 

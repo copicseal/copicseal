@@ -14,4 +14,4 @@ export {
   type UserDevice,
   updateConfig,
   upsertComarkTemplate,
-} from '@/api';
+} from '@/platform';

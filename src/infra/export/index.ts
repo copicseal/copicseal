@@ -1,20 +1,9 @@
-import { save } from '@tauri-apps/plugin-dialog';
 import { snapdom } from '@zumer/snapdom';
-import { extractJpegExif, insertJpegExif } from '@/api';
 import { writeBinaryFile } from '@/infra/fs';
+import { extractJpegExif, insertJpegExif, saveImageDialog } from '@/platform';
+import type { ExportFormat, ExportOptions } from '@/shared/types/export';
 
-export type ExportFormat = 'jpeg' | 'png' | 'webp';
-
-export interface ExportOptions {
-  format: ExportFormat;
-  width?: number;
-  height?: number;
-  scale: number;
-  quality: number;
-  dpi: number;
-  preserveExif: boolean;
-  exclude?: string[];
-}
+export type { ExportFormat, ExportOptions } from '@/shared/types/export';
 
 export interface ExportTaskState {
   total: number;
@@ -125,10 +114,7 @@ export async function exportSingle(
   }
 
   const ext = options.format === 'jpeg' ? 'jpg' : options.format;
-  const filePath = await save({
-    defaultPath: `copicseal-export.${ext}`,
-    filters: [{ name: ext.toUpperCase(), extensions: [ext] }],
-  });
+  const filePath = await saveImageDialog(`copicseal-export.${ext}`, ext);
 
   if (!filePath) {
     if (setBaseSize) await setBaseSize(initialBaseSize);
@@ -156,9 +142,7 @@ export async function exportBatch(
     try {
       const bytes = await captureElement(elements[i], options);
       const ext = options.format === 'jpeg' ? 'jpg' : options.format;
-      const filePath = await save({
-        defaultPath: `copicseal-export-${i + 1}.${ext}`,
-      });
+      const filePath = await saveImageDialog(`copicseal-export-${i + 1}.${ext}`, ext);
 
       if (!filePath) {
         continue;

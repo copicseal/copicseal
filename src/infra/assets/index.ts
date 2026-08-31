@@ -1,6 +1,3 @@
-import { convertFileSrc } from '@tauri-apps/api/core';
-import { open } from '@tauri-apps/plugin-dialog';
-import { getConfig, pathExists } from '@/api';
 import {
   clearPreviewResourceCache,
   clearThumbnailCache,
@@ -15,7 +12,18 @@ import {
   importImageToCache,
   listImageFilesInDirectory,
 } from '@/infra/fs';
-import { type ImportedPhoto, SUPPORTED_IMAGE_EXTENSIONS, SUPPORTED_IMAGE_TYPES } from '@/lib/photo';
+import {
+  getConfig,
+  openDirectoryDialog,
+  openImageDialog,
+  pathExists,
+  toNativeFileUrl,
+} from '@/platform';
+import {
+  type ImportedPhoto,
+  SUPPORTED_IMAGE_EXTENSIONS,
+  SUPPORTED_IMAGE_TYPES,
+} from '@/shared/types/photo';
 
 export interface ImportProgressSnapshot {
   current: number;
@@ -42,10 +50,10 @@ function isSupportedExt(name: string): boolean {
 }
 
 function toImportedPhoto(meta: CachedImageMeta): ImportedPhoto {
-  const previewUrl = getPreviewResourceCache(meta.path) ?? convertFileSrc(meta.preview_path);
+  const previewUrl = getPreviewResourceCache(meta.path) ?? toNativeFileUrl(meta.preview_path);
   const cachedThumbnail = getThumbnailCache(meta.path);
   const thumbnailUrl = meta.thumbnail_ready
-    ? (cachedThumbnail ?? convertFileSrc(meta.thumbnail_path))
+    ? (cachedThumbnail ?? toNativeFileUrl(meta.thumbnail_path))
     : previewUrl;
 
   setThumbnailCache(meta.path, thumbnailUrl);
@@ -95,7 +103,7 @@ function waitForThumbnail(
           return;
         }
 
-        const nextThumbnailUrl = `${convertFileSrc(thumbnailPath)}?v=${Date.now()}-${attempts}`;
+        const nextThumbnailUrl = `${toNativeFileUrl(thumbnailPath)}?v=${Date.now()}-${attempts}`;
         const image = new Image();
 
         image.onload = () => {
@@ -129,15 +137,7 @@ async function resolveCacheDirectory(): Promise<string> {
 export async function selectPhotosViaDialog(
   options?: ImportPhotosOptions,
 ): Promise<ImportedPhoto[]> {
-  const selected = await open({
-    multiple: true,
-    filters: [
-      {
-        name: '图片',
-        extensions: SUPPORTED_IMAGE_EXTENSIONS.map((ext) => ext.replace('.', '')),
-      },
-    ],
-  });
+  const selected = await openImageDialog();
 
   if (!selected) {
     return [];
@@ -150,10 +150,7 @@ export async function selectPhotosViaDialog(
 export async function selectPhotosFromDirectory(
   options?: ImportPhotosOptions,
 ): Promise<ImportedPhoto[]> {
-  const selected = await open({
-    directory: true,
-    multiple: false,
-  });
+  const selected = await openDirectoryDialog();
 
   if (!selected || Array.isArray(selected)) {
     return [];

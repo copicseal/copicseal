@@ -116,7 +116,6 @@ Template 与 Collage 采用统一三栏布局：
 ```txt
 app        → 应用入口
 features   → 用户可见功能
-runtime    → 模板运行系统
 core       → 渲染与调度核心
 infra      → 基础设施层（IO / Export / Assets）
 shared     → 通用 UI 与工具
@@ -131,8 +130,6 @@ src/
 │   ├── template/
 │   ├── collage/
 │   └── settings/
-├── runtime/
-│   └── template/
 ├── core/
 │   ├── renderer/
 │   ├── scheduler/

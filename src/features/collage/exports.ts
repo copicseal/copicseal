@@ -1,3 +1,3 @@
-export { CollageCanvas } from './CollageCanvas';
-export { CollagePropertiesPanel } from './CollagePropertiesPanel';
-export { CollageToolbar } from './CollageToolbar';
+export { CollageCanvas } from './components/collage-canvas';
+export { CollagePropertiesPanel } from './components/collage-properties-panel';
+export { CollageToolbar } from './components/collage-toolbar';

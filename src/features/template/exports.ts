@@ -1,4 +1,4 @@
-export { TemplateExportPanel } from './TemplateExportPanel';
-export { TemplatePreview, useTemplatePreviewState } from './TemplatePreview';
-export { TemplatePropsPanel } from './TemplatePropsPanel';
-export { TemplateSelector } from './TemplateSelector';
+export { TemplateExportPanel } from './components/template-export-panel';
+export { TemplatePreview, useTemplatePreviewState } from './components/template-preview';
+export { TemplatePropsPanel } from './components/template-props-panel';
+export { TemplateSelector } from './components/template-selector';

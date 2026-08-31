@@ -11,4 +11,4 @@ export {
   listImageFilesInDirectory,
   readImageFile,
   writeBinaryFile,
-} from '@/api';
+} from '@/platform';

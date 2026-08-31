@@ -60,9 +60,9 @@ commitlint.config.js  # Commit 规范
 | 类型导入 | `import type` 导入仅用作类型的模块 |
 | 路径别名 | 使用 `@/` 引用 `src/` 目录 |
 | 组件命名 | PascalCase（如 `CoButton`、`CoImageView`） |
-| 文件名 | 组件文件用 PascalCase，工具文件用 kebab-case |
+| 文件名 | 一般文件统一使用小写中横线命名；导出的组件符号仍使用 PascalCase |
 | Props 接口 | 以组件名 + `Props` 命名（如 `CoButtonProps`） |
-| className 合并 | 使用 `@/lib/utils` 中的 `cn()` 工具函数 |
+| className 合并 | 使用 `@/shared/lib/utils` 中的 `cn()` 工具函数 |
 | any 类型 | 尽量避免，优先使用具体类型或 `unknown` |
 | const/let | 优先 `const`，确需重新赋值才用 `let` |
 | 状态管理 | 全局状态用 React Context，就近提供 |

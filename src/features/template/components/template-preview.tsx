@@ -1,15 +1,11 @@
 import { ImageIcon, LayoutTemplate } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { TemplateRuntime } from '@/features/template/runtime';
 import { getBuiltinTemplateById } from '@/features/template/runtime/template-registry';
 import type { TemplateProps } from '@/features/template/templates';
-import type { ExifData } from '@/platform';
-import { platformRuntime } from '@/platform/providers/platform-runtime';
-
-const { readExif } = platformRuntime;
-
 import { usePhotos } from '@/shared/hooks/use-photos';
 import { Button } from '@/shared/ui/button';
+import { usePhotoExif } from '../hooks/use-photo-exif';
 
 type TemplateZoomMode = 'fit' | 50 | 100 | 200;
 
@@ -27,26 +23,8 @@ export function TemplatePreview({
   previewRef,
 }: TemplatePreviewProps) {
   const { currentPhoto } = usePhotos();
-  const [exif, setExif] = useState<ExifData | null>(null);
+  const { exif } = usePhotoExif(currentPhoto);
   const [zoomMode, setZoomMode] = useState<TemplateZoomMode>('fit');
-
-  const loadExif = useCallback(async (path: string) => {
-    try {
-      const data = await readExif(path);
-      setExif(data);
-    } catch {
-      setExif(null);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (currentPhoto?.path) {
-      void loadExif(currentPhoto.path);
-      return;
-    }
-
-    setExif(null);
-  }, [currentPhoto?.path, loadExif]);
 
   const template = getBuiltinTemplateById(activeTemplateId);
 
@@ -126,7 +104,7 @@ export function useTemplatePreviewState() {
       primaryColor: '#1a1a1a',
       borderColor: '#1a1a1a',
       textLine1: '{Make} {Model}',
-      textLine2: '{FocalLength}  f/{FNumber}  {ExposureTime}s  ISO{ISO}',
+      textLine2: '{FocalLength}  {FNumber}  {ExposureTime}  ISO {ISO}',
     }),
   );
 

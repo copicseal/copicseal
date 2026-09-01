@@ -18,6 +18,7 @@
     "ci": "biome ci src/"
   },
   "dependencies": {
+    "@6over3/zeroperl-ts": "^1.0.10",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -27,6 +28,7 @@
     "@tauri-apps/plugin-dialog": "^2.7.1",
     "@tauri-apps/plugin-opener": "^2",
     "@tauri-apps/plugin-updater": "^2.10.1",
+    "@uswriting/exiftool": "^1.0.9",
     "@zumer/snapdom": "^2.12.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

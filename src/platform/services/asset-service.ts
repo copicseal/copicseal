@@ -76,6 +76,7 @@ function toImportedPhotoFromFile(file: File): ImportedPhoto {
     thumbnailUrl: previewUrl,
     thumbnailReady: true,
     isHeic: /\.(heic|heif|hif)$/i.test(file.name),
+    sourceFile: file,
   };
 }
 

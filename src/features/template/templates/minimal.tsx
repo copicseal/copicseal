@@ -1,6 +1,6 @@
 import type { TemplateProps } from './types';
 
-const DEFAULT_LINE2 = '{FocalLength}  f/{FNumber}  {ExposureTime}s  ISO{ISO}';
+const DEFAULT_LINE2 = '{FocalLength}  {FNumber}  {ExposureTime}  ISO {ISO}';
 
 function formatText(template: string, exif: TemplateProps['exif']): string {
   if (!exif) return template;

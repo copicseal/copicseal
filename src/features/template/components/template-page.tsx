@@ -26,6 +26,7 @@ import { Button } from '@/shared/ui/button';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui/tooltip';
 import {
+  TemplateExifCard,
   TemplateExportPanel,
   TemplatePreview,
   TemplatePropsPanel,
@@ -418,6 +419,9 @@ function TemplatePropertiesPanel({
           <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
             <TemplateExportPanel onExportCurrent={onExportCurrent} onExportBatch={onExportBatch} />
           </section>
+          <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
+            <TemplateExifCard />
+          </section>
         </div>
       </div>
     </BusinessWorkbenchPropertiesPane>
@@ -437,7 +441,7 @@ export function TemplatePage() {
     }
 
     await prepareElementForSnapshot(previewRef.current);
-    await exportSingle(previewRef.current, options, currentPhoto?.path);
+    await exportSingle(previewRef.current, options, currentPhoto?.sourceFile ?? currentPhoto?.path);
   };
 
   const handleExportBatch: Parameters<typeof TemplateExportPanel>[0]['onExportBatch'] = async (
@@ -458,7 +462,7 @@ export function TemplatePage() {
           return;
         }
         await prepareElementForSnapshot(previewRef.current);
-        await exportSingle(previewRef.current, options, photo.path);
+        await exportSingle(previewRef.current, options, photo.sourceFile ?? photo.path);
       },
     });
 

@@ -1,4 +1,5 @@
 import * as tauriApi from './tauri/api';
+import { webExifAdapter } from './web/web-exif-adapter';
 import { WebStorageAdapter } from './web/web-storage-adapter';
 
 const webStorage = new WebStorageAdapter();
@@ -86,3 +87,15 @@ const webRuntime = {
 /** The only host switch in the application. Services consume this runtime facade. */
 export const platformRuntime: typeof tauriApi =
   typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window ? tauriApi : webRuntime;
+
+export async function readExifSource(source: string | File) {
+  if (source instanceof File && platformRuntime === webRuntime) {
+    return webExifAdapter.read(source);
+  }
+  return platformRuntime.readExif(source as string);
+}
+
+export async function writeExifSource(source: File, output: Uint8Array, outputName: string) {
+  if (platformRuntime !== webRuntime) return output;
+  return webExifAdapter.copyMetadata(source, output, outputName);
+}

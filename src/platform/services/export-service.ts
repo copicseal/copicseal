@@ -1,6 +1,6 @@
 import { snapdom } from '@zumer/snapdom';
 import type { ExportServiceContract } from '@/platform/contracts/platform';
-import { platformRuntime } from '@/platform/providers/platform-runtime';
+import { platformRuntime, writeExifSource } from '@/platform/providers/platform-runtime';
 import { webFiles } from '@/platform/providers/web/web-platform-provider';
 import type { ExportFormat, ExportOptions } from '@/shared/types/export';
 
@@ -90,7 +90,7 @@ export function cancelExportTask(taskId: string) {
 export async function exportSingle(
   element: HTMLElement,
   options: ExportOptions,
-  sourcePath?: string,
+  source?: string | File,
   setBaseSize?: (v: number) => Promise<void>,
 ): Promise<void> {
   const initialBaseSize = 1000;
@@ -112,18 +112,23 @@ export async function exportSingle(
 
   let bytes = await captureElement(element, options);
 
-  if (options.preserveExif && options.format === 'jpeg' && sourcePath) {
+  const ext = options.format === 'jpeg' ? 'jpg' : options.format;
+  const fileName = `copicseal-export.${ext}`;
+
+  if (options.preserveExif && options.format === 'jpeg' && source) {
     try {
-      const exifSeg = await extractJpegExif(sourcePath);
-      const result = await insertJpegExif(Array.from(bytes), exifSeg);
-      bytes = new Uint8Array(result);
+      if (source instanceof File) {
+        bytes = await writeExifSource(source, bytes, fileName);
+      } else {
+        const exifSeg = await extractJpegExif(source);
+        const result = await insertJpegExif(Array.from(bytes), exifSeg);
+        bytes = new Uint8Array(result);
+      }
     } catch (err) {
       console.warn('EXIF 保留失败:', err);
     }
   }
 
-  const ext = options.format === 'jpeg' ? 'jpg' : options.format;
-  const fileName = `copicseal-export.${ext}`;
   if (!isNativeWindowAvailable()) {
     const buffer = new ArrayBuffer(bytes.byteLength);
     new Uint8Array(buffer).set(bytes);

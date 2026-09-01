@@ -2,8 +2,14 @@ import { type LucideIcon, Minus, Square, X } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
 import { platformRuntime } from '@/platform/providers/platform-runtime';
 
-const { closeWindow, getWindowMaximized, minimizeWindow, onWindowResize, toggleMaximizeWindow } =
-  platformRuntime;
+const {
+  closeWindow,
+  getWindowMaximized,
+  isNativeWindowAvailable,
+  minimizeWindow,
+  onWindowResize,
+  toggleMaximizeWindow,
+} = platformRuntime;
 
 import { cn } from '@/shared/lib/utils';
 import { useWindowStyle } from '@/shared/providers/window-style-provider';
@@ -28,7 +34,8 @@ function RestoreWindowIcon() {
 export function CoWindowHeader({ icon: Icon, title, description, actions }: CoWindowHeaderProps) {
   const { variant, frameMode } = useWindowStyle();
   const [isMaximized, setIsMaximized] = useState(false);
-  const showCustomWindowControls = variant === 'win' && frameMode === 'frameless';
+  const showCustomWindowControls =
+    isNativeWindowAvailable() && variant === 'win' && frameMode === 'frameless';
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;

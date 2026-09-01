@@ -66,27 +66,6 @@ export function TemplatePreview({
 
   return (
     <div className="flex h-full w-full flex-col items-center gap-5">
-      <div className="rounded-full border border-border/70 bg-background/80 px-3 py-1 text-[11px] font-medium tracking-[0.16em] text-muted-foreground uppercase shadow-sm">
-        当前模板
-      </div>
-
-      <div className="flex gap-2">
-        {ZOOM_OPTIONS.map((option) => {
-          const active = zoomMode === option;
-
-          return (
-            <Button
-              key={option.toString()}
-              variant={active ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setZoomMode(option)}
-            >
-              {option === 'fit' ? '适应' : `${option}%`}
-            </Button>
-          );
-        })}
-      </div>
-
       <div className="flex min-h-0 w-full flex-1 items-center justify-center overflow-auto">
         <div
           ref={previewRef}
@@ -107,10 +86,26 @@ export function TemplatePreview({
         </div>
       </div>
 
-      <div className="flex w-full max-w-xl items-center justify-between border-t border-border/80 pt-3 text-xs text-muted-foreground">
+      <div className="flex w-full items-center justify-between gap-4 border-t border-border/80 px-4 py-2 text-xs text-muted-foreground">
         <div className="min-w-0">
           <p className="truncate font-medium text-foreground">{currentPhoto.name}</p>
           <p>{(currentPhoto.size / 1024 / 1024).toFixed(1)} MB</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {ZOOM_OPTIONS.map((option) => {
+            const active = zoomMode === option;
+
+            return (
+              <Button
+                key={option.toString()}
+                variant={active ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setZoomMode(option)}
+              >
+                {option === 'fit' ? '适应' : `${option}%`}
+              </Button>
+            );
+          })}
         </div>
         <div className="flex items-center gap-2">
           <ImageIcon className="size-3.5" />

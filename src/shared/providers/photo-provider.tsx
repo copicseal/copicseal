@@ -1,5 +1,8 @@
 import { createContext, type FC, type ReactNode, useCallback, useEffect, useState } from 'react';
-import { onNativeFileDrop } from '@/platform';
+import { platformRuntime } from '@/platform/providers/platform-runtime';
+
+const { onNativeFileDrop } = platformRuntime;
+
 import {
   type ImportProgressSnapshot,
   importPhotosViaPaths,

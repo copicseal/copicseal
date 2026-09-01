@@ -10,7 +10,10 @@ import {
   Trash2,
 } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
-import { checkForUpdate } from '@/platform';
+import { platformRuntime } from '@/platform/providers/platform-runtime';
+
+const { checkForUpdate } = platformRuntime;
+
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import {

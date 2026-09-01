@@ -1,12 +1,10 @@
 import { type LucideIcon, Minus, Square, X } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
-import {
-  closeWindow,
-  getWindowMaximized,
-  minimizeWindow,
-  onWindowResize,
-  toggleMaximizeWindow,
-} from '@/platform';
+import { platformRuntime } from '@/platform/providers/platform-runtime';
+
+const { closeWindow, getWindowMaximized, minimizeWindow, onWindowResize, toggleMaximizeWindow } =
+  platformRuntime;
+
 import { cn } from '@/shared/lib/utils';
 import { useWindowStyle } from '@/shared/providers/window-style-provider';
 

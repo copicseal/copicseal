@@ -3,7 +3,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { TemplateRuntime } from '@/features/template/runtime';
 import { getBuiltinTemplateById } from '@/features/template/runtime/template-registry';
 import type { TemplateProps } from '@/features/template/templates';
-import { type ExifData, readExif } from '@/platform';
+import type { ExifData } from '@/platform';
+import { platformRuntime } from '@/platform/providers/platform-runtime';
+
+const { readExif } = platformRuntime;
+
 import { usePhotos } from '@/shared/hooks/use-photos';
 import { Button } from '@/shared/ui/button';
 

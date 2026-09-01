@@ -13,19 +13,20 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import {
-  type AppConfig,
-  type CacheOverview,
+import { type AppConfig, type CacheOverview, clearAssetCaches } from '@/platform';
+import { platformRuntime } from '@/platform/providers/platform-runtime';
+
+const {
   checkForUpdate,
   cleanupCache,
-  clearAssetCaches,
   clearCache,
   getCacheOverview,
   getConfig,
   openDirectory,
   openDirectoryDialog,
   updateConfig,
-} from '@/platform';
+} = platformRuntime;
+
 import { CoWindowHeader } from '@/shared/components/co-window-header';
 import { cn } from '@/shared/lib/utils';
 import { useWindowStyle } from '@/shared/providers/window-style-provider';

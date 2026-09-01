@@ -256,11 +256,6 @@ function CollagePropertiesPane({
 }) {
   return (
     <BusinessWorkbenchPropertiesPane>
-      <div className="border-b border-border/80 px-4 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          Properties
-        </p>
-      </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
         <CollagePropertiesPanel onExportCurrent={onExportCurrent} onExportBatch={onExportBatch} />
       </div>

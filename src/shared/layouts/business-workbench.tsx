@@ -81,7 +81,7 @@ interface BusinessWorkbenchWorkspaceProps {
 
 export function BusinessWorkbenchWorkspace({ children }: BusinessWorkbenchWorkspaceProps) {
   return (
-    <section className="relative flex min-h-0 min-w-0 h-full flex-1 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top,var(--color-accent),transparent_45%),linear-gradient(180deg,color-mix(in_oklch,var(--color-background),white_55%)_0%,var(--color-background)_100%)] p-6">
+    <section className="relative flex min-h-0 min-w-0 h-full flex-1 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_top,var(--color-accent),transparent_45%),linear-gradient(180deg,color-mix(in_oklch,var(--color-background),white_55%)_0%,var(--color-background)_100%)]">
       <div className="absolute inset-0 bg-[linear-gradient(to_right,color-mix(in_oklch,var(--color-border),transparent_35%)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_oklch,var(--color-border),transparent_35%)_1px,transparent_1px)] bg-size-[32px_32px] opacity-35" />
       <div className="relative flex h-full w-full min-h-0 min-w-0">{children}</div>
     </section>

@@ -398,12 +398,6 @@ function TemplatePropertiesPanel({
 
   return (
     <BusinessWorkbenchPropertiesPane>
-      <div className="border-b border-border/80 px-4 py-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          Properties
-        </p>
-      </div>
-
       <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
         <div className="space-y-3">
           <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">

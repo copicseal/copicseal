@@ -1,5 +1,5 @@
 import type { Platform } from './contracts/platform';
-import { platformProvider } from './index';
+import { platformProvider } from './provider-registry';
 import { TauriFileAdapter } from './providers/tauri/tauri-file-adapter';
 import { TauriStorageAdapter } from './providers/tauri/tauri-storage-adapter';
 import { WebFileAdapter } from './providers/web/web-file-adapter';

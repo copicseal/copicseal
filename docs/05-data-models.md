@@ -36,10 +36,9 @@ Template 页面的当前工作状态：
 |------|------|------|
 | activeAssetId | string | 当前预览图片 |
 | templateId | string | 当前模板 ID |
-| templateProps | object | 当前模板 props |
-| zoom | number | 预览缩放 |
-| fitMode | boolean | 是否适配预览区域 |
-| exportConfig | object | 导出配置 |
+| templateProps | object | 当前模板的参数，随模板切换重置 |
+| zoom | `fit` \| 50 \| 100 \| 200 | 预览缩放档位 |
+| exportConfig | object | 导出档位配置 |
 | selectionIds | string[] | 当前多选资产 |
 
 ---
@@ -55,8 +54,27 @@ Template 页面的当前工作状态：
 | tags | string[] | 搜索与分类标签 |
 | favorite | boolean | 是否收藏 |
 | recentUsedAt | string | 最近使用时间 |
-| propsSchema | object | 自动生成表单的 schema |
+| propsSchema | object | 该模板独有的可调参数描述 |
 | componentKey | string | 运行时组件标识 |
+
+### 模板参数描述（propsSchema）
+
+每个模板独立声明自己的可调参数。字段同时定义控件形态、默认值与校验范围，属性面板完全由它生成：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| key | string | 参数键 |
+| label | string | 展示名 |
+| type | `number` \| `color` \| `select` \| `text` | 控件形态 |
+| default | number \| string | 默认值，随字段定义 |
+| min / max / step | number | 数值范围与步长，仅 `number` |
+| options | { label, value }[] | 候选项，仅 `select` |
+
+约束：
+
+- 模板之间不共享参数集合，切换模板时参数重置为该模板的默认值
+- 注入给模板的图片地址与 EXIF 数据不属于参数，不进入 schema
+- 数值参数的取值是相对画布宽度的比例，不带单位
 
 ---
 
@@ -107,14 +125,28 @@ Collage 页面的当前工作状态：
 
 ## 5.6 Export Config
 
-统一导出配置：
+统一导出配置由一组输出档位构成：
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| format | 'png' \| 'jpg' \| 'webp' | 导出格式 |
-| quality | number | 图片质量 |
-| scale | number | 导出倍率 |
-| outputDir | string | 输出目录 |
+| presets | ExportPreset[] | 输出档位列表，至少一档 |
+| outputDir | string | 输出目录；平台不支持目录写入时为空 |
+| preserveExif | boolean | 是否保留原图 EXIF |
+| dpi | number | 分辨率元数据，不参与尺寸计算 |
+
+### Export Preset
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | string | 档位标识 |
+| label | string | 档位名称 |
+| format | `png` \| `jpeg` \| `webp` | 导出格式 |
+| width | number \| null | 目标框宽度（像素） |
+| height | number \| null | 目标框高度（像素） |
+| scale | number | 位图倍率，在解算尺寸之上超采样 |
+| quality | number | 图片质量，仅 JPEG / WebP 生效 |
+
+尺寸解算规则见 [04 导出系统](./04-export-system.md)。
 
 ---
 

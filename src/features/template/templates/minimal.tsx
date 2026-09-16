@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { defineTemplate } from './define-template';
 import { formatExifText } from './format-exif-text';
@@ -7,11 +6,15 @@ import type {
   TemplateField,
   TemplateInjectedProps,
   TemplateParams,
+  TemplateStyle,
 } from './types';
+import { useImageAspect } from './use-image-aspect';
 
 /**
- * Minimal 的参数声明：只描述排版方向与两行文案，不包含任何边框能力。
- * 字段清单是唯一真相源，组件 props 由它推导。
+ * Minimal 的参数声明。
+ *
+ * 数值字段一律是「相对画布宽度的比例」，模板内不出现任何带单位的字面量；
+ * 颜色类字段直接透传给内联样式。
  */
 const minimalFields = [
   {
@@ -26,7 +29,16 @@ const minimalFields = [
       { label: '竖向', value: 'vertical' },
     ],
   },
-  { key: 'fontScale', label: '字体缩放', type: 'number', default: 1, min: 0.8, max: 2, step: 0.1 },
+  {
+    key: 'fontScale',
+    label: '字体缩放',
+    description: '在模板基准字号之上的倍数。',
+    type: 'number',
+    default: 1,
+    min: 0.5,
+    max: 2,
+    step: 0.1,
+  },
   { key: 'textColor', label: '文字颜色', type: 'color', default: '#1a1a1a' },
   { key: 'textLine1', label: '文案 1', type: 'text', default: '{Make} {Model}' },
   {
@@ -49,43 +61,52 @@ function Minimal({
   textLine1,
   textLine2,
 }: TemplateInjectedProps & MinimalParams) {
-  // 自动方向需要真实长宽比，图片加载完成后才能判定。
-  const [aspectRatio, setAspectRatio] = useState<number | null>(null);
+  const { aspect, handleLoad } = useImageAspect(photoUrl);
 
   const line1 = formatExifText(textLine1, exif);
   const line2 = formatExifText(textLine2, exif);
   const resolvedOrientation =
-    orientation === 'auto'
-      ? aspectRatio !== null && aspectRatio < 1
-        ? 'vertical'
-        : 'horizontal'
-      : orientation;
+    orientation === 'auto' ? (aspect < 1 ? 'vertical' : 'horizontal') : orientation;
+
+  const canvasStyle: TemplateStyle = {
+    '--co-font-scale': fontScale,
+    width: 'calc(var(--co-base) * 1)',
+    padding: 'calc(var(--co-base) * 0.05)',
+    gap: 'calc(var(--co-base) * 0.03)',
+  };
 
   return (
-    <div className="flex flex-col items-center gap-4 bg-white px-8 py-8">
+    <div className="flex flex-col items-center bg-white" style={canvasStyle}>
       <img
         src={photoUrl}
         alt=""
-        className="block max-h-[60vh] max-w-full object-contain"
-        onLoad={(event) => {
-          const { naturalWidth, naturalHeight } = event.currentTarget;
-          setAspectRatio(naturalHeight > 0 ? naturalWidth / naturalHeight : null);
+        className="block object-contain"
+        style={{
+          width: 'calc(var(--co-base) * 0.9)',
+          aspectRatio: String(aspect),
         }}
+        onLoad={handleLoad}
       />
       <div
         className={cn(
-          'flex w-full flex-col gap-1',
+          'flex w-full flex-col',
           resolvedOrientation === 'vertical' ? 'items-center text-center' : 'items-end text-right',
         )}
-        style={{ color: textColor }}
+        style={{ gap: 'calc(var(--co-base) * 0.008)', color: textColor }}
       >
         {line1 ? (
-          <p className="font-medium tracking-wide" style={{ fontSize: 15 * fontScale }}>
+          <p
+            className="font-medium tracking-wide"
+            style={{ fontSize: 'calc(var(--co-base) * 0.022 * var(--co-font-scale))' }}
+          >
             {line1}
           </p>
         ) : null}
         {line2 ? (
-          <p className="font-mono" style={{ fontSize: 11 * fontScale }}>
+          <p
+            className="font-mono"
+            style={{ fontSize: 'calc(var(--co-base) * 0.015 * var(--co-font-scale))' }}
+          >
             {line2}
           </p>
         ) : null}

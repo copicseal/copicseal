@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { ExifData } from '@/platform';
 
 /**
@@ -98,6 +98,14 @@ export type TemplateParams<TFields extends readonly TemplateField[]> = {
 export interface TemplateSchema {
   fields: readonly TemplateField[];
 }
+
+/**
+ * 模板画布的内联样式。
+ *
+ * 除常规 CSS 属性外，还允许写入由 schema 参数派生的自定义变量
+ * （如 `--co-frame-width`），供 `calc()` 在模板内部消费。
+ */
+export type TemplateStyle = CSSProperties & Record<`--${string}`, string | number>;
 
 /**
  * 注册表统一视图。

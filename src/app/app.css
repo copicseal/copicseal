@@ -131,6 +131,11 @@
   html {
     @apply font-sans;
   }
+  /* 模板渲染基准：模板几何全部是它的倍数，运行时由预览自适应与导出解算改写。
+     此处仅作首帧兜底，避免 --co-base 尚未写入时 calc() 失去意义。 */
+  :root {
+    --co-base: 800px;
+  }
   #root {
     @apply h-screen overflow-hidden;
   }

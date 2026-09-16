@@ -1,4 +1,4 @@
-import type { ExportOptions } from '@/shared/types/export';
+import type { ExportOptions, ExportRunContext } from '@/shared/types/export';
 import type { ImportedPhoto } from '@/shared/types/photo';
 import type {
   AppConfig,
@@ -27,7 +27,12 @@ export interface ImportPhotoOptions {
 }
 
 export interface ExportServiceContract {
-  exportSingle(element: HTMLElement, options: ExportOptions, sourcePath?: string): Promise<void>;
+  exportSingle(
+    element: HTMLElement,
+    options: ExportOptions,
+    sourcePath?: string,
+    context?: ExportRunContext,
+  ): Promise<void>;
   createExportTask(total: number): string;
   getExportTaskState(
     taskId: string,

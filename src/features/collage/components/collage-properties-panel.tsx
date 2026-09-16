@@ -29,14 +29,21 @@ export function CollagePropertiesPanel({
   const selectedSlot =
     selectedSlotIndex !== null ? (present.slotItems[selectedSlotIndex] ?? null) : null;
 
+  // 拼图不参与模板的基准解算，只以单档形式走统一导出管线。
   const buildOptions = (): ExportOptions => ({
-    format: present.exportSettings.format,
-    scale: scale[0],
-    quality: quality[0],
+    presets: [
+      {
+        id: 'default',
+        label: '默认',
+        format: present.exportSettings.format,
+        width: width ? Number(width) : undefined,
+        height: height ? Number(height) : undefined,
+        scale: scale[0],
+        quality: quality[0],
+      },
+    ],
     dpi: 72,
     preserveExif: false,
-    width: width ? Number(width) : undefined,
-    height: height ? Number(height) : undefined,
   });
 
   const handleExportCurrent = async () => {

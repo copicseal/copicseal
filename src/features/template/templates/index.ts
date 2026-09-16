@@ -15,6 +15,7 @@ export type {
   TemplateMeta,
   TemplateParams,
   TemplateSchema,
+  TemplateStyle,
 } from './types';
 
 /** 内置模板清单：每个模板自带 meta、独立 schema 与独立渲染组件。 */

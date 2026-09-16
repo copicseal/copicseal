@@ -7,11 +7,11 @@ import {
   LayoutTemplate,
   Trash2,
 } from 'lucide-react';
-import { useEffect, useRef } from 'react';
-import { prepareElementForSnapshot } from '@/core/renderer';
+import { useEffect, useRef, useState } from 'react';
+import { prepareElementForSnapshot, waitForDomStability, waitForImages } from '@/core/renderer';
 import { runScheduledExports } from '@/core/scheduler';
 import { getBuiltinTemplateSchema } from '@/features/template/runtime/template-registry';
-import { exportSingle } from '@/platform';
+import { type ExportRunContext, exportSingle, resolveExportDirectory } from '@/platform';
 import { CoDropZone } from '@/shared/components/co-drop-zone';
 import { CoWindowHeader } from '@/shared/components/co-window-header';
 import { usePhotos } from '@/shared/hooks/use-photos';
@@ -428,11 +428,51 @@ function TemplatePropertiesPanel({
   );
 }
 
+/** 去掉扩展名，作为导出文件名主干。 */
+function stripExtension(name: string): string {
+  const dot = name.lastIndexOf('.');
+  return dot > 0 ? name.slice(0, dot) : name;
+}
+
 export function TemplatePage() {
   const previewRef = useRef<HTMLDivElement | null>(null);
   const { templateId, setTemplateId, templateParams, setTemplateParams } =
     useTemplatePreviewState();
   const { photos, currentIndex, setCurrentIndex, currentPhoto } = usePhotos();
+  // 导出期间挂起预览自适应，否则它会覆盖导出解算出的 --co-base
+  const [capturing, setCapturing] = useState(false);
+
+  /**
+   * 构造模板导出上下文。
+   *
+   * 基准读写落在 snapshot 目标元素上：模板几何全部是 `--co-base` 的倍数，
+   * 测量用布局尺寸（offsetWidth/offsetHeight），不受任何外层变换影响。
+   */
+  const createRunContext = (
+    name: string | undefined,
+    outputDir: string | null,
+  ): ExportRunContext => ({
+    baseName: name ? stripExtension(name) : undefined,
+    outputDir,
+    sizeAdapter: {
+      setBase: async (base) => {
+        const element = previewRef.current;
+        if (!element) {
+          return;
+        }
+        element.style.setProperty('--co-base', `${base}px`);
+        await waitForDomStability();
+      },
+      measure: () => {
+        const element = previewRef.current;
+        const canvas = (element?.firstElementChild as HTMLElement | null) ?? element;
+        if (!canvas) {
+          return { width: 0, height: 0 };
+        }
+        return { width: canvas.offsetWidth, height: canvas.offsetHeight };
+      },
+    },
+  });
 
   const handleExportCurrent: Parameters<typeof TemplateExportPanel>[0]['onExportCurrent'] = async (
     options,
@@ -441,8 +481,20 @@ export function TemplatePage() {
       return;
     }
 
-    await prepareElementForSnapshot(previewRef.current);
-    await exportSingle(previewRef.current, options, currentPhoto?.sourceFile ?? currentPhoto?.path);
+    setCapturing(true);
+    try {
+      const outputDir = await resolveExportDirectory(options.presets.length);
+      await waitForImages(previewRef.current);
+      await prepareElementForSnapshot(previewRef.current);
+      await exportSingle(
+        previewRef.current,
+        options,
+        currentPhoto?.sourceFile ?? currentPhoto?.path,
+        createRunContext(currentPhoto?.name, outputDir),
+      );
+    } finally {
+      setCapturing(false);
+    }
   };
 
   const handleExportBatch: Parameters<typeof TemplateExportPanel>[0]['onExportBatch'] = async (
@@ -454,20 +506,33 @@ export function TemplatePage() {
 
     const originalIndex = currentIndex;
 
-    await runScheduledExports({
-      items: photos,
-      runner: async (photo, index) => {
-        setCurrentIndex(index);
-        await new Promise((resolve) => setTimeout(resolve, 120));
-        if (!previewRef.current) {
-          return;
-        }
-        await prepareElementForSnapshot(previewRef.current);
-        await exportSingle(previewRef.current, options, photo.sourceFile ?? photo.path);
-      },
-    });
+    setCapturing(true);
+    try {
+      // 输出目录只询问一次，避免逐张弹窗
+      const outputDir = await resolveExportDirectory(options.presets.length);
 
-    setCurrentIndex(originalIndex);
+      await runScheduledExports({
+        items: photos,
+        runner: async (photo, index) => {
+          setCurrentIndex(index);
+          await new Promise((resolve) => setTimeout(resolve, 120));
+          if (!previewRef.current) {
+            return;
+          }
+          await waitForImages(previewRef.current);
+          await prepareElementForSnapshot(previewRef.current);
+          await exportSingle(
+            previewRef.current,
+            options,
+            photo.sourceFile ?? photo.path,
+            createRunContext(photo.name, outputDir),
+          );
+        },
+      });
+    } finally {
+      setCapturing(false);
+      setCurrentIndex(originalIndex);
+    }
   };
 
   return (
@@ -481,6 +546,7 @@ export function TemplatePage() {
               templateId={templateId}
               params={templateParams}
               previewRef={previewRef}
+              suspendAutoFit={capturing}
             />
           </div>
         </BusinessWorkbenchWorkspace>

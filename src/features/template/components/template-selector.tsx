@@ -12,7 +12,7 @@ interface TemplateSelectorProps {
 export function TemplateSelector({ activeTemplateId, onTemplateChange }: TemplateSelectorProps) {
   const templates = listBuiltinTemplates();
   const [query, setQuery] = useState('');
-  const [favorites, setFavorites] = useState<string[]>(['minimal', 'leica']);
+  const [favorites, setFavorites] = useState<string[]>(['minimal', 'film']);
   const [recentIds, setRecentIds] = useState<string[]>(['minimal']);
 
   const filteredTemplates = useMemo(() => {

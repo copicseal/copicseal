@@ -1,8 +1,11 @@
 import { ImageIcon, LayoutTemplate } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { TemplateRuntime } from '@/features/template/runtime';
-import { getBuiltinTemplateById } from '@/features/template/runtime/template-registry';
-import type { TemplateProps } from '@/features/template/templates';
+import {
+  getDefaultParams,
+  resolveBuiltinTemplate,
+} from '@/features/template/runtime/template-registry';
+import { DEFAULT_TEMPLATE_ID } from '@/features/template/templates';
 import { usePhotos } from '@/shared/hooks/use-photos';
 import { Button } from '@/shared/ui/button';
 import { usePhotoExif } from '../hooks/use-photo-exif';
@@ -12,21 +15,18 @@ type TemplateZoomMode = 'fit' | 50 | 100 | 200;
 const ZOOM_OPTIONS: TemplateZoomMode[] = ['fit', 50, 100, 200];
 
 interface TemplatePreviewProps {
-  activeTemplateId: string;
-  templateProps: Omit<TemplateProps, 'photoUrl' | 'exif'>;
+  templateId: string;
+  /** 当前用户参数，渲染前由 TemplateRuntime 按模板自己的 schema 兜底归一 */
+  params: Record<string, unknown>;
   previewRef?: React.RefObject<HTMLDivElement | null>;
 }
 
-export function TemplatePreview({
-  activeTemplateId,
-  templateProps,
-  previewRef,
-}: TemplatePreviewProps) {
+export function TemplatePreview({ templateId, params, previewRef }: TemplatePreviewProps) {
   const { currentPhoto } = usePhotos();
   const { exif } = usePhotoExif(currentPhoto);
   const [zoomMode, setZoomMode] = useState<TemplateZoomMode>('fit');
 
-  const template = getBuiltinTemplateById(activeTemplateId);
+  const template = resolveBuiltinTemplate(templateId);
 
   if (!currentPhoto) {
     return (
@@ -54,12 +54,10 @@ export function TemplatePreview({
           }}
         >
           <TemplateRuntime
-            templateId={activeTemplateId}
-            props={{
-              photoUrl: currentPhoto.previewUrl,
-              exif,
-              ...templateProps,
-            }}
+            templateId={templateId}
+            photoUrl={currentPhoto.previewUrl}
+            exif={exif}
+            params={params}
           />
         </div>
       </div>
@@ -87,40 +85,33 @@ export function TemplatePreview({
         </div>
         <div className="flex items-center gap-2">
           <ImageIcon className="size-3.5" />
-          <span>{template?.meta.name ?? activeTemplateId}</span>
+          <span>{template.meta.name}</span>
         </div>
       </div>
     </div>
   );
 }
 
+/**
+ * Template 页的模板选择与参数状态。
+ *
+ * 切换模板时按新模板自己的 schema 重置参数：不同模板的参数集合互不兼容，
+ * 保留旧值只会让属性面板出现与当前模板无关的残留字段。
+ */
 export function useTemplatePreviewState() {
-  const [templateId, setTemplateId] = useState('minimal');
-  const [templateProps, setTemplateProps] = useState<Omit<TemplateProps, 'photoUrl' | 'exif'>>(
-    () => ({
-      orientation: 'auto',
-      margin: 1,
-      fontScale: 1,
-      primaryColor: '#1a1a1a',
-      borderColor: '#1a1a1a',
-      textLine1: '{Make} {Model}',
-      textLine2: '{FocalLength}  {FNumber}  {ExposureTime}  ISO {ISO}',
-    }),
+  const [templateId, setTemplateId] = useState<string>(DEFAULT_TEMPLATE_ID);
+  const [templateParams, setTemplateParams] = useState<Record<string, unknown>>(() =>
+    getDefaultParams(resolveBuiltinTemplate(DEFAULT_TEMPLATE_ID).schema),
   );
 
   useEffect(() => {
-    const template = getBuiltinTemplateById(templateId);
-    if (!template) {
-      return;
-    }
-
-    setTemplateProps(template.schema.defaults);
+    setTemplateParams(getDefaultParams(resolveBuiltinTemplate(templateId).schema));
   }, [templateId]);
 
   return {
     templateId,
     setTemplateId,
-    templateProps,
-    setTemplateProps,
+    templateParams,
+    setTemplateParams,
   };
 }

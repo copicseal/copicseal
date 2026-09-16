@@ -383,15 +383,15 @@ function TemplateAssetsPanel({
 function TemplatePropertiesPanel({
   activeTemplateId,
   onTemplateChange,
-  templateProps,
-  onTemplatePropsChange,
+  templateParams,
+  onTemplateParamsChange,
   onExportCurrent,
   onExportBatch,
 }: {
   activeTemplateId: string;
   onTemplateChange: (templateId: string) => void;
-  templateProps: Parameters<typeof TemplatePreview>[0]['templateProps'];
-  onTemplatePropsChange: (next: Parameters<typeof TemplatePreview>[0]['templateProps']) => void;
+  templateParams: Record<string, unknown>;
+  onTemplateParamsChange: (next: Record<string, unknown>) => void;
   onExportCurrent: Parameters<typeof TemplateExportPanel>[0]['onExportCurrent'];
   onExportBatch: Parameters<typeof TemplateExportPanel>[0]['onExportBatch'];
 }) {
@@ -411,8 +411,8 @@ function TemplatePropertiesPanel({
             <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
               <TemplatePropsPanel
                 schema={templateSchema}
-                value={templateProps}
-                onChange={onTemplatePropsChange}
+                value={templateParams}
+                onChange={onTemplateParamsChange}
               />
             </section>
           ) : null}
@@ -430,7 +430,8 @@ function TemplatePropertiesPanel({
 
 export function TemplatePage() {
   const previewRef = useRef<HTMLDivElement | null>(null);
-  const { templateId, setTemplateId, templateProps, setTemplateProps } = useTemplatePreviewState();
+  const { templateId, setTemplateId, templateParams, setTemplateParams } =
+    useTemplatePreviewState();
   const { photos, currentIndex, setCurrentIndex, currentPhoto } = usePhotos();
 
   const handleExportCurrent: Parameters<typeof TemplateExportPanel>[0]['onExportCurrent'] = async (
@@ -477,8 +478,8 @@ export function TemplatePage() {
         <BusinessWorkbenchWorkspace>
           <div className="flex h-full w-full min-h-0 min-w-0 items-center justify-center">
             <TemplatePreview
-              activeTemplateId={templateId}
-              templateProps={templateProps}
+              templateId={templateId}
+              params={templateParams}
               previewRef={previewRef}
             />
           </div>
@@ -489,8 +490,8 @@ export function TemplatePage() {
         <TemplatePropertiesPanel
           activeTemplateId={templateId}
           onTemplateChange={setTemplateId}
-          templateProps={templateProps}
-          onTemplatePropsChange={setTemplateProps}
+          templateParams={templateParams}
+          onTemplateParamsChange={setTemplateParams}
           onExportCurrent={handleExportCurrent}
           onExportBatch={handleExportBatch}
         />

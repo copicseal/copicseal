@@ -37,6 +37,7 @@ Template 页面的当前工作状态：
 | activeAssetId | string | 当前预览图片 |
 | templateId | string | 当前模板 ID |
 | templateProps | object | 当前模板的参数，随模板切换重置 |
+| background | object | 当前背景设置，随模板切换重置为该模板的默认值 |
 | zoom | `fit` \| 50 \| 100 \| 200 | 预览缩放档位 |
 | exportConfig | object | 导出档位配置 |
 | selectionIds | string[] | 当前多选资产 |
@@ -75,6 +76,25 @@ Template 页面的当前工作状态：
 - 模板之间不共享参数集合，切换模板时参数重置为该模板的默认值
 - 注入给模板的图片地址与 EXIF 数据不属于参数，不进入 schema
 - 数值参数的取值是相对画布宽度的比例，不带单位
+
+### 模板背景（backgroundDefaults）
+
+背景是框架级能力，与模板自身的参数体系相互独立：模板有没有自己的边框，都不影响这组字段的含义。模板只负责给出自己认为最佳的默认值，用户可在属性面板覆盖。
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| mode | `none` \| `color` \| `image` | 背景模式 |
+| color | string | 纯色背景颜色 |
+| blur | number | 模糊强度，相对画框宽度的比例 |
+| brightness | number | 模糊图亮度 |
+| paddingHorizontal | number | 水平内边距，相对画框宽度的比例 |
+| paddingVertical | number | 垂直内边距，同样以画框宽度为基准 |
+
+约束：
+
+- 字段之间支持条件显示：颜色仅纯色模式可见，模糊与亮度仅照片模式可见，内边距在两种有背景的模式下都可见
+- `image` 模式当前使用正在编辑的照片本身；自定义背景图预留字段，暂不实现
+- 尺寸影响见 [04 导出系统](./04-export-system.md) 的「背景与尺寸」
 
 ---
 
@@ -141,8 +161,8 @@ Collage 页面的当前工作状态：
 | id | string | 档位标识 |
 | label | string | 档位名称 |
 | format | `png` \| `jpeg` \| `webp` | 导出格式 |
-| width | number \| null | 目标框宽度（像素） |
-| height | number \| null | 目标框高度（像素） |
+| width | number | 目标框宽度（像素），必填 |
+| height | number | 目标框高度（像素），必填 |
 | scale | number | 位图倍率，在解算尺寸之上超采样 |
 | quality | number | 图片质量，仅 JPEG / WebP 生效 |
 

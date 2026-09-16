@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react';
+import type { TemplateBackground } from '../background';
 import type {
   RegisteredTemplate,
   TemplateField,
@@ -11,6 +12,8 @@ interface TemplateDefinitionInput<TFields extends readonly TemplateField[]> {
   meta: TemplateMeta;
   /** 该模板的参数声明：既是属性面板的来源，也是组件 props 类型的来源 */
   fields: TFields;
+  /** 该模板推荐的默认背景，缺省表示无背景 */
+  backgroundDefaults?: Partial<TemplateBackground>;
   component: ComponentType<TemplateInjectedProps & TemplateParams<TFields>>;
 }
 
@@ -25,11 +28,12 @@ interface TemplateDefinitionInput<TFields extends readonly TemplateField[]> {
 export function defineTemplate<const TFields extends readonly TemplateField[]>(
   input: TemplateDefinitionInput<TFields>,
 ): RegisteredTemplate {
-  const { meta, fields, component: Component } = input;
+  const { meta, fields, backgroundDefaults, component: Component } = input;
 
   return {
     meta,
     schema: { fields },
+    backgroundDefaults,
     render: (props) => (
       <Component {...(props as unknown as TemplateInjectedProps & TemplateParams<TFields>)} />
     ),

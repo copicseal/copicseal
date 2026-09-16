@@ -140,5 +140,9 @@ export const FILM_TEMPLATE: RegisteredTemplate = defineTemplate({
     tags: ['胶片', '边框'],
   },
   fields: filmFields,
+  // 模板自身已经有边框，默认不再叠加背景
+  backgroundDefaults: {
+    mode: 'none',
+  },
   component: Film,
 });

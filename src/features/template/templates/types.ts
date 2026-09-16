@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import type { ExifData } from '@/platform';
+import type { TemplateBackground } from '../background';
 
 /**
  * 框架注入的渲染输入。
@@ -33,6 +34,8 @@ interface TemplateFieldBase<TKey extends string> {
   label: string;
   /** 可选补充说明，用于解释该参数的作用 */
   description?: string;
+  /** 仅当同一表单内另一字段取到给定值之一时才显示 */
+  visibleWhen?: { key: TKey; equals: readonly (string | number)[] };
 }
 
 export interface TemplateNumberField<TKey extends string> extends TemplateFieldBase<TKey> {
@@ -116,5 +119,12 @@ export type TemplateStyle = CSSProperties & Record<`--${string}`, string | numbe
 export interface RegisteredTemplate {
   meta: TemplateMeta;
   schema: TemplateSchema;
+  /**
+   * 该模板推荐的默认背景。
+   *
+   * 背景是框架级能力，独立于模板自身的参数；模板只负责给出自己认为最佳的默认值，
+   * 用户可以在属性面板覆盖。
+   */
+  backgroundDefaults?: Partial<TemplateBackground>;
   render: (props: TemplateInjectedProps & Record<string, unknown>) => ReactNode;
 }

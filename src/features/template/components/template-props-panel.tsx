@@ -14,6 +14,9 @@ interface TemplatePropsPanelProps {
   schema: TemplateSchema;
   value: Record<string, unknown>;
   onChange: (next: Record<string, unknown>) => void;
+  /** 分区标题，缺省用于模板参数 */
+  title?: string;
+  description?: string;
 }
 
 interface TemplateFieldControlProps {
@@ -28,9 +31,21 @@ function readString(value: unknown, fallback: string): string {
   return typeof value === 'string' ? value : fallback;
 }
 
+/** 字段条件显示：未声明 `visibleWhen` 时始终可见。 */
+function isFieldVisible(field: TemplateField, value: Record<string, unknown>): boolean {
+  if (!field.visibleWhen) {
+    return true;
+  }
+
+  const current = value[field.visibleWhen.key];
+  return typeof current === 'string' || typeof current === 'number'
+    ? field.visibleWhen.equals.includes(current)
+    : false;
+}
+
 /** 单个参数的控件；控件形态完全由字段自己的 `type` 决定。 */
 function TemplateFieldControl({ field, value, onChange }: TemplateFieldControlProps) {
-  // 原生取色器只接受 #rrggbb，非法输入时用默认值占位，右侧文本框仍展示用户原值。
+  // 原生取色器只接受 #rrggbb，非法输入时用黑色占位，右侧文本框仍展示用户原值。
   const colorText = field.type === 'color' ? readString(value, field.default) : '';
   const pickerColor = HEX_COLOR_PATTERN.test(colorText) ? colorText : '#000000';
 
@@ -98,8 +113,18 @@ function TemplateFieldControl({ field, value, onChange }: TemplateFieldControlPr
   );
 }
 
-/** 按当前模板自己的 schema 生成属性表单，不维护任何模板专用表单。 */
-export function TemplatePropsPanel({ schema, value, onChange }: TemplatePropsPanelProps) {
+/**
+ * 由 schema 生成属性表单，不维护任何专用表单。
+ *
+ * 模板参数与背景共用这一个生成器：两者的字段描述同构，区别只在数据来源与标题。
+ */
+export function TemplatePropsPanel({
+  schema,
+  value,
+  onChange,
+  title = '模板参数',
+  description = '参数由当前模板自己的 propsSchema 生成，切换模板后会重置为该模板的默认值。',
+}: TemplatePropsPanelProps) {
   const updateField = (key: string, nextValue: unknown) => {
     onChange({ ...value, [key]: nextValue });
   };
@@ -107,21 +132,21 @@ export function TemplatePropsPanel({ schema, value, onChange }: TemplatePropsPan
   return (
     <div className="space-y-3">
       <div>
-        <h3 className="text-sm font-semibold">模板参数</h3>
-        <p className="mt-1 text-xs leading-6 text-muted-foreground">
-          参数由当前模板自己的 propsSchema 生成，切换模板后会重置为该模板的默认值。
-        </p>
+        <h3 className="text-sm font-semibold">{title}</h3>
+        <p className="mt-1 text-xs leading-6 text-muted-foreground">{description}</p>
       </div>
 
       <div className="space-y-3">
-        {schema.fields.map((field) => (
-          <TemplateFieldControl
-            key={field.key}
-            field={field}
-            value={value[field.key]}
-            onChange={updateField}
-          />
-        ))}
+        {schema.fields
+          .filter((field) => isFieldVisible(field, value))
+          .map((field) => (
+            <TemplateFieldControl
+              key={field.key}
+              field={field}
+              value={value[field.key]}
+              onChange={updateField}
+            />
+          ))}
       </div>
     </div>
   );

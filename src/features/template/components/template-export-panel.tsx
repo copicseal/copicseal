@@ -1,11 +1,14 @@
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import type { ExportFormat, ExportOptions, ExportPreset } from '@/shared/lib/export-photo';
+import { createExportPreset, isValidPreset } from '@/features/template/lib/export-preset';
+import type { ExportFormat, ExportOptions, ExportPreset } from '@/shared/types/export';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Slider } from '@/shared/ui/slider';
 
 interface TemplateExportPanelProps {
+  presets: ExportPreset[];
+  onPresetsChange: (next: ExportPreset[]) => void;
   onExportCurrent: (options: ExportOptions) => Promise<void>;
   onExportBatch: (options: ExportOptions) => Promise<void>;
 }
@@ -19,20 +22,9 @@ interface ExportPresetCardProps {
 
 const FORMATS: ExportFormat[] = ['png', 'jpeg', 'webp'];
 
-let presetSeq = 0;
-
-/** 新建一个档位：默认目标框 2000×2000，按 contain 等比命中主导轴。 */
-function createPreset(): ExportPreset {
-  presetSeq += 1;
-  return {
-    id: `preset-${presetSeq}`,
-    label: `档位 ${presetSeq}`,
-    format: 'png',
-    width: 2000,
-    height: 2000,
-    scale: 1,
-    quality: 90,
-  };
+/** 清空输入时用 NaN 占位：它既无法通过校验，也能让输入框显示为空。 */
+function readSizeInput(raw: string): number {
+  return raw === '' ? Number.NaN : Number(raw);
 }
 
 function ExportPresetCard({ preset, canRemove, onChange, onRemove }: ExportPresetCardProps) {
@@ -82,11 +74,8 @@ function ExportPresetCard({ preset, canRemove, onChange, onRemove }: ExportPrese
           <Input
             type="number"
             min={1}
-            value={preset.width ?? ''}
-            placeholder="自动"
-            onChange={(event) =>
-              update({ width: event.target.value === '' ? undefined : Number(event.target.value) })
-            }
+            value={Number.isFinite(preset.width) ? preset.width : ''}
+            onChange={(event) => update({ width: readSizeInput(event.target.value) })}
           />
         </div>
         <div className="space-y-1">
@@ -94,11 +83,8 @@ function ExportPresetCard({ preset, canRemove, onChange, onRemove }: ExportPrese
           <Input
             type="number"
             min={1}
-            value={preset.height ?? ''}
-            placeholder="自动"
-            onChange={(event) =>
-              update({ height: event.target.value === '' ? undefined : Number(event.target.value) })
-            }
+            value={Number.isFinite(preset.height) ? preset.height : ''}
+            onChange={(event) => update({ height: readSizeInput(event.target.value) })}
           />
         </div>
       </div>
@@ -130,9 +116,16 @@ function ExportPresetCard({ preset, canRemove, onChange, onRemove }: ExportPrese
   );
 }
 
-export function TemplateExportPanel({ onExportCurrent, onExportBatch }: TemplateExportPanelProps) {
-  const [presets, setPresets] = useState<ExportPreset[]>(() => [createPreset()]);
+export function TemplateExportPanel({
+  presets,
+  onPresetsChange,
+  onExportCurrent,
+  onExportBatch,
+}: TemplateExportPanelProps) {
   const [exporting, setExporting] = useState<'single' | 'batch' | null>(null);
+
+  // 两轴必填：无背景时目标框是 contain 约束，有背景时它就是画框尺寸
+  const ready = presets.every(isValidPreset);
 
   const buildOptions = (): ExportOptions => ({
     presets,
@@ -141,13 +134,14 @@ export function TemplateExportPanel({ onExportCurrent, onExportBatch }: Template
   });
 
   const updatePreset = (index: number, next: ExportPreset) => {
-    setPresets((current) => current.map((preset, i) => (i === index ? next : preset)));
+    onPresetsChange(presets.map((preset, i) => (i === index ? next : preset)));
   };
 
   const removePreset = (index: number) => {
-    setPresets((current) =>
-      current.length <= 1 ? current : current.filter((_, i) => i !== index),
-    );
+    if (presets.length <= 1) {
+      return;
+    }
+    onPresetsChange(presets.filter((_, i) => i !== index));
   };
 
   const handleExportCurrent = async () => {
@@ -173,7 +167,7 @@ export function TemplateExportPanel({ onExportCurrent, onExportBatch }: Template
       <div>
         <h3 className="text-sm font-semibold">导出</h3>
         <p className="mt-1 text-xs leading-6 text-muted-foreground">
-          每个档位是一组输出尺寸与编码参数。模板按目标框等比缩放：主导轴精确命中，另一轴按比例推导。
+          每个档位是一组目标尺寸与编码参数。无背景时目标框只作等比约束，有背景时画框精确等于目标尺寸。
         </p>
       </div>
 
@@ -194,22 +188,28 @@ export function TemplateExportPanel({ onExportCurrent, onExportBatch }: Template
         variant="outline"
         size="sm"
         className="w-full"
-        onClick={() => setPresets((current) => [...current, createPreset()])}
+        onClick={() => onPresetsChange([...presets, createExportPreset()])}
       >
         <Plus data-icon="inline-start" />
         添加档位
       </Button>
 
+      {!ready ? (
+        <p className="text-[10px] leading-4 text-destructive">
+          目标宽与目标高都必须填写正数，否则无法解算导出尺寸。
+        </p>
+      ) : null}
+
       <div className="grid grid-cols-2 gap-2 pt-1">
         <Button
           variant="outline"
-          disabled={exporting !== null}
+          disabled={exporting !== null || !ready}
           onClick={() => void handleExportCurrent()}
         >
           {exporting === 'single' ? <Loader2 className="size-3.5 animate-spin" /> : null}
           导出当前
         </Button>
-        <Button disabled={exporting !== null} onClick={() => void handleExportBatch()}>
+        <Button disabled={exporting !== null || !ready} onClick={() => void handleExportBatch()}>
           {exporting === 'batch' ? <Loader2 className="size-3.5 animate-spin" /> : null}
           批量导出
         </Button>

@@ -1,6 +1,10 @@
 import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { COLLAGE_EXPORT_LABELS, COLLAGE_RATIO_OPTIONS } from '@/features/collage/lib';
+import {
+  COLLAGE_EXPORT_LABELS,
+  COLLAGE_RATIO_OPTIONS,
+  getAspectRatioValue,
+} from '@/features/collage/lib';
 import { useCollageStore } from '@/features/collage/store/use-collage-store';
 import { usePhotos } from '@/shared/hooks/use-photos';
 import type { ExportOptions } from '@/shared/lib/export-photo';
@@ -29,22 +33,32 @@ export function CollagePropertiesPanel({
   const selectedSlot =
     selectedSlotIndex !== null ? (present.slotItems[selectedSlotIndex] ?? null) : null;
 
-  // 拼图不参与模板的基准解算，只以单档形式走统一导出管线。
-  const buildOptions = (): ExportOptions => ({
-    presets: [
-      {
-        id: 'default',
-        label: '默认',
-        format: present.exportSettings.format,
-        width: width ? Number(width) : undefined,
-        height: height ? Number(height) : undefined,
-        scale: scale[0],
-        quality: quality[0],
-      },
-    ],
-    dpi: 72,
-    preserveExif: false,
-  });
+  // 拼图不参与模板的基准解算，只以单档形式走统一导出管线；
+  // 目标尺寸仅用于文件命名，缺省时按画布比例给出一组值。
+  const buildOptions = (): ExportOptions => {
+    const canvasRatio = getAspectRatioValue(present.canvas);
+    const longEdge = 2000;
+    const fallback =
+      canvasRatio >= 1
+        ? { width: longEdge, height: Math.round(longEdge / canvasRatio) }
+        : { width: Math.round(longEdge * canvasRatio), height: longEdge };
+
+    return {
+      presets: [
+        {
+          id: 'default',
+          label: '默认',
+          format: present.exportSettings.format,
+          width: Number(width) || fallback.width,
+          height: Number(height) || fallback.height,
+          scale: scale[0],
+          quality: quality[0],
+        },
+      ],
+      dpi: 72,
+      preserveExif: false,
+    };
+  };
 
   const handleExportCurrent = async () => {
     setExporting('single');

@@ -10,6 +10,13 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { prepareElementForSnapshot, waitForDomStability, waitForImages } from '@/core/renderer';
 import { runScheduledExports } from '@/core/scheduler';
+import {
+  TEMPLATE_BACKGROUND_FIELDS,
+  type TemplateBackground,
+  toTemplateBackground,
+} from '@/features/template/background';
+import { resolvePreviewTarget } from '@/features/template/lib/export-preset';
+import { applyRenderSize } from '@/features/template/lib/render-size';
 import { getBuiltinTemplateSchema } from '@/features/template/runtime/template-registry';
 import { type ExportRunContext, exportSingle, resolveExportDirectory } from '@/platform';
 import { CoDropZone } from '@/shared/components/co-drop-zone';
@@ -385,6 +392,10 @@ function TemplatePropertiesPanel({
   onTemplateChange,
   templateParams,
   onTemplateParamsChange,
+  background,
+  onBackgroundChange,
+  presets,
+  onPresetsChange,
   onExportCurrent,
   onExportBatch,
 }: {
@@ -392,6 +403,10 @@ function TemplatePropertiesPanel({
   onTemplateChange: (templateId: string) => void;
   templateParams: Record<string, unknown>;
   onTemplateParamsChange: (next: Record<string, unknown>) => void;
+  background: TemplateBackground;
+  onBackgroundChange: (next: TemplateBackground) => void;
+  presets: Parameters<typeof TemplateExportPanel>[0]['presets'];
+  onPresetsChange: Parameters<typeof TemplateExportPanel>[0]['onPresetsChange'];
   onExportCurrent: Parameters<typeof TemplateExportPanel>[0]['onExportCurrent'];
   onExportBatch: Parameters<typeof TemplateExportPanel>[0]['onExportBatch'];
 }) {
@@ -417,7 +432,21 @@ function TemplatePropertiesPanel({
             </section>
           ) : null}
           <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
-            <TemplateExportPanel onExportCurrent={onExportCurrent} onExportBatch={onExportBatch} />
+            <TemplatePropsPanel
+              schema={{ fields: TEMPLATE_BACKGROUND_FIELDS }}
+              value={background}
+              onChange={(next) => onBackgroundChange(toTemplateBackground(next))}
+              title="背景"
+              description="默认值来自当前模板，可自行调整。"
+            />
+          </section>
+          <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
+            <TemplateExportPanel
+              presets={presets}
+              onPresetsChange={onPresetsChange}
+              onExportCurrent={onExportCurrent}
+              onExportBatch={onExportBatch}
+            />
           </section>
           <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
             <TemplateExifCard />
@@ -436,9 +465,19 @@ function stripExtension(name: string): string {
 
 export function TemplatePage() {
   const previewRef = useRef<HTMLDivElement | null>(null);
-  const { templateId, setTemplateId, templateParams, setTemplateParams } =
-    useTemplatePreviewState();
+  const {
+    templateId,
+    setTemplateId,
+    templateParams,
+    setTemplateParams,
+    background,
+    setBackground,
+    presets,
+    setPresets,
+  } = useTemplatePreviewState();
   const { photos, currentIndex, setCurrentIndex, currentPhoto } = usePhotos();
+  // 预览一次只能呈现一个目标比例，取第一个档位
+  const previewTarget = resolvePreviewTarget(presets[0]);
   // 导出期间挂起预览自适应，否则它会覆盖导出解算出的 --co-base
   const [capturing, setCapturing] = useState(false);
 
@@ -455,21 +494,13 @@ export function TemplatePage() {
     baseName: name ? stripExtension(name) : undefined,
     outputDir,
     sizeAdapter: {
-      setBase: async (base) => {
+      prepare: async (target) => {
         const element = previewRef.current;
         if (!element) {
           return;
         }
-        element.style.setProperty('--co-base', `${base}px`);
+        applyRenderSize(element, background, target);
         await waitForDomStability();
-      },
-      measure: () => {
-        const element = previewRef.current;
-        const canvas = (element?.firstElementChild as HTMLElement | null) ?? element;
-        if (!canvas) {
-          return { width: 0, height: 0 };
-        }
-        return { width: canvas.offsetWidth, height: canvas.offsetHeight };
       },
     },
   });
@@ -545,6 +576,9 @@ export function TemplatePage() {
             <TemplatePreview
               templateId={templateId}
               params={templateParams}
+              background={background}
+              targetWidth={previewTarget.width}
+              targetHeight={previewTarget.height}
               previewRef={previewRef}
               suspendAutoFit={capturing}
             />
@@ -558,6 +592,10 @@ export function TemplatePage() {
           onTemplateChange={setTemplateId}
           templateParams={templateParams}
           onTemplateParamsChange={setTemplateParams}
+          background={background}
+          onBackgroundChange={setBackground}
+          presets={presets}
+          onPresetsChange={setPresets}
           onExportCurrent={handleExportCurrent}
           onExportBatch={handleExportBatch}
         />

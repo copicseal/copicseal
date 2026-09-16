@@ -33,5 +33,6 @@ export function TemplateRuntime({ templateId, photoUrl, exif, params }: Template
 
   const injected: TemplateInjectedProps = { photoUrl, exif };
 
-  return <>{template.render({ ...injected, ...resolvedParams })}</>;
+  // 画布盒子只作为稳定句柄，尺寸由模板根自己按 --co-base 决定
+  return <div data-co-canvas-box="">{template.render({ ...injected, ...resolvedParams })}</div>;
 }

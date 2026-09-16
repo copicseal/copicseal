@@ -7,7 +7,6 @@ import type {
   ExportOptions,
   ExportPreset,
   ExportRunContext,
-  ExportSizeAdapter,
 } from '@/shared/types/export';
 
 const {
@@ -35,9 +34,6 @@ export interface ExportTaskState {
 
 const exportTasks = new Map<string, ExportTaskState>();
 
-/** 目标框未指定宽度时使用的探针基准 */
-const PROBE_BASE = 1000;
-
 async function blobToBytes(blob: Blob): Promise<Uint8Array> {
   const buf = await blob.arrayBuffer();
   return new Uint8Array(buf);
@@ -51,44 +47,15 @@ function extensionOf(format: ExportFormat): string {
   return format === 'jpeg' ? 'jpg' : format;
 }
 
-/**
- * 探针 → 测量 → 反解：把画布缩放到目标框内（contain）。
- *
- * `--co-base` 就是画布宽度，模板几何全部是它的倍数，因此内容的高宽比与基准无关。
- * 先在探针基准下量一次比例，即可线性反解出命中目标框的基准值——
- * 主导轴精确命中设定值，另一轴按比例推导，不补边、不变形。
- */
-async function solveBaseForContain(adapter: ExportSizeAdapter, preset: ExportPreset) {
-  if (preset.width === undefined && preset.height === undefined) {
-    return;
-  }
-
-  const probe = preset.width ?? PROBE_BASE;
-  await adapter.setBase(probe);
-
-  const measured = adapter.measure();
-  if (measured.width <= 0 || measured.height <= 0) {
-    return;
-  }
-
-  const heightPerWidth = measured.height / measured.width;
-  const widthLimit = preset.width ?? Number.POSITIVE_INFINITY;
-  const heightLimit = preset.height ? preset.height / heightPerWidth : Number.POSITIVE_INFINITY;
-  const base = Math.round(Math.min(widthLimit, heightLimit));
-
-  if (Number.isFinite(base) && base > 0 && Math.abs(base - probe) > 0.5) {
-    await adapter.setBase(base);
-  }
-}
-
 async function captureElement(
   element: HTMLElement,
   preset: ExportPreset,
   options: ExportOptions,
   context?: ExportRunContext,
 ): Promise<Uint8Array> {
+  // 尺寸解算交给页面侧的适配器：只有它知道背景模式与画布结构
   if (context?.sizeAdapter) {
-    await solveBaseForContain(context.sizeAdapter, preset);
+    await context.sizeAdapter.prepare({ width: preset.width, height: preset.height });
   }
 
   const fmt = toSnapdomFormat(preset.format);
@@ -123,7 +90,7 @@ export async function resolveExportDirectory(presetCount: number): Promise<strin
 /** 生成 `名称@宽x高.ext`，同批次内重名时追加序号。 */
 function buildFileName(baseName: string, preset: ExportPreset, used: Set<string>): string {
   const ext = extensionOf(preset.format);
-  const stem = `${baseName}@${preset.width ?? 'auto'}x${preset.height ?? 'auto'}`;
+  const stem = `${baseName}@${preset.width}x${preset.height}`;
 
   let candidate = `${stem}.${ext}`;
   let index = 2;

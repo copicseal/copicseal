@@ -123,5 +123,12 @@ export const MINIMAL_TEMPLATE: RegisteredTemplate = defineTemplate({
     tags: ['极简', 'EXIF'],
   },
   fields: minimalFields,
+  // 极简排版配一圈纯色留白，导出时目标尺寸会被完整保留
+  backgroundDefaults: {
+    mode: 'color',
+    color: '#ffffff',
+    paddingHorizontal: 0.06,
+    paddingVertical: 0.06,
+  },
   component: Minimal,
 });

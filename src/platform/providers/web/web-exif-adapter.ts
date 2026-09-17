@@ -26,7 +26,10 @@ function firstMetadataValue(metadata: RawMetadata, ...keys: string[]): unknown {
 }
 
 function asString(value: unknown): string | null {
-  return value === undefined || value === null ? null : String(value);
+  if (value === undefined || value === null) return null;
+  // EXIF 里的文本字段常带尾随空格，这里与 Rust 侧保持一致地去掉首尾空白
+  const text = String(value).trim();
+  return text === '' ? null : text;
 }
 
 function asNumber(value: unknown): number | null {

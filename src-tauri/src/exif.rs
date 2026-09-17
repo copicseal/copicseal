@@ -58,6 +58,24 @@ fn srational_to_f64(r: &exif::SRational) -> f64 {
     r.num as f64 / r.denom as f64
 }
 
+/// 清理 `display_value()` 的文本表示。
+///
+/// `DisplayValue` 对 ASCII 字段使用 Debug 格式化，取出来会自带一对表示字符串
+/// 字面量的双引号；原始值也可能以 NUL 结尾。这里统一剥掉外层引号并去除首尾的
+/// NUL 与空白，保证品牌、型号、日期等字段拿到的是可直接展示与拼接的文本。
+fn clean_display(raw: &str) -> String {
+    let trimmed = raw.trim();
+    let unquoted = if trimmed.len() >= 2 && trimmed.starts_with('"') && trimmed.ends_with('"') {
+        &trimmed[1..trimmed.len() - 1]
+    } else {
+        trimmed
+    };
+
+    unquoted
+        .trim_matches(|c: char| c == '\0' || c.is_whitespace())
+        .to_string()
+}
+
 fn normalize_brand(raw: &str) -> String {
     let lower = raw.trim().to_lowercase();
     match lower.as_str() {
@@ -121,7 +139,7 @@ pub fn read_exif(path: String) -> Result<ExifData, String> {
             | exif::Tag::DateTimeOriginal
             | exif::Tag::WhiteBalance
             | exif::Tag::MeteringMode => {
-                let val = field.display_value().to_string();
+                let val = clean_display(&field.display_value().to_string());
                 if !val.is_empty() {
                     match field.tag {
                         exif::Tag::Make => data.make = Some(normalize_brand(&val)),

@@ -70,10 +70,7 @@ function CollageAssetsPanel() {
     currentIndex,
     setCurrentIndex,
     replacePhoto,
-    selectedIds,
     removePhoto,
-    togglePhotoSelection,
-    selectSinglePhoto,
     importViaDialog,
     importViaDrop,
     importState,
@@ -141,7 +138,6 @@ function CollageAssetsPanel() {
             <div className="flex h-full gap-3 pb-3">
               {photos.map((photo, index) => {
                 const active = index === currentIndex;
-                const selected = selectedIds.includes(photo.id);
 
                 return (
                   <div
@@ -149,7 +145,7 @@ function CollageAssetsPanel() {
                     draggable
                     className={cn(
                       'group shrink-0 border bg-card transition-colors',
-                      selected || active
+                      active
                         ? 'border-primary ring-1 ring-primary/20'
                         : 'border-border hover:border-primary/40',
                     )}
@@ -157,21 +153,7 @@ function CollageAssetsPanel() {
                   >
                     <button
                       type="button"
-                      onClick={(event) => {
-                        setCurrentIndex(index);
-                        if (event.metaKey || event.ctrlKey) {
-                          togglePhotoSelection(photo.id);
-                        } else {
-                          selectSinglePhoto(photo.id);
-                        }
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          setCurrentIndex(index);
-                          selectSinglePhoto(photo.id);
-                        }
-                      }}
+                      onClick={() => setCurrentIndex(index)}
                       className="flex h-full w-full flex-col text-left"
                     >
                       <div
@@ -194,7 +176,7 @@ function CollageAssetsPanel() {
                             </span>
                           </div>
                         )}
-                        {selected || active ? (
+                        {active ? (
                           <div className="pointer-events-none absolute inset-0 ring-2 ring-primary/60" />
                         ) : null}
                       </div>
@@ -205,7 +187,6 @@ function CollageAssetsPanel() {
                           </p>
                           <p className="text-[10px] text-muted-foreground">
                             {(photo.size / 1024 / 1024).toFixed(1)} MB
-                            {selected ? ' · 已选中' : ''}
                           </p>
                         </div>
                         <div className="mt-2 text-[10px] text-muted-foreground">

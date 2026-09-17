@@ -27,18 +27,12 @@ interface PhotoContextValue {
   photos: ImportedPhoto[];
   currentIndex: number;
   currentPhoto: ImportedPhoto | null;
-  selectedIds: string[];
   isDraggingOver: boolean;
   importState: PhotoImportState;
   addPhotos: (photos: ImportedPhoto[]) => void;
   removePhoto: (id: string) => void;
-  removeSelectedPhotos: () => void;
   replacePhoto: (id: string, nextPhoto: ImportedPhoto) => void;
   setCurrentIndex: (index: number) => void;
-  togglePhotoSelection: (id: string) => void;
-  selectSinglePhoto: (id: string) => void;
-  selectAllPhotos: () => void;
-  clearSelection: () => void;
   importViaDialog: () => Promise<void>;
   importViaDirectory: () => Promise<void>;
   importViaDrop: (files: FileList | File[]) => Promise<void>;
@@ -50,7 +44,6 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const pageActive = usePageActive();
   const [photos, setPhotos] = useState<ImportedPhoto[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [importState, setImportState] = useState<PhotoImportState>({
     active: false,
@@ -62,7 +55,6 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
   const addPhotos = useCallback((newPhotos: ImportedPhoto[]) => {
     setPhotos((prev) => [...prev, ...newPhotos]);
-    setSelectedIds((prev) => [...prev, ...newPhotos.map((photo) => photo.id)]);
   }, []);
 
   const updatePhoto = useCallback((nextPhoto: ImportedPhoto) => {
@@ -80,14 +72,7 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
       }
       return next;
     });
-    setSelectedIds((prev) => prev.filter((item) => item !== id));
   }, []);
-
-  const removeSelectedPhotos = useCallback(() => {
-    setPhotos((prev) => prev.filter((photo) => !selectedIds.includes(photo.id)));
-    setSelectedIds([]);
-    setCurrentIndex(0);
-  }, [selectedIds]);
 
   const replacePhoto = useCallback((id: string, nextPhoto: ImportedPhoto) => {
     setPhotos((prev) =>
@@ -230,42 +215,18 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
 
   const currentPhoto = photos[currentIndex] ?? null;
 
-  const togglePhotoSelection = useCallback((id: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
-    );
-  }, []);
-
-  const selectSinglePhoto = useCallback((id: string) => {
-    setSelectedIds([id]);
-  }, []);
-
-  const selectAllPhotos = useCallback(() => {
-    setSelectedIds(photos.map((photo) => photo.id));
-  }, [photos]);
-
-  const clearSelection = useCallback(() => {
-    setSelectedIds([]);
-  }, []);
-
   return (
     <PhotoContext.Provider
       value={{
         photos,
         currentIndex,
         currentPhoto,
-        selectedIds,
         isDraggingOver,
         importState,
         addPhotos,
         removePhoto,
-        removeSelectedPhotos,
         replacePhoto,
         setCurrentIndex,
-        togglePhotoSelection,
-        selectSinglePhoto,
-        selectAllPhotos,
-        clearSelection,
         importViaDialog,
         importViaDirectory,
         importViaDrop,

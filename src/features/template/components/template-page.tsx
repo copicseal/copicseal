@@ -99,12 +99,7 @@ function TemplateAssetsPanel({
     photos,
     currentIndex,
     setCurrentIndex,
-    selectedIds,
     removePhoto,
-    removeSelectedPhotos,
-    togglePhotoSelection,
-    selectSinglePhoto,
-    selectAllPhotos,
     importViaDialog,
     importViaDirectory,
     importViaDrop,
@@ -113,34 +108,11 @@ function TemplateAssetsPanel({
   const pageActive = usePageActive();
   const currentPhoto = photos[currentIndex];
 
-  const activatePhoto = (photoId: string, index: number, additive: boolean) => {
-    setCurrentIndex(index);
-    if (additive) {
-      togglePhotoSelection(photoId);
-    } else {
-      selectSinglePhoto(photoId);
-    }
-  };
-
   useEffect(() => {
-    // 隐藏时注销全局快捷键与粘贴监听，避免后台页面响应前台操作。
+    // 隐藏时注销粘贴监听，避免后台页面响应前台操作。
     if (!pageActive) {
       return;
     }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'a') {
-        event.preventDefault();
-        selectAllPhotos();
-      }
-
-      if (event.key === 'Delete' || event.key === 'Backspace') {
-        if (selectedIds.length > 0) {
-          event.preventDefault();
-          removeSelectedPhotos();
-        }
-      }
-    };
 
     const handlePaste = async (event: ClipboardEvent) => {
       const files = event.clipboardData?.files;
@@ -150,14 +122,12 @@ function TemplateAssetsPanel({
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
     window.addEventListener('paste', handlePaste);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('paste', handlePaste);
     };
-  }, [importViaDrop, pageActive, removeSelectedPhotos, selectAllPhotos, selectedIds.length]);
+  }, [importViaDrop, pageActive]);
 
   return (
     <BusinessWorkbenchAssetsPane className="overflow-visible border-t border-border p-0">
@@ -195,7 +165,6 @@ function TemplateAssetsPanel({
                 <div className="flex h-full w-max min-w-full items-center gap-1.5 px-3">
                   {photos.map((photo, index) => {
                     const active = index === currentIndex;
-                    const selected = selectedIds.includes(photo.id);
 
                     return (
                       <Tooltip key={photo.id}>
@@ -204,18 +173,13 @@ function TemplateAssetsPanel({
                             type="button"
                             aria-label={`切换到 ${photo.name}`}
                             aria-current={active ? 'true' : undefined}
-                            aria-pressed={selected}
                             className={cn(
                               'relative flex size-6 shrink-0 items-center justify-center overflow-hidden border bg-background/80 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
                               active
                                 ? 'border-primary ring-2 ring-primary/70'
-                                : selected
-                                  ? 'border-primary/60 ring-1 ring-primary/30'
-                                  : 'border-border/70 hover:border-primary/50',
+                                : 'border-border/70 hover:border-primary/50',
                             )}
-                            onClick={(event) =>
-                              activatePhoto(photo.id, index, event.metaKey || event.ctrlKey)
-                            }
+                            onClick={() => setCurrentIndex(index)}
                           >
                             {photo.thumbnailReady ? (
                               <img
@@ -318,23 +282,20 @@ function TemplateAssetsPanel({
                       <div className="flex h-full w-max min-w-full gap-2 px-3 pb-3">
                         {photos.map((photo, index) => {
                           const active = index === currentIndex;
-                          const selected = selectedIds.includes(photo.id);
 
                           return (
                             <div
                               key={photo.id}
                               className={cn(
                                 'group relative size-32 shrink-0 overflow-hidden border bg-card transition-colors',
-                                selected || active
+                                active
                                   ? 'border-primary ring-1 ring-primary/20'
                                   : 'border-border hover:border-primary/40',
                               )}
                             >
                               <button
                                 type="button"
-                                onClick={(event) =>
-                                  activatePhoto(photo.id, index, event.metaKey || event.ctrlKey)
-                                }
+                                onClick={() => setCurrentIndex(index)}
                                 className="flex h-full w-full min-h-0 flex-col text-left"
                               >
                                 <div className="relative flex min-h-8 flex-1 items-center justify-center overflow-hidden bg-background/80">
@@ -351,7 +312,7 @@ function TemplateAssetsPanel({
                                       </span>
                                     </div>
                                   )}
-                                  {selected || active ? (
+                                  {active ? (
                                     <div className="pointer-events-none absolute inset-0 ring-2 ring-primary/60" />
                                   ) : null}
                                 </div>

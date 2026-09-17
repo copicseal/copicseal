@@ -20,7 +20,7 @@ export interface TemplateMeta {
   tags?: string[];
 }
 
-export type TemplateFieldType = 'number' | 'color' | 'select' | 'text';
+export type TemplateFieldType = 'number' | 'color' | 'select' | 'text' | 'boolean';
 
 export interface TemplateFieldOption {
   label: string;
@@ -35,7 +35,7 @@ interface TemplateFieldBase<TKey extends string> {
   /** 可选补充说明，用于解释该参数的作用 */
   description?: string;
   /** 仅当同一表单内另一字段取到给定值之一时才显示 */
-  visibleWhen?: { key: TKey; equals: readonly (string | number)[] };
+  visibleWhen?: { key: TKey; equals: readonly (string | number | boolean)[] };
 }
 
 export interface TemplateNumberField<TKey extends string> extends TemplateFieldBase<TKey> {
@@ -56,6 +56,11 @@ export interface TemplateTextField<TKey extends string> extends TemplateFieldBas
   default: string;
 }
 
+export interface TemplateBooleanField<TKey extends string> extends TemplateFieldBase<TKey> {
+  type: 'boolean';
+  default: boolean;
+}
+
 export interface TemplateSelectField<TKey extends string> extends TemplateFieldBase<TKey> {
   type: 'select';
   default: string;
@@ -72,7 +77,8 @@ export type TemplateField<TKey extends string = string> =
   | TemplateNumberField<TKey>
   | TemplateColorField<TKey>
   | TemplateTextField<TKey>
-  | TemplateSelectField<TKey>;
+  | TemplateSelectField<TKey>
+  | TemplateBooleanField<TKey>;
 
 /** 由字段描述推导该参数的值类型；`select` 取 `options` 的字面量联合。 */
 export type TemplateFieldValue<TField extends TemplateField> = TField extends { type: 'number' }
@@ -81,11 +87,13 @@ export type TemplateFieldValue<TField extends TemplateField> = TField extends { 
     ? string
     : TField extends { type: 'text' }
       ? string
-      : TField extends { options: readonly (infer TOption)[] }
-        ? TOption extends { value: infer TValue }
-          ? TValue
-          : never
-        : never;
+      : TField extends { type: 'boolean' }
+        ? boolean
+        : TField extends { options: readonly (infer TOption)[] }
+          ? TOption extends { value: infer TValue }
+            ? TValue
+            : never
+          : never;
 
 /**
  * 由字段清单推导模板参数对象类型。

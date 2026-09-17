@@ -53,6 +53,11 @@ export function normalizeFieldValue(field: TemplateField, value: unknown): unkno
     return typeof value === 'string' && value.trim() !== '' ? value : field.default;
   }
 
+  if (field.type === 'boolean') {
+    return typeof value === 'boolean' ? value : field.default;
+  }
+
+  // 余下只有 text：非字符串一律回落默认值
   return typeof value === 'string' ? value : field.default;
 }
 

@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/select';
+import { Switch } from '@/shared/ui/switch';
 
 interface TemplatePropsPanelProps {
   schema: TemplateSchema;
@@ -38,7 +39,7 @@ function isFieldVisible(field: TemplateField, value: Record<string, unknown>): b
   }
 
   const current = value[field.visibleWhen.key];
-  return typeof current === 'string' || typeof current === 'number'
+  return typeof current === 'string' || typeof current === 'number' || typeof current === 'boolean'
     ? field.visibleWhen.equals.includes(current)
     : false;
 }
@@ -108,6 +109,18 @@ function TemplateFieldControl({ field, value, onChange }: TemplateFieldControlPr
           value={readString(value, field.default)}
           onChange={(event) => onChange(field.key, event.target.value)}
         />
+      ) : null}
+
+      {field.type === 'boolean' ? (
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[10px] text-muted-foreground">
+            {value === true ? '开启' : '关闭'}
+          </span>
+          <Switch
+            checked={value === true}
+            onCheckedChange={(checked) => onChange(field.key, checked)}
+          />
+        </div>
       ) : null}
     </div>
   );

@@ -125,8 +125,8 @@ function WhiteFrame({
 }: TemplateInjectedProps & WhiteFrameParams) {
   const { aspect, handleLoad } = useImageAspect(photoUrl);
 
-  // 自动模式：竖构图（高宽比 > 1）时把信息栏放到右侧
-  const isHorizontal = layout === 'auto' ? aspect > 1 : layout === 'horizontal';
+  // 自动模式：竖构图（宽高比 < 1）时把信息栏放到图片右侧，避免卡片被拉得过高
+  const isHorizontal = layout === 'auto' ? aspect < 1 : layout === 'horizontal';
 
   const brand = normalizeBrand(exif?.make);
   const model = normalizeModelName(exif?.model);

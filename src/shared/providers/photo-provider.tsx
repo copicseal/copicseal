@@ -10,6 +10,7 @@ import {
   selectPhotosFromDirectory,
   selectPhotosViaDialog,
 } from '@/shared/lib/import-photo';
+import { usePageActive } from '@/shared/providers/page-activity-provider';
 import type { ImportedPhoto } from '@/shared/types/photo';
 
 type PhotoImportSource = 'dialog' | 'directory' | 'drop';
@@ -46,6 +47,7 @@ interface PhotoContextValue {
 export const PhotoContext = createContext<PhotoContextValue | null>(null);
 
 export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
+  const pageActive = usePageActive();
   const [photos, setPhotos] = useState<ImportedPhoto[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -179,6 +181,12 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
   );
 
   useEffect(() => {
+    // 隐藏页不再监听原生拖放：页面常驻挂载后，否则两个功能页会同时响应同一次拖入。
+    if (!pageActive) {
+      setIsDraggingOver(false);
+      return;
+    }
+
     let cleanup: (() => void) | undefined;
 
     try {
@@ -218,7 +226,7 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
     return () => {
       cleanup?.();
     };
-  }, [addPhotos, finishImport, startImport, updateImportProgress, updatePhoto]);
+  }, [addPhotos, finishImport, pageActive, startImport, updateImportProgress, updatePhoto]);
 
   const currentPhoto = photos[currentIndex] ?? null;
 

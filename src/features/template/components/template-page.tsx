@@ -29,6 +29,7 @@ import {
   BusinessWorkbenchWorkspace,
 } from '@/shared/layouts/business-workbench';
 import { cn } from '@/shared/lib/utils';
+import { usePageActive } from '@/shared/providers/page-activity-provider';
 import { Button } from '@/shared/ui/button';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui/tooltip';
@@ -109,6 +110,7 @@ function TemplateAssetsPanel({
     importViaDrop,
     importState,
   } = usePhotos();
+  const pageActive = usePageActive();
   const currentPhoto = photos[currentIndex];
 
   const activatePhoto = (photoId: string, index: number, additive: boolean) => {
@@ -121,6 +123,11 @@ function TemplateAssetsPanel({
   };
 
   useEffect(() => {
+    // 隐藏时注销全局快捷键与粘贴监听，避免后台页面响应前台操作。
+    if (!pageActive) {
+      return;
+    }
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'a') {
         event.preventDefault();
@@ -150,7 +157,7 @@ function TemplateAssetsPanel({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('paste', handlePaste);
     };
-  }, [importViaDrop, removeSelectedPhotos, selectAllPhotos, selectedIds.length]);
+  }, [importViaDrop, pageActive, removeSelectedPhotos, selectAllPhotos, selectedIds.length]);
 
   return (
     <BusinessWorkbenchAssetsPane className="overflow-visible border-t border-border p-0">

@@ -11,11 +11,18 @@ function ScrollArea({
   horizontalWheelScroll = false,
   scrollbarOrientation = 'vertical',
   viewportClassName,
+  viewportRef,
   ...props
 }: React.ComponentProps<typeof ScrollAreaPrimitive.Root> & {
   horizontalWheelScroll?: boolean;
   scrollbarOrientation?: ScrollbarOrientation;
   viewportClassName?: string;
+  /**
+   * 滚动视口本身的 ref，供外部测量可用区。
+   *
+   * 视口尺寸只由容器决定、与滚动内容无关，因此外部按它反解内容尺寸不会形成测量回环。
+   */
+  viewportRef?: React.Ref<HTMLDivElement>;
 }) {
   const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
     if (
@@ -50,6 +57,7 @@ function ScrollArea({
       {...props}
     >
       <ScrollAreaPrimitive.Viewport
+        ref={viewportRef}
         data-slot="scroll-area-viewport"
         onWheel={handleWheel}
         className={cn(

@@ -12,9 +12,9 @@ import {
 import { DEFAULT_TEMPLATE_ID } from '@/features/template/templates';
 import { useElementSize } from '@/shared/hooks/use-element-size';
 import { usePhotos } from '@/shared/hooks/use-photos';
-import { cn } from '@/shared/lib/utils';
 import type { ExportPreset } from '@/shared/types/export';
 import { Button } from '@/shared/ui/button';
+import { ScrollArea } from '@/shared/ui/scroll-area';
 import { usePhotoExif } from '../hooks/use-photo-exif';
 import { TemplateBackgroundFrame } from './template-background-frame';
 
@@ -43,20 +43,13 @@ function zoomedWidth(zoomMode: Exclude<TemplateZoomMode, 'fit'>): number {
   return (ZOOM_REFERENCE_WIDTH * zoomMode) / 100;
 }
 
-/** 元素内容盒尺寸：clientWidth 含内边距，这里扣掉。 */
-function readContentBox(element: HTMLElement): { width: number; height: number } {
-  const style = window.getComputedStyle(element);
-  return {
-    width:
-      element.clientWidth -
-      Number.parseFloat(style.paddingLeft) -
-      Number.parseFloat(style.paddingRight),
-    height:
-      element.clientHeight -
-      Number.parseFloat(style.paddingTop) -
-      Number.parseFloat(style.paddingBottom),
-  };
-}
+/**
+ * 画布与预览视口之间的留白（px）。
+ *
+ * 同一个值既要作为滚动内容的 padding，又要从视口尺寸里扣掉才是画布的可用区，
+ * 两边必须同源，因此不写成 Tailwind 的 `p-*`，避免改了类名忘了改解算。
+ */
+const PREVIEW_GUTTER = 16;
 
 /**
  * 预览该用多大的目标盒。
@@ -127,16 +120,19 @@ export function TemplatePreview({
    * 预览自适应：直接改写画框尺寸与 `--co-frame` / `--co-base`，不叠加任何 CSS transform。
    *
    * 画布高度由内容比例决定，所以先探针量一次比例，再线性反解出能装进目标盒的基准。
+   * 可用区取滚动视口扣掉留白后的内容盒，与滚动内容的 padding 完全一致。
    * 整个过程在 paint 之前完成，探针值不会被看到。
    */
   useLayoutEffect(() => {
     const element = previewRef?.current;
-    const viewportElement = viewportRef.current;
-    if (suspendAutoFit || !element || !viewportElement || element.dataset.fitKey === fitKey) {
+    if (suspendAutoFit || !element || element.dataset.fitKey === fitKey) {
       return;
     }
 
-    const available = readContentBox(viewportElement);
+    const available = {
+      width: viewport.width - PREVIEW_GUTTER * 2,
+      height: viewport.height - PREVIEW_GUTTER * 2,
+    };
     if (available.width <= 0 || available.height <= 0) {
       return;
     }
@@ -155,7 +151,17 @@ export function TemplatePreview({
     }
 
     element.dataset.fitKey = fitKey;
-  }, [fitKey, previewRef, suspendAutoFit, background, targetWidth, targetHeight, zoomMode]);
+  }, [
+    fitKey,
+    previewRef,
+    suspendAutoFit,
+    background,
+    targetWidth,
+    targetHeight,
+    zoomMode,
+    viewport.width,
+    viewport.height,
+  ]);
 
   if (!currentPhoto) {
     return (
@@ -170,26 +176,38 @@ export function TemplatePreview({
   }
 
   return (
-    <div className="flex h-full w-full flex-col items-center gap-5">
-      <div
-        ref={viewportRef}
-        className={cn(
-          'flex min-h-0 w-full flex-1 items-center justify-center p-4',
-          // 导出期间画布会临时放大到目标尺寸，此时不跟随滚动，避免视口乱跳
-          suspendAutoFit ? 'overflow-hidden' : 'overflow-auto',
-        )}
+    <div className="flex h-full w-full flex-col items-center">
+      <ScrollArea
+        viewportRef={viewportRef}
+        // 导出期间画布会临时放大到目标尺寸，此时不显示滚动条，避免预览抖动
+        scrollbarOrientation={suspendAutoFit ? 'none' : 'both'}
+        className="min-h-0 w-full flex-1"
       >
-        <div ref={previewRef}>
-          <TemplateBackgroundFrame background={background} photoUrl={currentPhoto.previewUrl}>
-            <TemplateRuntime
-              templateId={templateId}
-              photoUrl={currentPhoto.previewUrl}
-              exif={exif}
-              params={params}
-            />
-          </TemplateBackgroundFrame>
+        <div
+          className="box-border flex items-center justify-center"
+          style={{
+            padding: PREVIEW_GUTTER,
+            // 最小尺寸等于视口：装得下时居中，装不下时随内容一起增长而不是被裁掉。
+            // 向下取整，避免亚像素让滚动区凭空多出 1px 而出现滚动条
+            minWidth: Math.floor(viewport.width),
+            minHeight: Math.floor(viewport.height),
+          }}
+        >
+          {/* 画框描边与投影只作预览提示，画在快照目标之外，不会进入导出结果 */}
+          <div className="shadow-xl ring-1 ring-foreground/15">
+            <div ref={previewRef}>
+              <TemplateBackgroundFrame background={background} photoUrl={currentPhoto.previewUrl}>
+                <TemplateRuntime
+                  templateId={templateId}
+                  photoUrl={currentPhoto.previewUrl}
+                  exif={exif}
+                  params={params}
+                />
+              </TemplateBackgroundFrame>
+            </div>
+          </div>
         </div>
-      </div>
+      </ScrollArea>
 
       <div className="flex w-full items-center justify-between gap-4 border-t border-border/80 px-4 py-2 text-xs text-muted-foreground">
         <div className="min-w-0">

@@ -1,5 +1,5 @@
 import { ImagePlus } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { COLLAGE_LAYOUTS } from '@/features/collage/layouts';
 import {
   createEmptySlotState,
@@ -7,31 +7,9 @@ import {
   getAspectRatioValue,
 } from '@/features/collage/lib';
 import { useCollageStore } from '@/features/collage/store/use-collage-store';
+import { useElementSize } from '@/shared/hooks/use-element-size';
 import { usePhotos } from '@/shared/hooks/use-photos';
 import { cn } from '@/shared/lib/utils';
-
-function useElementSize<T extends HTMLElement>(ref: React.RefObject<T | null>) {
-  const [size, setSize] = useState({ width: 0, height: 0 });
-
-  useEffect(() => {
-    const element = ref.current;
-    if (!element) {
-      return;
-    }
-
-    const observer = new ResizeObserver(([entry]) => {
-      setSize({
-        width: entry.contentRect.width,
-        height: entry.contentRect.height,
-      });
-    });
-
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [ref]);
-
-  return size;
-}
 
 export function CollageCanvas({
   previewRef,

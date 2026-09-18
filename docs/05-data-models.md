@@ -30,17 +30,32 @@ Template 页面中的图片素材对象：
 
 ## 5.2 Template Session
 
-Template 页面的当前工作状态：
+Template 页面的状态分两层：页面级的会话状态，以及逐张照片各自的模板配置。
+
+页面级会话状态：
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | activeAssetId | string | 当前预览图片 |
-| templateId | string | 当前模板 ID |
-| templateProps | object | 当前模板的参数，随模板切换重置 |
-| background | object | 当前背景设置，随模板切换重置为该模板的默认值 |
 | zoom | `fit` \| 50 \| 100 \| 200 | 预览缩放档位 |
-| exportConfig | object | 导出档位配置 |
-| selectionIds | string[] | 当前多选资产 |
+
+每张照片各持一份模板配置，彼此独立：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| photoId | string | 归属的照片 |
+| templateId | string | 该照片使用的模板 ID |
+| templateProps | object | 该照片的模板参数，切换模板时重置为该模板的默认值 |
+| background | object | 该照片的背景设置，同样随模板切换重置为该模板的默认值 |
+| exportPresets | ExportPreset[] | 该照片的输出档位，至少一档 |
+
+约束：
+
+- 未编辑过的照片沿用框架默认配置（默认模板及其默认参数与背景），不写入任何条目
+- 切换模板只影响当前照片，其余照片保持各自设置
+- 支持把当前照片的「模板与参数」或「背景」一键应用到其余照片；参数与模板必须一起复制，单独复制参数会与模板不匹配
+- 素材被移除时其配置一并回收
+- 运行态配置不做跨会话持久化，见 5.8 存储原则
 
 ---
 

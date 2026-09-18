@@ -30,6 +30,21 @@ function resolveExif(photoId: string, source: string | File): Promise<ExifData |
   return promise;
 }
 
+/**
+ * 按需确保某张照片的 EXIF 已解析完成。
+ *
+ * 批量导出会连续切换照片，若在 EXIF 就绪前抓图，模板里的机型、光圈、快门
+ * 会渲染成空值；因此每张抓图前都要过这一关。结果复用同一份会话缓存。
+ */
+export function ensurePhotoExif(photo: ImportedPhoto): Promise<ExifData | null> {
+  const source = photo.sourceFile ?? photo.path;
+  if (source === undefined || source === '') {
+    return Promise.resolve(null);
+  }
+
+  return resolveExif(photo.id, source);
+}
+
 /** 读取当前图片的 EXIF 信息，含加载状态。 */
 export function usePhotoExif(photo: ImportedPhoto | null): PhotoExifState {
   const [state, setState] = useState<PhotoExifState>({ exif: null, loading: false });

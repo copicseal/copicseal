@@ -1,18 +1,11 @@
 import { ImageIcon, LayoutTemplate } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { TemplateBackground } from '@/features/template/background';
-import { resolveTemplateBackground } from '@/features/template/background';
-import { createExportPreset } from '@/features/template/lib/export-preset';
 import { applyRenderSize, type RenderTarget } from '@/features/template/lib/render-size';
 import { TemplateRuntime } from '@/features/template/runtime';
-import {
-  getDefaultParams,
-  resolveBuiltinTemplate,
-} from '@/features/template/runtime/template-registry';
-import { DEFAULT_TEMPLATE_ID } from '@/features/template/templates';
+import { resolveBuiltinTemplate } from '@/features/template/runtime/template-registry';
 import { useElementSize } from '@/shared/hooks/use-element-size';
 import { usePhotos } from '@/shared/hooks/use-photos';
-import type { ExportPreset } from '@/shared/types/export';
 import { Button } from '@/shared/ui/button';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { usePhotoExif } from '../hooks/use-photo-exif';
@@ -237,38 +230,4 @@ export function TemplatePreview({
       </div>
     </div>
   );
-}
-
-/**
- * Template 页的会话状态。
- *
- * 切换模板时，参数与背景都重置为该模板自己的默认值：不同模板的参数集合互不兼容，
- * 保留旧值只会让属性面板出现与当前模板无关的残留字段。
- */
-export function useTemplatePreviewState() {
-  const [templateId, setTemplateId] = useState<string>(DEFAULT_TEMPLATE_ID);
-  const [templateParams, setTemplateParams] = useState<Record<string, unknown>>(() =>
-    getDefaultParams(resolveBuiltinTemplate(DEFAULT_TEMPLATE_ID).schema),
-  );
-  const [background, setBackground] = useState<TemplateBackground>(() =>
-    resolveTemplateBackground(resolveBuiltinTemplate(DEFAULT_TEMPLATE_ID).backgroundDefaults),
-  );
-  const [presets, setPresets] = useState<ExportPreset[]>(() => [createExportPreset()]);
-
-  useEffect(() => {
-    const template = resolveBuiltinTemplate(templateId);
-    setTemplateParams(getDefaultParams(template.schema));
-    setBackground(resolveTemplateBackground(template.backgroundDefaults));
-  }, [templateId]);
-
-  return {
-    templateId,
-    setTemplateId,
-    templateParams,
-    setTemplateParams,
-    background,
-    setBackground,
-    presets,
-    setPresets,
-  };
 }

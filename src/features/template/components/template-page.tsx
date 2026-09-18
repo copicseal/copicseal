@@ -1,6 +1,7 @@
 import {
   ChevronDown,
   ChevronUp,
+  Copy,
   Download,
   FolderOpen,
   ImageIcon,
@@ -8,6 +9,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { prepareElementForSnapshot, waitForDomStability, waitForImages } from '@/core/renderer';
 import { runScheduledExports } from '@/core/scheduler';
 import {
@@ -15,7 +17,7 @@ import {
   type TemplateBackground,
   toTemplateBackground,
 } from '@/features/template/background';
-import { resolvePreviewTarget } from '@/features/template/lib/export-preset';
+import { isValidPreset, resolvePreviewTarget } from '@/features/template/lib/export-preset';
 import { applyRenderSize } from '@/features/template/lib/render-size';
 import { getBuiltinTemplateSchema } from '@/features/template/runtime/template-registry';
 import { type ExportRunContext, exportSingle, resolveExportDirectory } from '@/platform';
@@ -39,8 +41,14 @@ import {
   TemplatePreview,
   TemplatePropsPanel,
   TemplateSelector,
-  useTemplatePreviewState,
 } from '../exports';
+import { ensurePhotoExif } from '../hooks/use-photo-exif';
+import {
+  getTemplatePhotoConfig,
+  type TemplateApplyScope,
+  useTemplatePhotoConfig,
+  useTemplateStore,
+} from '../store/use-template-store';
 
 function ImportProgressPanel({
   current,
@@ -355,6 +363,29 @@ function TemplateAssetsPanel({
   );
 }
 
+/**
+ * 一键应用按钮。
+ *
+ * 模板与参数合并成一个动作：参数脱离所属模板没有意义，分开应用只会得到
+ * 一份与模板不匹配的残值。
+ */
+function ApplyToOthersButton({
+  label,
+  count,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  onClick: () => void;
+}) {
+  return (
+    <Button type="button" variant="outline" size="sm" className="w-full" onClick={onClick}>
+      <Copy data-icon="inline-start" />
+      {label}（{count} 张）
+    </Button>
+  );
+}
+
 function TemplatePropertiesPanel({
   activeTemplateId,
   onTemplateChange,
@@ -366,6 +397,9 @@ function TemplatePropertiesPanel({
   onPresetsChange,
   onExportCurrent,
   onExportBatch,
+  hasPhoto,
+  otherPhotoCount,
+  onApplyToOthers,
 }: {
   activeTemplateId: string;
   onTemplateChange: (templateId: string) => void;
@@ -377,8 +411,23 @@ function TemplatePropertiesPanel({
   onPresetsChange: Parameters<typeof TemplateExportPanel>[0]['onPresetsChange'];
   onExportCurrent: Parameters<typeof TemplateExportPanel>[0]['onExportCurrent'];
   onExportBatch: Parameters<typeof TemplateExportPanel>[0]['onExportBatch'];
+  hasPhoto: boolean;
+  otherPhotoCount: number;
+  onApplyToOthers: (scope: TemplateApplyScope) => void;
 }) {
   const templateSchema = getBuiltinTemplateSchema(activeTemplateId);
+
+  if (!hasPhoto) {
+    return (
+      <BusinessWorkbenchPropertiesPane>
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+          <section className="border border-border/80 bg-background/70 px-4 py-4 text-xs leading-6 text-muted-foreground shadow-sm">
+            导入图片后即可调整这张照片的模板、参数、背景与导出档位。
+          </section>
+        </div>
+      </BusinessWorkbenchPropertiesPane>
+    );
+  }
 
   return (
     <BusinessWorkbenchPropertiesPane>
@@ -391,15 +440,22 @@ function TemplatePropertiesPanel({
             />
           </section>
           {templateSchema ? (
-            <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
+            <section className="space-y-3 border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
               <TemplatePropsPanel
                 schema={templateSchema}
                 value={templateParams}
                 onChange={onTemplateParamsChange}
               />
+              {otherPhotoCount > 0 ? (
+                <ApplyToOthersButton
+                  label="模板与参数应用到其他"
+                  count={otherPhotoCount}
+                  onClick={() => onApplyToOthers('template')}
+                />
+              ) : null}
             </section>
           ) : null}
-          <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
+          <section className="space-y-3 border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
             <TemplatePropsPanel
               schema={{ fields: TEMPLATE_BACKGROUND_FIELDS }}
               value={background}
@@ -407,6 +463,13 @@ function TemplatePropertiesPanel({
               title="背景"
               description="默认值来自当前模板，可自行调整。"
             />
+            {otherPhotoCount > 0 ? (
+              <ApplyToOthersButton
+                label="背景应用到其他"
+                count={otherPhotoCount}
+                onClick={() => onApplyToOthers('background')}
+              />
+            ) : null}
           </section>
           <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
             <TemplateExportPanel
@@ -433,31 +496,37 @@ function stripExtension(name: string): string {
 
 export function TemplatePage() {
   const previewRef = useRef<HTMLDivElement | null>(null);
-  const {
-    templateId,
-    setTemplateId,
-    templateParams,
-    setTemplateParams,
-    background,
-    setBackground,
-    presets,
-    setPresets,
-  } = useTemplatePreviewState();
   const { photos, currentIndex, setCurrentIndex, currentPhoto } = usePhotos();
+  // 模板、参数、背景与档位都取自当前照片自己的配置
+  const config = useTemplatePhotoConfig(currentPhoto?.id);
+  const setTemplate = useTemplateStore((state) => state.setTemplate);
+  const setParams = useTemplateStore((state) => state.setParams);
+  const setBackground = useTemplateStore((state) => state.setBackground);
+  const setPresets = useTemplateStore((state) => state.setPresets);
+  const applyToOthers = useTemplateStore((state) => state.applyToOthers);
+  const prune = useTemplateStore((state) => state.prune);
   // 预览一次只能呈现一个目标比例，取第一个档位
-  const previewTarget = resolvePreviewTarget(presets[0]);
+  const previewTarget = resolvePreviewTarget(config.presets[0]);
   // 导出期间挂起预览自适应，否则它会覆盖导出解算出的 --co-base
   const [capturing, setCapturing] = useState(false);
+  const otherPhotoCount = Math.max(photos.length - (currentPhoto ? 1 : 0), 0);
+
+  // 素材被移除后回收它的配置；prune 在无变化时返回原 state，不会引起额外渲染
+  useEffect(() => {
+    prune(photos.map((photo) => photo.id));
+  }, [photos, prune]);
 
   /**
    * 构造模板导出上下文。
    *
    * 基准读写落在 snapshot 目标元素上：模板几何全部是 `--co-base` 的倍数，
    * 测量用布局尺寸（offsetWidth/offsetHeight），不受任何外层变换影响。
+   * 背景按目标照片自己的配置解算——批量导出时每张图的画框语义可能不同。
    */
   const createRunContext = (
     name: string | undefined,
     outputDir: string | null,
+    photoBackground: TemplateBackground,
   ): ExportRunContext => ({
     baseName: name ? stripExtension(name) : undefined,
     outputDir,
@@ -467,11 +536,28 @@ export function TemplatePage() {
         if (!element) {
           return;
         }
-        applyRenderSize(element, background, target);
+        applyRenderSize(element, photoBackground, target);
         await waitForDomStability();
       },
     },
   });
+
+  const handleApplyToOthers = (scope: TemplateApplyScope) => {
+    if (!currentPhoto || otherPhotoCount === 0) {
+      return;
+    }
+
+    applyToOthers(
+      photos.map((photo) => photo.id),
+      currentPhoto.id,
+      scope,
+    );
+    toast.success(
+      scope === 'template'
+        ? `已把模板与参数应用到其余 ${otherPhotoCount} 张照片`
+        : `已把背景应用到其余 ${otherPhotoCount} 张照片`,
+    );
+  };
 
   const handleExportCurrent: Parameters<typeof TemplateExportPanel>[0]['onExportCurrent'] = async (
     options,
@@ -489,7 +575,7 @@ export function TemplatePage() {
         previewRef.current,
         options,
         currentPhoto?.sourceFile ?? currentPhoto?.path,
-        createRunContext(currentPhoto?.name, outputDir),
+        createRunContext(currentPhoto?.name, outputDir, config.background),
       );
     } finally {
       setCapturing(false);
@@ -504,17 +590,33 @@ export function TemplatePage() {
     }
 
     const originalIndex = currentIndex;
+    // 每张照片的档位数可以不同，只要有任意一张是多档就先问一次目录，
+    // 避免多档 × 多图产生大量保存对话框
+    const maxPresetCount = photos.reduce(
+      (max, photo) => Math.max(max, getTemplatePhotoConfig(photo.id).presets.length),
+      1,
+    );
 
     setCapturing(true);
     try {
-      // 输出目录只询问一次，避免逐张弹窗
-      const outputDir = await resolveExportDirectory(options.presets.length);
+      const outputDir = await resolveExportDirectory(maxPresetCount);
+      let skipped = 0;
 
       await runScheduledExports({
         items: photos,
         runner: async (photo, index) => {
+          const photoConfig = getTemplatePhotoConfig(photo.id);
+          const presets = photoConfig.presets.filter(isValidPreset);
+          if (presets.length === 0) {
+            skipped += 1;
+            return;
+          }
+
+          // 先切到目标照片，预览会按它自己的模板与参数重渲染
           setCurrentIndex(index);
           await new Promise((resolve) => setTimeout(resolve, 120));
+          // EXIF 未就绪就抓图，模板里的机型与拍摄参数会是空的
+          await ensurePhotoExif(photo);
           if (!previewRef.current) {
             return;
           }
@@ -522,12 +624,16 @@ export function TemplatePage() {
           await prepareElementForSnapshot(previewRef.current);
           await exportSingle(
             previewRef.current,
-            options,
+            { ...options, presets },
             photo.sourceFile ?? photo.path,
-            createRunContext(photo.name, outputDir),
+            createRunContext(photo.name, outputDir, photoConfig.background),
           );
         },
       });
+
+      if (skipped > 0) {
+        toast.warning(`${skipped} 张照片的档位不完整，已跳过`);
+      }
     } finally {
       setCapturing(false);
       setCurrentIndex(originalIndex);
@@ -542,9 +648,9 @@ export function TemplatePage() {
         <BusinessWorkbenchWorkspace>
           <div className="flex h-full w-full min-h-0 min-w-0 items-center justify-center">
             <TemplatePreview
-              templateId={templateId}
-              params={templateParams}
-              background={background}
+              templateId={config.templateId}
+              params={config.params}
+              background={config.background}
               targetWidth={previewTarget.width}
               targetHeight={previewTarget.height}
               previewRef={previewRef}
@@ -556,16 +662,35 @@ export function TemplatePage() {
       assets={(assetsState) => <TemplateAssetsPanel {...assetsState} />}
       properties={() => (
         <TemplatePropertiesPanel
-          activeTemplateId={templateId}
-          onTemplateChange={setTemplateId}
-          templateParams={templateParams}
-          onTemplateParamsChange={setTemplateParams}
-          background={background}
-          onBackgroundChange={setBackground}
-          presets={presets}
-          onPresetsChange={setPresets}
+          activeTemplateId={config.templateId}
+          onTemplateChange={(templateId) => {
+            if (currentPhoto) {
+              setTemplate(currentPhoto.id, templateId);
+            }
+          }}
+          templateParams={config.params}
+          onTemplateParamsChange={(next) => {
+            if (currentPhoto) {
+              setParams(currentPhoto.id, next);
+            }
+          }}
+          background={config.background}
+          onBackgroundChange={(next) => {
+            if (currentPhoto) {
+              setBackground(currentPhoto.id, next);
+            }
+          }}
+          presets={config.presets}
+          onPresetsChange={(next) => {
+            if (currentPhoto) {
+              setPresets(currentPhoto.id, next);
+            }
+          }}
           onExportCurrent={handleExportCurrent}
           onExportBatch={handleExportBatch}
+          hasPhoto={currentPhoto !== null}
+          otherPhotoCount={otherPhotoCount}
+          onApplyToOthers={handleApplyToOthers}
         />
       )}
     />

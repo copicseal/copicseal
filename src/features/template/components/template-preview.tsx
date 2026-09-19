@@ -1,4 +1,4 @@
-import { ImageIcon, LayoutTemplate } from 'lucide-react';
+import { ImageIcon, LayoutTemplate, Loader2 } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { TemplateBackground } from '@/features/template/background';
 import { applyRenderSize, type RenderTarget } from '@/features/template/lib/render-size';
@@ -118,7 +118,18 @@ export function TemplatePreview({
    */
   useLayoutEffect(() => {
     const element = previewRef?.current;
-    if (suspendAutoFit || !element || element.dataset.fitKey === fitKey) {
+    if (!element) {
+      return;
+    }
+
+    if (suspendAutoFit) {
+      // 导出期会按输出尺寸改写画布，此时必须先作废指纹：否则导出结束后
+      // fitKey 与导出前完全一致，自适应会被判成"无需重算"，画布就停在导出尺寸上
+      delete element.dataset.fitKey;
+      return;
+    }
+
+    if (element.dataset.fitKey === fitKey) {
       return;
     }
 
@@ -170,37 +181,50 @@ export function TemplatePreview({
 
   return (
     <div className="flex h-full w-full flex-col items-center">
-      <ScrollArea
-        viewportRef={viewportRef}
-        // 导出期间画布会临时放大到目标尺寸，此时不显示滚动条，避免预览抖动
-        scrollbarOrientation={suspendAutoFit ? 'none' : 'both'}
-        className="min-h-0 w-full flex-1"
-      >
-        <div
-          className="box-border flex items-center justify-center"
-          style={{
-            padding: PREVIEW_GUTTER,
-            // 最小尺寸等于视口：装得下时居中，装不下时随内容一起增长而不是被裁掉。
-            // 向下取整，避免亚像素让滚动区凭空多出 1px 而出现滚动条
-            minWidth: Math.floor(viewport.width),
-            minHeight: Math.floor(viewport.height),
-          }}
+      <div className="relative flex min-h-0 w-full flex-1">
+        <ScrollArea
+          viewportRef={viewportRef}
+          // 导出期间画布会临时放大到目标尺寸，此时不显示滚动条，避免预览抖动
+          scrollbarOrientation={suspendAutoFit ? 'none' : 'both'}
+          className="min-h-0 w-full flex-1"
         >
-          {/* 画框描边与投影只作预览提示，画在快照目标之外，不会进入导出结果 */}
-          <div className="shadow-xl ring-1 ring-foreground/15">
-            <div ref={previewRef}>
-              <TemplateBackgroundFrame background={background} photoUrl={currentPhoto.previewUrl}>
-                <TemplateRuntime
-                  templateId={templateId}
-                  photoUrl={currentPhoto.previewUrl}
-                  exif={exif}
-                  params={params}
-                />
-              </TemplateBackgroundFrame>
+          <div
+            className="box-border flex items-center justify-center"
+            style={{
+              padding: PREVIEW_GUTTER,
+              // 最小尺寸等于视口：装得下时居中，装不下时随内容一起增长而不是被裁掉。
+              // 向下取整，避免亚像素让滚动区凭空多出 1px 而出现滚动条
+              minWidth: Math.floor(viewport.width),
+              minHeight: Math.floor(viewport.height),
+            }}
+          >
+            {/* 画框描边与投影只作预览提示，画在快照目标之外，不会进入导出结果 */}
+            <div className="shadow-xl ring-1 ring-foreground/15">
+              <div ref={previewRef}>
+                <TemplateBackgroundFrame background={background} photoUrl={currentPhoto.previewUrl}>
+                  <TemplateRuntime
+                    templateId={templateId}
+                    photoUrl={currentPhoto.previewUrl}
+                    exif={exif}
+                    params={params}
+                  />
+                </TemplateBackgroundFrame>
+              </div>
             </div>
           </div>
-        </div>
-      </ScrollArea>
+        </ScrollArea>
+
+        {/*
+          导出期间画布会被临时放大到输出尺寸，整个过程（含写盘）都停在这个状态。
+          盖一层遮罩把这段尺寸变化挡掉，否则用户看到的是预览被拉大后又弹回。
+        */}
+        {suspendAutoFit ? (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-background/85 text-xs text-muted-foreground backdrop-blur-[1px]">
+            <Loader2 className="size-4 animate-spin text-primary" />
+            正在导出…
+          </div>
+        ) : null}
+      </div>
 
       <div className="flex w-full items-center justify-between gap-4 border-t border-border/80 px-4 py-2 text-xs text-muted-foreground">
         <div className="min-w-0">

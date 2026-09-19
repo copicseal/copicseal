@@ -50,16 +50,27 @@ export function TemplateBackgroundFrame({
             zIndex: -1,
             // 外扩两倍模糊半径，避免模糊之后画框边缘透出
             inset: `calc(var(--co-frame) * ${-background.blur * 2})`,
-            background: background.mode === 'image' ? `url(${photoUrl})` : background.color,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
+            backgroundColor: background.mode === 'color' ? background.color : undefined,
             filter:
               background.mode === 'image'
                 ? `blur(calc(var(--co-frame) * ${background.blur})) brightness(${background.brightness})`
                 : undefined,
             pointerEvents: 'none',
           }}
-        />
+        >
+          {/*
+            照片背景用 <img> 而不是 CSS background-image：快照工具内联 CSS 背景图失败时
+            会把该属性静默改成 none（失败还会被它长期缓存），导出结果里整块背景消失；
+            图片元素走的是另一条稳定路径，且能被快照前的降采样逻辑覆盖到。
+          */}
+          {background.mode === 'image' ? (
+            <img
+              src={photoUrl}
+              alt=""
+              style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : null}
+        </div>
       ) : null}
       {children}
     </div>

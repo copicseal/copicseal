@@ -1,4 +1,5 @@
 import { snapdom } from '@zumer/snapdom';
+import { capEmbeddedImages } from '@/core/renderer';
 import type { ExportServiceContract } from '@/platform/contracts/platform';
 import { platformRuntime, writeExifSource } from '@/platform/providers/platform-runtime';
 import { webFiles } from '@/platform/providers/web/web-platform-provider';
@@ -59,18 +60,27 @@ async function captureElement(
   }
 
   const fmt = toSnapdomFormat(preset.format);
-  const blob = await snapdom.toBlob(element, {
-    type: fmt,
-    format: fmt,
-    quality: preset.quality / 100,
-    scale: Math.max(preset.scale || 1, 1),
-    // 固定为 1：输出倍率只能来自用户设置，避免设备 DPI 隐式介入
-    dpr: 1,
-    backgroundColor: fmt !== 'png' ? '#ffffff' : undefined,
-    exclude: options.exclude,
-  });
+  const scale = Math.max(preset.scale || 1, 1);
+  // 快照会把图片内联进 SVG；原图过大时（照片背景会让同一张图内联两次）WebKit 会整块丢弃，
+  // 因此先压到本次导出实际需要的分辨率，抓完再还原
+  const restoreImages = await capEmbeddedImages(element, { scale });
 
-  return blobToBytes(blob);
+  try {
+    const blob = await snapdom.toBlob(element, {
+      type: fmt,
+      format: fmt,
+      quality: preset.quality / 100,
+      scale,
+      // 固定为 1：输出倍率只能来自用户设置，避免设备 DPI 隐式介入
+      dpr: 1,
+      backgroundColor: fmt !== 'png' ? '#ffffff' : undefined,
+      exclude: options.exclude,
+    });
+
+    return blobToBytes(blob);
+  } finally {
+    restoreImages();
+  }
 }
 
 /**

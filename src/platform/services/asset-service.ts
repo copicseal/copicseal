@@ -253,6 +253,40 @@ export function clearAssetCaches() {
   clearPreviewResourceCache();
 }
 
+/**
+ * 当前会话正在使用的素材路径。
+ *
+ * 缓存目录里存的就是这些导入副本本身（图片、预览、缩略图共用同一个文件主干），
+ * 清缓存时必须避开它们：删掉会让内存中的素材条目指向不存在的文件，
+ * 表现为预览空白、导出失败，且只能重新导入。
+ *
+ * Template 与 Collage 的素材会话彼此独立，因此按会话 id 汇总而不是各存一份。
+ */
+const sessionAssetPaths = new Map<string, readonly string[]>();
+
+export function trackSessionAssets(sessionId: string, paths: readonly string[]): void {
+  sessionAssetPaths.set(sessionId, paths);
+}
+
+export function releaseSessionAssets(sessionId: string): void {
+  sessionAssetPaths.delete(sessionId);
+}
+
+/** 汇总各会话正在使用的素材路径，作为清理缓存时的保留名单。 */
+export function getInUseAssetPaths(): string[] {
+  const paths = new Set<string>();
+
+  for (const list of sessionAssetPaths.values()) {
+    for (const path of list) {
+      if (path) {
+        paths.add(path);
+      }
+    }
+  }
+
+  return [...paths];
+}
+
 export class AssetService implements AssetServiceContract {
   selectPhotosViaDialog = selectPhotosViaDialog;
   selectPhotosFromDirectory = selectPhotosFromDirectory;

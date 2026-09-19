@@ -3,6 +3,7 @@ use fr::images::Image as FirImage;
 use image::codecs::jpeg::JpegEncoder;
 use image::ImageReader;
 use serde::Serialize;
+use std::collections::HashSet;
 use std::fs;
 use std::fs::File;
 use std::path::{Path, PathBuf};
@@ -38,6 +39,8 @@ const PREVIEW_DIR_NAME: &str = "previews";
 const THUMBNAIL_DIR_NAME: &str = "thumbnails";
 const THUMBNAIL_SIZE: u32 = 320;
 const THUMBNAIL_JPEG_QUALITY: u8 = 82;
+// 仅在 Windows 的 WIC 转码路径使用；限定 cfg 以免其它平台判为死代码
+#[cfg(target_os = "windows")]
 const PREVIEW_JPEG_QUALITY: u8 = 92;
 const THUMBNAIL_WORKER_COUNT: usize = 2;
 
@@ -191,8 +194,13 @@ pub async fn get_cache_overview(cache_dir: String) -> Result<CacheOverview, Stri
 pub async fn clear_cache(
     cache_dir: String,
     scope: Option<String>,
+    keep_paths: Option<Vec<String>>,
 ) -> Result<CacheOverview, String> {
-    clear_cache_impl(&cache_dir, scope.as_deref())?;
+    clear_cache_impl(
+        &cache_dir,
+        scope.as_deref(),
+        keep_paths.as_deref().unwrap_or(&[]),
+    )?;
     get_cache_overview_impl(&cache_dir)
 }
 
@@ -200,8 +208,13 @@ pub async fn clear_cache(
 pub async fn cleanup_cache(
     cache_dir: String,
     max_age_days: u32,
+    keep_paths: Option<Vec<String>>,
 ) -> Result<CacheCleanupResult, String> {
-    cleanup_cache_impl(&cache_dir, max_age_days)
+    cleanup_cache_impl(
+        &cache_dir,
+        max_age_days,
+        keep_paths.as_deref().unwrap_or(&[]),
+    )
 }
 
 #[tauri::command]
@@ -247,11 +260,14 @@ pub async fn open_directory(path: String) -> Result<(), String> {
     Ok(())
 }
 
+/// 启动时的自动清理。
+///
+/// 此刻还没有任何会话在使用缓存（应用刚起来），因此不需要保留集合。
 pub fn auto_cleanup_cache(
     cache_dir: &str,
     max_age_days: u32,
 ) -> Result<CacheCleanupResult, String> {
-    cleanup_cache_impl(cache_dir, max_age_days)
+    cleanup_cache_impl(cache_dir, max_age_days, &[])
 }
 
 /// 读取图片文件元数据
@@ -399,25 +415,88 @@ fn get_cache_overview_impl(cache_dir: &str) -> Result<CacheOverview, String> {
     })
 }
 
-fn clear_cache_impl(cache_dir: &str, scope: Option<&str>) -> Result<(), String> {
+/// 把「正在使用的缓存文件路径」折算成主干集合。
+///
+/// 缓存里的图片、预览、缩略图共用同一个 `<uuid>-<原名>` 主干，因此拿到正在使用的
+/// 那份图片路径，就能连带保住它的预览与缩略图，不必让前端知道三份具体文件名。
+fn collect_keep_stems(keep_paths: &[String]) -> HashSet<String> {
+    keep_paths
+        .iter()
+        .filter_map(|path| {
+            Path::new(path)
+                .file_stem()
+                .map(|value| value.to_string_lossy().to_string())
+        })
+        .collect()
+}
+
+/// 清空目录，但保留主干命中 `keep_stems` 的文件。
+///
+/// 这些文件是当前会话里素材的唯一可用副本，删掉会让内存中的素材条目指向不存在的
+/// 文件（预览变空白、导出失败），因此清理缓存必须避开它们。
+fn reset_dir_keeping(dir: &Path, keep_stems: &HashSet<String>) -> Result<(), String> {
+    if keep_stems.is_empty() {
+        return reset_dir(dir);
+    }
+
+    if !dir.exists() {
+        return fs::create_dir_all(dir).map_err(|e| format!("重建缓存目录失败: {e}"));
+    }
+
+    for entry in fs::read_dir(dir).map_err(|e| format!("读取缓存目录失败: {e}"))? {
+        let entry = entry.map_err(|e| format!("读取缓存目录项失败: {e}"))?;
+        let path = entry.path();
+        let kept = path
+            .file_stem()
+            .map(|value| keep_stems.contains(&value.to_string_lossy().to_string()))
+            .unwrap_or(false);
+        if kept {
+            continue;
+        }
+
+        let removed = if path.is_dir() {
+            fs::remove_dir_all(&path)
+        } else {
+            fs::remove_file(&path)
+        };
+        removed.map_err(|e| format!("清理缓存文件失败: {e}"))?;
+    }
+
+    Ok(())
+}
+
+fn clear_cache_impl(
+    cache_dir: &str,
+    scope: Option<&str>,
+    keep_paths: &[String],
+) -> Result<(), String> {
     let root = Path::new(cache_dir);
     ensure_cache_layout(root)?;
 
+    let keep_stems = collect_keep_stems(keep_paths);
+
     match scope.unwrap_or("all") {
-        "thumbnails" => reset_dir(&root.join(THUMBNAIL_DIR_NAME)),
-        "previews" => reset_dir(&root.join(PREVIEW_DIR_NAME)),
+        "thumbnails" => reset_dir_keeping(&root.join(THUMBNAIL_DIR_NAME), &keep_stems),
+        "previews" => reset_dir_keeping(&root.join(PREVIEW_DIR_NAME), &keep_stems),
         "all" => {
-            reset_dir(&root.join(IMAGE_DIR_NAME))?;
-            reset_dir(&root.join(PREVIEW_DIR_NAME))?;
-            reset_dir(&root.join(THUMBNAIL_DIR_NAME))
+            reset_dir_keeping(&root.join(IMAGE_DIR_NAME), &keep_stems)?;
+            reset_dir_keeping(&root.join(PREVIEW_DIR_NAME), &keep_stems)?;
+            reset_dir_keeping(&root.join(THUMBNAIL_DIR_NAME), &keep_stems)
         }
         value => Err(format!("不支持的缓存清理范围: {value}")),
     }
 }
 
-fn cleanup_cache_impl(cache_dir: &str, max_age_days: u32) -> Result<CacheCleanupResult, String> {
+fn cleanup_cache_impl(
+    cache_dir: &str,
+    max_age_days: u32,
+    keep_paths: &[String],
+) -> Result<CacheCleanupResult, String> {
     let root = Path::new(cache_dir);
     ensure_cache_layout(root)?;
+
+    // 正在使用的副本即使「过期」也不能删：它已经不在原目录里可用，删掉等于丢素材
+    let keep_stems = collect_keep_stems(keep_paths);
 
     let max_age_days = max_age_days.max(1);
     let threshold = SystemTime::now()
@@ -434,6 +513,14 @@ fn cleanup_cache_impl(cache_dir: &str, max_age_days: u32) -> Result<CacheCleanup
             let entry = entry.map_err(|e| format!("读取缓存目录项失败: {e}"))?;
             let path = entry.path();
             if !path.is_file() {
+                continue;
+            }
+
+            let kept = path
+                .file_stem()
+                .map(|value| keep_stems.contains(&value.to_string_lossy().to_string()))
+                .unwrap_or(false);
+            if kept {
                 continue;
             }
 

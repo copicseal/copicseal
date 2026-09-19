@@ -13,7 +13,12 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { type AppConfig, type CacheOverview, clearAssetCaches } from '@/platform';
+import {
+  type AppConfig,
+  type CacheOverview,
+  clearAssetCaches,
+  getInUseAssetPaths,
+} from '@/platform';
 import { platformRuntime } from '@/platform/providers/platform-runtime';
 
 const {
@@ -58,6 +63,11 @@ function defaultCacheDirectory(saveDirectory: string): string {
   const separator = saveDirectory.includes('\\') ? '\\' : '/';
   const normalized = saveDirectory.replace(/[\\/]+$/, '');
   return `${normalized}${separator}cache`;
+}
+
+/** 清理缓存时被保留下来的在用量提示；没有在使用的素材时不追加。 */
+function keepNote(count: number): string {
+  return count > 0 ? `（保留 ${count} 张正在使用的图片）` : '';
 }
 
 function formatBytes(bytes: number): string {
@@ -422,7 +432,10 @@ function CacheTab({
           </div>
         </SettingField>
 
-        <SettingField label="清理缓存" description="可单独清理缩略图，或清理过期/全部缓存。">
+        <SettingField
+          label="清理缓存"
+          description="可单独清理缩略图，或清理过期/全部缓存；正在使用的图片副本会保留。"
+        >
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" disabled={loading} onClick={() => void onCleanupExpired()}>
               <RefreshCw data-icon="inline-start" className={cn(loading && 'animate-spin')} />
@@ -642,11 +655,12 @@ export function SettingsPage() {
     }
 
     await withCacheAction(async () => {
-      const result = await cleanupCache(config.cache.directory, config.cache.max_age_days);
+      const inUse = getInUseAssetPaths();
+      const result = await cleanupCache(config.cache.directory, config.cache.max_age_days, inUse);
       const nextOverview = await getCacheOverview(config.cache.directory);
       setOverview(nextOverview);
       clearAssetCaches();
-      toast.success(`已清理 ${result.removed_files} 个过期缓存文件`);
+      toast.success(`已清理 ${result.removed_files} 个过期缓存文件${keepNote(inUse.length)}`);
     });
   }, [config, withCacheAction]);
 
@@ -656,10 +670,11 @@ export function SettingsPage() {
     }
 
     await withCacheAction(async () => {
-      const nextOverview = await clearCache(config.cache.directory, 'thumbnails');
+      const inUse = getInUseAssetPaths();
+      const nextOverview = await clearCache(config.cache.directory, 'thumbnails', inUse);
       setOverview(nextOverview);
       clearAssetCaches();
-      toast.success('缩略图缓存已清理');
+      toast.success(`缩略图缓存已清理${keepNote(inUse.length)}`);
     });
   }, [config, withCacheAction]);
 
@@ -669,10 +684,11 @@ export function SettingsPage() {
     }
 
     await withCacheAction(async () => {
-      const nextOverview = await clearCache(config.cache.directory, 'all');
+      const inUse = getInUseAssetPaths();
+      const nextOverview = await clearCache(config.cache.directory, 'all', inUse);
       setOverview(nextOverview);
       clearAssetCaches();
-      toast.success('全部缓存已清理');
+      toast.success(`全部缓存已清理${keepNote(inUse.length)}`);
     });
   }, [config, withCacheAction]);
 

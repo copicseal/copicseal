@@ -13,10 +13,13 @@ export class FileService implements FileServiceContract {
   importImageBytesToCache = (name: string, contents: number[], cacheDir: string) =>
     this.adapter.importImageBytesToCache(name, contents, cacheDir);
   getCacheOverview = (cacheDir: string) => this.adapter.getCacheOverview(cacheDir);
-  clearCache = (cacheDir: string, scope?: 'all' | 'thumbnails' | 'previews') =>
-    this.adapter.clearCache(cacheDir, scope);
-  cleanupCache = (cacheDir: string, maxAgeDays: number) =>
-    this.adapter.cleanupCache(cacheDir, maxAgeDays);
+  clearCache = (
+    cacheDir: string,
+    scope?: 'all' | 'thumbnails' | 'previews',
+    keepPaths?: readonly string[],
+  ) => this.adapter.clearCache(cacheDir, scope, keepPaths);
+  cleanupCache = (cacheDir: string, maxAgeDays: number, keepPaths?: readonly string[]) =>
+    this.adapter.cleanupCache(cacheDir, maxAgeDays, keepPaths);
 }
 
 export type {

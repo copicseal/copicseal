@@ -30,7 +30,11 @@ export class WebFileAdapter implements FileAdapter {
   clearCache = async (
     _cacheDir: string,
     _scope?: 'all' | 'thumbnails' | 'previews',
+    _keepPaths?: readonly string[],
   ): Promise<CacheOverview> => unsupportedWebPathOperation('clearCache');
-  cleanupCache = async (_cacheDir: string, _maxAgeDays: number): Promise<CacheCleanupResult> =>
-    unsupportedWebPathOperation('cleanupCache');
+  cleanupCache = async (
+    _cacheDir: string,
+    _maxAgeDays: number,
+    _keepPaths?: readonly string[],
+  ): Promise<CacheCleanupResult> => unsupportedWebPathOperation('cleanupCache');
 }

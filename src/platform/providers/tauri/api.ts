@@ -82,11 +82,16 @@ export function getCacheOverview(cacheDir: string): Promise<CacheOverview> {
 export function clearCache(
   cacheDir: string,
   scope?: 'all' | 'thumbnails' | 'previews',
+  keepPaths?: readonly string[],
 ): Promise<CacheOverview> {
-  return invoke('clear_cache', { cacheDir, scope });
+  return invoke('clear_cache', { cacheDir, scope, keepPaths });
 }
-export function cleanupCache(cacheDir: string, maxAgeDays: number): Promise<CacheCleanupResult> {
-  return invoke('cleanup_cache', { cacheDir, maxAgeDays });
+export function cleanupCache(
+  cacheDir: string,
+  maxAgeDays: number,
+  keepPaths?: readonly string[],
+): Promise<CacheCleanupResult> {
+  return invoke('cleanup_cache', { cacheDir, maxAgeDays, keepPaths });
 }
 export function pathExists(path: string): Promise<boolean> {
   return invoke('path_exists', { path });

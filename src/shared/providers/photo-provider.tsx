@@ -1,8 +1,17 @@
-import { createContext, type FC, type ReactNode, useCallback, useEffect, useState } from 'react';
+import {
+  createContext,
+  type FC,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useId,
+  useState,
+} from 'react';
 import { platformRuntime } from '@/platform/providers/platform-runtime';
 
 const { onNativeFileDrop } = platformRuntime;
 
+import { releaseSessionAssets, trackSessionAssets } from '@/platform/services/asset-service';
 import {
   type ImportProgressSnapshot,
   importPhotosViaPaths,
@@ -42,6 +51,7 @@ export const PhotoContext = createContext<PhotoContextValue | null>(null);
 
 export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const pageActive = usePageActive();
+  const sessionId = useId();
   const [photos, setPhotos] = useState<ImportedPhoto[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -52,6 +62,17 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
     total: 0,
     currentName: null,
   });
+
+  // 登记当前素材为「正在使用」：设置页清理缓存时据此保留它们的本地副本，
+  // 否则内存里的素材会指向已删除的文件（预览空白、导出失败）
+  useEffect(() => {
+    trackSessionAssets(
+      sessionId,
+      photos.map((photo) => photo.path),
+    );
+  }, [photos, sessionId]);
+
+  useEffect(() => () => releaseSessionAssets(sessionId), [sessionId]);
 
   const addPhotos = useCallback((newPhotos: ImportedPhoto[]) => {
     setPhotos((prev) => [...prev, ...newPhotos]);

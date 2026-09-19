@@ -51,8 +51,17 @@ export interface FileServiceContract {
     cacheDir: string,
   ): Promise<CachedImageMeta>;
   getCacheOverview(cacheDir: string): Promise<CacheOverview>;
-  clearCache(cacheDir: string, scope?: 'all' | 'thumbnails' | 'previews'): Promise<CacheOverview>;
-  cleanupCache(cacheDir: string, maxAgeDays: number): Promise<CacheCleanupResult>;
+  clearCache(
+    cacheDir: string,
+    scope?: 'all' | 'thumbnails' | 'previews',
+    /** 正在使用的素材路径，清理时保留它们的副本 */
+    keepPaths?: readonly string[],
+  ): Promise<CacheOverview>;
+  cleanupCache(
+    cacheDir: string,
+    maxAgeDays: number,
+    keepPaths?: readonly string[],
+  ): Promise<CacheCleanupResult>;
 }
 
 export interface StorageServiceContract {

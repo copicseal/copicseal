@@ -1,9 +1,12 @@
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { open, save } from '@tauri-apps/plugin-dialog';
-import { check } from '@tauri-apps/plugin-updater';
+import { check, type Update } from '@tauri-apps/plugin-updater';
 import type {
   AppConfig,
+  AppUpdateInfo,
+  AppUpdateInstallOptions,
+  AppUpdateProgress,
   AppVersion,
   CacheCleanupResult,
   CachedImageMeta,
@@ -18,6 +21,9 @@ import type {
 
 export type {
   AppConfig,
+  AppUpdateInfo,
+  AppUpdateInstallOptions,
+  AppUpdateProgress,
   AppVersion,
   CacheCleanupResult,
   CacheConfig,
@@ -152,8 +158,58 @@ export function closeWindow() {
 export function openDirectoryDialog() {
   return open({ directory: true, multiple: false });
 }
-export function checkForUpdate() {
-  return check();
+/** 上一次 check() 得到的更新句柄：检查与安装分两步进行，这里保存待安装的更新。 */
+let pendingUpdate: Update | null = null;
+
+/** 检查更新；没有新版本时返回 null。检查结果会保留给 installUpdate 使用。 */
+export async function checkForUpdate(): Promise<AppUpdateInfo | null> {
+  await pendingUpdate?.close().catch(() => undefined);
+  pendingUpdate = null;
+
+  const update = await check();
+  if (!update) return null;
+
+  pendingUpdate = update;
+
+  return {
+    version: update.version,
+    current_version: update.currentVersion,
+    notes: update.body ?? null,
+    date: update.date ?? null,
+  };
+}
+
+/**
+ * 下载并安装待安装的更新。
+ *
+ * Windows 上安装阶段会由安装器结束并重新拉起应用，因此不会走到 resolve；
+ * macOS 上安装完成后需要用户手动重启。
+ */
+export async function installUpdate(options?: AppUpdateInstallOptions): Promise<void> {
+  const update = pendingUpdate ?? (await check());
+  if (!update) return;
+
+  pendingUpdate = null;
+
+  let downloaded = 0;
+  let total: number | null = null;
+
+  await update.downloadAndInstall((event) => {
+    if (event.event === 'Started') {
+      total = event.data.contentLength ?? null;
+    } else if (event.event === 'Progress') {
+      downloaded += event.data.chunkLength;
+    } else {
+      return;
+    }
+
+    const progress: AppUpdateProgress = {
+      downloaded,
+      total,
+      percent: total ? Math.min(100, Math.round((downloaded / total) * 100)) : null,
+    };
+    options?.onProgress?.(progress);
+  });
 }
 export function toNativeFileUrl(path: string) {
   return isNativeWindowAvailable() ? convertFileSrc(path) : path;

@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { type AppRoute, navigate, normalizeRoute } from '@/app/routes';
 import CollagePage from '@/features/collage';
 import { SettingsPage } from '@/features/settings';
 import TemplatePage from '@/features/template';
+import { platformCapabilities } from '@/platform';
+import { platformRuntime } from '@/platform/providers/platform-runtime';
 import { CoSidebar } from '@/shared/components/co-sidebar';
 import { cn } from '@/shared/lib/utils';
 import { PageActivityProvider } from '@/shared/providers/page-activity-provider';
@@ -47,6 +50,31 @@ function AppContent() {
   useEffect(() => {
     setVisitedRoutes((prev) => (prev.includes(route) ? prev : [...prev, route]));
   }, [route]);
+
+  // 启动后静默检查一次更新：失败不打扰用户，发现新版本时提示到设置页安装，
+  // 同时把待安装的更新预热给设置页使用。
+  useEffect(() => {
+    if (!platformCapabilities.system.autoUpdate) return;
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const update = await platformRuntime.checkForUpdate();
+        if (!cancelled && update) {
+          toast.info(`发现新版本 ${update.version}`, {
+            description: '可在「设置 → 关于」中下载并安装',
+          });
+        }
+      } catch {
+        // 静默失败：检查更新不应影响启动流程。
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // 首次进入某页时 render 早于上面的 effect，这里先补上当前页，避免闪一帧空白。
   const renderedRoutes = visitedRoutes.includes(route) ? visitedRoutes : [...visitedRoutes, route];

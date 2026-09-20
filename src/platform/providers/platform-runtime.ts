@@ -79,6 +79,7 @@ const webRuntime = {
   saveImageDialog: async () => null,
   toNativeFileUrl: (path) => path,
   checkForUpdate: async () => null,
+  installUpdate: async () => undefined,
   extractJpegExif: async () => [],
   insertJpegExif: async (jpegData: number[]) => jpegData,
   openImageDialog: async () => null,

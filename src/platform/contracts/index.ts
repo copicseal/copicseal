@@ -172,6 +172,29 @@ export interface AppVersion {
   name: string;
 }
 
+export interface AppUpdateInfo {
+  /** 新版本号 */
+  version: string;
+  /** 当前运行版本号 */
+  current_version: string;
+  /** 更新说明，可能为空 */
+  notes: string | null;
+  /** 发布时间，可能为空 */
+  date: string | null;
+}
+
+export interface AppUpdateProgress {
+  downloaded: number;
+  /** 服务端未提供总长度时为 null */
+  total: number | null;
+  /** 无法计算进度时为 null */
+  percent: number | null;
+}
+
+export interface AppUpdateInstallOptions {
+  onProgress?: (progress: AppUpdateProgress) => void;
+}
+
 export interface CachedImageMeta {
   name: string;
   original_path: string | null;

@@ -15,9 +15,11 @@ import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import {
   type AppConfig,
+  type AppUpdateInfo,
   type CacheOverview,
   clearAssetCaches,
   getInUseAssetPaths,
+  platformCapabilities,
 } from '@/platform';
 import { platformRuntime } from '@/platform/providers/platform-runtime';
 
@@ -27,6 +29,7 @@ const {
   clearCache,
   getCacheOverview,
   getConfig,
+  installUpdate,
   openDirectory,
   openDirectoryDialog,
   updateConfig,
@@ -458,19 +461,43 @@ function CacheTab({
 
 function AboutTab() {
   const [checking, setChecking] = useState(false);
+  const [installing, setInstalling] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [update, setUpdate] = useState<AppUpdateInfo | null>(null);
 
   const handleCheckUpdate = async () => {
     setChecking(true);
     setStatus(null);
+    setUpdate(null);
 
     try {
-      const update = await checkForUpdate();
-      setStatus(update ? `发现新版本 ${update.version}` : '已是最新版本');
+      const info = await checkForUpdate();
+      setUpdate(info);
+      setStatus(info ? `发现新版本 ${info.version}` : '已是最新版本');
     } catch {
       setStatus('检查更新失败');
     } finally {
       setChecking(false);
+    }
+  };
+
+  const handleInstallUpdate = async () => {
+    setInstalling(true);
+    setProgress(null);
+
+    try {
+      await installUpdate({ onProgress: (next) => setProgress(next.percent) });
+      // Windows 上安装阶段会由安装器结束进程并重新拉起应用，这里主要覆盖 macOS。
+      setUpdate(null);
+      toast.success('更新已安装，请重新启动应用');
+      setStatus('更新已安装，请重新启动应用');
+    } catch {
+      toast.error('更新安装失败，请稍后重试');
+      setStatus('更新安装失败');
+    } finally {
+      setInstalling(false);
+      setProgress(null);
     }
   };
 
@@ -484,14 +511,44 @@ function AboutTab() {
           </div>
         </SettingField>
 
-        <SettingField label="检查更新" description="手动检查应用新版本。">
-          <div className="flex flex-wrap items-center gap-3">
-            <Button onClick={() => void handleCheckUpdate()} variant="outline">
-              <RefreshCw className={cn('size-3.5', checking && 'animate-spin')} />
-              {checking ? '检查中...' : '检查更新'}
-            </Button>
-            {status ? <p className="text-xs text-muted-foreground">{status}</p> : null}
-          </div>
+        <SettingField label="检查更新" description="检查并安装应用新版本。">
+          {platformCapabilities.system.autoUpdate ? (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-3">
+                <Button
+                  onClick={() => void handleCheckUpdate()}
+                  variant="outline"
+                  disabled={checking || installing}
+                >
+                  <RefreshCw className={cn('size-3.5', checking && 'animate-spin')} />
+                  {checking ? '检查中...' : '检查更新'}
+                </Button>
+                {update ? (
+                  <Button onClick={() => void handleInstallUpdate()} disabled={installing}>
+                    <Download className="size-3.5" />
+                    {installing ? '安装中...' : '下载并安装'}
+                  </Button>
+                ) : null}
+                {status ? <p className="text-xs text-muted-foreground">{status}</p> : null}
+              </div>
+              {update?.notes ? (
+                <p className="whitespace-pre-line text-xs text-muted-foreground">{update.notes}</p>
+              ) : null}
+              {installing && progress !== null ? (
+                <div className="space-y-1">
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">已下载 {progress}%</p>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground">当前环境不支持应用内更新。</p>
+          )}
         </SettingField>
       </FieldGroup>
     </div>

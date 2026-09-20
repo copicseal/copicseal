@@ -51,7 +51,8 @@
     "updater": {
       "pubkey": "PENDING_RELEASE_KEY",
       "endpoints": [
-        "https://updates.copicseal.com/{{target}}/{{arch}}/{{current_version}}"
+        "https://updates.copicseal.com/{{target}}/{{arch}}/{{current_version}}",
+        "https://github.com/copicseal/copicseal/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"

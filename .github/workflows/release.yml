@@ -1,0 +1,90 @@
+name: Release CI
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  # 四个平台/架构并行打包，具体步骤在 build.yml 中复用。
+  build:
+    name: 打包 ${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows 只发布 NSIS setup.exe：更新清单里一个 windows-x86_64 平台键只能指向
+          # 一种安装包，统一成 NSIS 才能保证所有 Windows 用户走同一条更新路径。
+          - label: windows-x64
+            platform: windows-2025
+            target: x86_64-pc-windows-msvc
+            bundles: nsis
+          - label: windows-arm64
+            platform: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            bundles: nsis
+          - label: macos-arm64
+            platform: macos-15
+            target: aarch64-apple-darwin
+            bundles: app,dmg
+          - label: macos-x64
+            platform: macos-15-intel
+            target: x86_64-apple-darwin
+            bundles: app,dmg
+    uses: ./.github/workflows/build.yml
+    with:
+      label: ${{ matrix.label }}
+      platform: ${{ matrix.platform }}
+      target: ${{ matrix.target }}
+      bundles: ${{ matrix.bundles }}
+    secrets: inherit
+
+  release:
+    name: 发布到 GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      # 只为取 scripts/generate-latest-json.mjs。
+      - name: 检出仓库代码
+        uses: actions/checkout@v4
+
+      - name: 下载构建产物
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: 查看文件结构
+        run: ls -R artifacts
+
+      # 未配置签名密钥时没有 .sig，脚本会跳过并提示；配置后缺任一平台则直接失败。
+      - name: 生成更新清单 latest.json
+        shell: bash
+        run: |
+          node scripts/generate-latest-json.mjs \
+            --dist artifacts \
+            --tag "${GITHUB_REF_NAME}" \
+            --version "${GITHUB_REF_NAME#v}"
+
+      - name: 上传到 GitHub Release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          draft: false
+          # 形如 v0.6.0-beta.1 的标签自动标记为预发布。
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true
+          files: |
+            artifacts/**/*.exe
+            artifacts/**/*.dmg
+            artifacts/**/*.app.tar.gz
+            artifacts/**/*.sig
+            artifacts/latest.json

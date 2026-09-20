@@ -1,0 +1,124 @@
+name: Build
+
+# 可复用打包流程：由 release.yml / beta.yml 针对每个平台与架构调用一次。
+on:
+  workflow_call:
+    inputs:
+      label:
+        description: 产物标识，用于 artifact 名称
+        required: true
+        type: string
+      platform:
+        description: GitHub 托管运行器标签
+        required: true
+        type: string
+      target:
+        description: Rust 目标三元组
+        required: true
+        type: string
+      bundles:
+        description: tauri build 的 --bundles 取值
+        required: true
+        type: string
+    secrets:
+      TAURI_SIGNING_PRIVATE_KEY:
+        required: false
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD:
+        required: false
+
+jobs:
+  build:
+    name: ${{ inputs.label }}
+    runs-on: ${{ inputs.platform }}
+    timeout-minutes: 90
+    steps:
+      - name: 检出仓库代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.18.3
+          run_install: false
+
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装 Rust 工具链
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ inputs.target }}
+
+      - name: 缓存 Rust 构建产物
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+          key: ${{ inputs.target }}
+
+      - name: 安装前端依赖
+        run: pnpm install --frozen-lockfile
+
+      # 标签发布以标签为准，分支构建沿用 package.json 的版本号。
+      - name: 同步版本号
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            pnpm sync:version "${GITHUB_REF_NAME#v}"
+          else
+            pnpm sync:version
+          fi
+          echo "::notice::本次打包版本 $(node -p "require('./package.json').version")"
+
+      - name: 代码风格检查
+        run: pnpm run ci
+
+      # 更新包签名密钥缺失时降级：仍然产出安装包，但不产出 .sig 与 latest.json。
+      - name: 检查更新包签名密钥
+        id: signing
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]]; then
+            echo "enabled=false" >> "${GITHUB_OUTPUT}"
+            echo "::notice::未配置 TAURI_SIGNING_PRIVATE_KEY，本次跳过签名更新包与 latest.json"
+            exit 0
+          fi
+          if grep -q 'PENDING_RELEASE_KEY' src-tauri/tauri.conf.json; then
+            echo "::error::已配置签名密钥，但 plugins.updater.pubkey 仍是占位符，请替换为 pnpm tauri signer generate 输出的公钥"
+            exit 1
+          fi
+          echo "enabled=true" >> "${GITHUB_OUTPUT}"
+
+      # 拆成两步而不是给同一步骤加条件 env：Tauri 以"环境变量是否存在"为判断依据，
+      # 注入空字符串会走到私钥解码失败。
+      - name: 打包安装包（含签名更新包）
+        if: steps.signing.outputs.enabled == 'true'
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: pnpm tauri build --target ${{ inputs.target }} --bundles ${{ inputs.bundles }}
+
+      - name: 打包安装包（跳过更新包签名）
+        if: steps.signing.outputs.enabled != 'true'
+        shell: bash
+        run: pnpm tauri build --target ${{ inputs.target }} --bundles ${{ inputs.bundles }} --config "$GITHUB_WORKSPACE/.github/tauri-nosign.conf.json"
+
+      # 只收安装包与签名；*.app 目录不入 artifact，避免重复一份未压缩的 bundle。
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: copicseal-${{ inputs.label }}
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            src-tauri/target/${{ inputs.target }}/release/bundle/**/*.exe
+            src-tauri/target/${{ inputs.target }}/release/bundle/**/*.dmg
+            src-tauri/target/${{ inputs.target }}/release/bundle/**/*.tar.gz
+            src-tauri/target/${{ inputs.target }}/release/bundle/**/*.sig

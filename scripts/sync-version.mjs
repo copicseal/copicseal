@@ -10,6 +10,11 @@ const packageJsonPath = path.join(rootDir, 'package.json');
 const cargoTomlPath = path.join(rootDir, 'src-tauri', 'Cargo.toml');
 const tauriConfigPath = path.join(rootDir, 'src-tauri', 'tauri.conf.json');
 
+/** 允许显式传入版本号（CI 以标签为准），未传入时沿用 package.json。 */
+const explicitVersion = process.argv[2];
+
+const semverPattern = /^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/;
+
 async function readJson(filePath) {
   const content = await readFile(filePath, 'utf8');
   return JSON.parse(content);
@@ -27,10 +32,20 @@ function updateCargoVersion(content, version) {
 
 async function main() {
   const packageJson = await readJson(packageJsonPath);
-  const version = packageJson.version;
+
+  if (explicitVersion !== undefined && !semverPattern.test(explicitVersion)) {
+    throw new Error(`版本号 ${explicitVersion} 不符合 semver 规范`);
+  }
+
+  const version = explicitVersion ?? packageJson.version;
 
   if (typeof version !== 'string' || version.length === 0) {
     throw new Error('package.json 中缺少有效的 version 字段');
+  }
+
+  if (explicitVersion !== undefined) {
+    packageJson.version = explicitVersion;
+    await writeFile(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`, 'utf8');
   }
 
   const cargoToml = await readFile(cargoTomlPath, 'utf8');

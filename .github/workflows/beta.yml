@@ -1,0 +1,46 @@
+name: Beta CI
+
+# 内测打包：只上传 Actions artifact，不创建 Release。
+on:
+  push:
+    branches:
+      - dev
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: beta-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: 打包 ${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: windows-x64
+            platform: windows-2025
+            target: x86_64-pc-windows-msvc
+            bundles: nsis
+          - label: windows-arm64
+            platform: windows-11-arm
+            target: aarch64-pc-windows-msvc
+            bundles: nsis
+          - label: macos-arm64
+            platform: macos-15
+            target: aarch64-apple-darwin
+            bundles: app,dmg
+          - label: macos-x64
+            platform: macos-15-intel
+            target: x86_64-apple-darwin
+            bundles: app,dmg
+    uses: ./.github/workflows/build.yml
+    with:
+      label: ${{ matrix.label }}
+      platform: ${{ matrix.platform }}
+      target: ${{ matrix.target }}
+      bundles: ${{ matrix.bundles }}
+    secrets: inherit

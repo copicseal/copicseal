@@ -251,3 +251,20 @@
 - [x] 档位不完整的照片在批量导出时跳过并提示数量
 - [ ] 素材缩略图上标出与当前照片配置不同的照片
 - [ ] 每图配置随模板预设一起保存与复用
+
+---
+
+## Phase 15 — 发布流水线与自动更新
+
+- [x] 建立可复用的打包流程，覆盖 Windows x64 / Windows ARM64 / macOS arm64 / macOS x64
+- [x] 标签发布流程与版本号同步（`pnpm sync:version <version>` 一次同步三处版本号）
+- [x] 推送 `dev` 或手动触发时只产出内测产物，不创建 Release
+- [x] 缺少更新签名密钥时自动降级为不产出更新包，并在公钥仍是占位符时拦截
+- [x] 由产物与签名生成更新清单 `latest.json` 并随 Release 发布
+- [x] 客户端补齐下载、安装与重启提示，启动后静默检查一次更新
+- [ ] 生成更新签名密钥、替换 `plugins.updater.pubkey` 占位符并配置 Secrets
+- [ ] 部署 `updates.copicseal.com` 更新服务，或确认长期使用 Release 上的 `latest.json`
+- [ ] macOS 代码签名与公证
+- [ ] Windows 代码签名证书
+- [ ] 独立的 lint 与类型检查工作流（复用 `pnpm run ci` 与 `tsc --noEmit`）
+- [ ] 清理 `features/settings/components/co-settings-dialog.tsx` 中无人引用的更新入口

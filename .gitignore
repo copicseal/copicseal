@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# 旧版实现（Vue/Electron）的只读对照目录，仅供迁移比对，不参与构建与提交
+.legacy/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

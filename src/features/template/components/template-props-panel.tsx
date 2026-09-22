@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { normalizeFieldValue } from '@/features/template/runtime/template-registry';
 import type { TemplateField, TemplateSchema } from '@/features/template/templates';
 import { Input } from '@/shared/ui/input';
@@ -18,12 +19,20 @@ interface TemplatePropsPanelProps {
   /** 分区标题，缺省用于模板参数 */
   title?: string;
   description?: string;
+  /**
+   * 字段附加控件：由调用方按字段 key 提供，渲染在该字段控件之后。
+   *
+   * 生成器只负责 schema 能描述的基础控件；像「照片主题色盘」这类需要外部数据
+   * （当前照片）的增强，由持有数据的调用方注入，避免把领域依赖塞进通用面板。
+   */
+  extras?: Partial<Record<string, ReactNode>>;
 }
 
 interface TemplateFieldControlProps {
   field: TemplateField;
   value: unknown;
   onChange: (key: string, next: unknown) => void;
+  extra?: ReactNode;
 }
 
 const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
@@ -45,7 +54,7 @@ function isFieldVisible(field: TemplateField, value: Record<string, unknown>): b
 }
 
 /** 单个参数的控件；控件形态完全由字段自己的 `type` 决定。 */
-function TemplateFieldControl({ field, value, onChange }: TemplateFieldControlProps) {
+function TemplateFieldControl({ field, value, onChange, extra }: TemplateFieldControlProps) {
   // 原生取色器只接受 #rrggbb，非法输入时用黑色占位，右侧文本框仍展示用户原值。
   const colorText = field.type === 'color' ? readString(value, field.default) : '';
   const pickerColor = HEX_COLOR_PATTERN.test(colorText) ? colorText : '#000000';
@@ -122,6 +131,8 @@ function TemplateFieldControl({ field, value, onChange }: TemplateFieldControlPr
           />
         </div>
       ) : null}
+
+      {extra}
     </div>
   );
 }
@@ -137,6 +148,7 @@ export function TemplatePropsPanel({
   onChange,
   title = '模板参数',
   description = '参数由当前模板自己的 propsSchema 生成，切换模板后会重置为该模板的默认值。',
+  extras,
 }: TemplatePropsPanelProps) {
   const updateField = (key: string, nextValue: unknown) => {
     onChange({ ...value, [key]: nextValue });
@@ -158,6 +170,7 @@ export function TemplatePropsPanel({
               field={field}
               value={value[field.key]}
               onChange={updateField}
+              extra={extras?.[field.key]}
             />
           ))}
       </div>

@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { prepareElementForSnapshot, waitForDomStability, waitForImages } from '@/core/renderer';
 import { runScheduledExports } from '@/core/scheduler';
 import {
+  DEFAULT_TEMPLATE_BACKGROUND,
   TEMPLATE_BACKGROUND_FIELDS,
   type TemplateBackground,
   toTemplateBackground,
@@ -36,6 +37,7 @@ import { Button } from '@/shared/ui/button';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui/tooltip';
 import {
+  PhotoPalettePicker,
   TemplateExifCard,
   TemplateExportPanel,
   TemplatePreview,
@@ -43,6 +45,7 @@ import {
   TemplateSelector,
 } from '../exports';
 import { ensurePhotoExif } from '../hooks/use-photo-exif';
+import { type PhotoPaletteState, usePhotoPalette } from '../hooks/use-photo-palette';
 import {
   getTemplatePhotoConfig,
   type TemplateApplyScope,
@@ -400,6 +403,7 @@ function TemplatePropertiesPanel({
   hasPhoto,
   otherPhotoCount,
   onApplyToOthers,
+  palette,
 }: {
   activeTemplateId: string;
   onTemplateChange: (templateId: string) => void;
@@ -414,6 +418,7 @@ function TemplatePropertiesPanel({
   hasPhoto: boolean;
   otherPhotoCount: number;
   onApplyToOthers: (scope: TemplateApplyScope) => void;
+  palette: PhotoPaletteState;
 }) {
   const templateSchema = getBuiltinTemplateSchema(activeTemplateId);
 
@@ -462,6 +467,18 @@ function TemplatePropertiesPanel({
               onChange={(next) => onBackgroundChange(toTemplateBackground(next))}
               title="背景"
               description="默认值来自当前模板，可自行调整。"
+              extras={{
+                // 主题色盘只挂在颜色字段下：该字段本身只在纯色模式可见
+                color: (
+                  <PhotoPalettePicker
+                    colors={palette.colors}
+                    selected={background.color}
+                    loading={palette.loading}
+                    failed={palette.failed}
+                    onPick={(color) => onBackgroundChange({ ...background, color })}
+                  />
+                ),
+              }}
             />
             {otherPhotoCount > 0 ? (
               <ApplyToOthersButton
@@ -513,6 +530,39 @@ export function TemplatePage() {
   useEffect(() => {
     prune(photos.map((photo) => photo.id));
   }, [photos, prune]);
+
+  const palette = usePhotoPalette(currentPhoto);
+
+  /**
+   * 纯色背景的默认色。
+   *
+   * 首次在某张照片上进入纯色模式时，直接把照片的第一个主题色写进背景色：用户不必
+   * 点色盘就已经拿到主色调。颜色一旦不等于默认值（说明用户自己挑过），或这张照片
+   * 已经补过一次，就不再介入，避免覆盖用户的选择。
+   */
+  const paletteAppliedRef = useRef<string | null>(null);
+  useEffect(() => {
+    const photoId = currentPhoto?.id;
+
+    // 导出期间不写配置：批量导出会逐张切换照片，此时必须让导出严格按各自配置渲染
+    if (capturing || !photoId) {
+      return;
+    }
+
+    if (palette.colors.length === 0 || paletteAppliedRef.current === photoId) {
+      return;
+    }
+
+    if (
+      config.background.mode !== 'color' ||
+      config.background.color !== DEFAULT_TEMPLATE_BACKGROUND.color
+    ) {
+      return;
+    }
+
+    paletteAppliedRef.current = photoId;
+    setBackground(photoId, { ...config.background, color: palette.colors[0] });
+  }, [capturing, currentPhoto?.id, palette.colors, config.background, setBackground]);
 
   /**
    * 构造模板导出上下文。
@@ -687,6 +737,7 @@ export function TemplatePage() {
           hasPhoto={currentPhoto !== null}
           otherPhotoCount={otherPhotoCount}
           onApplyToOthers={handleApplyToOthers}
+          palette={palette}
         />
       )}
     />

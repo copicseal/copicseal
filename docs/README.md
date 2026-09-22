@@ -162,6 +162,7 @@ src/
 | 10 | [拼图开发清单](./10-collage-todo.md) | 拼图能力专项开发清单 |
 | 11 | [平台能力抽象与 Provider 改造方案](./11-platform-abstraction.md) | Web-first 平台边界、Provider 链与迁移计划 |
 | 12 | [发布流水线](./12-release-pipeline.md) | 打包目标、版本号同步、更新签名密钥与自动更新 |
+| 13 | [旧版对齐清单](./13-parity-checklist.md) | 与旧版桌面应用的差异盘点、成本与排期建议 |
 | TODO | [总开发待办](./TODO.md) | 从零落地的整体实施计划 |
 ---
 

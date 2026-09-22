@@ -1,11 +1,26 @@
 import type { TemplateBackground } from '../background';
 
-/** 探针基准：仅用于量出画布高宽比，随后会被解算结果覆盖。 */
+/** 探针基准：仅用于量出画布几何与照片宽度，随后会被解算结果覆盖。 */
 const PROBE_BASE = 1000;
+
+/** 模板内照片元素的句柄；预览靠它对齐「照片原始宽度」并等待图片加载。 */
+const PHOTO_SELECTOR = '[data-co-photo]';
 
 export interface RenderTarget {
   width: number;
   height: number;
+}
+
+/** 一次探针量到的几何。画布与照片都是 `--co-base` 的倍数，因此一次测量即可线性反解。 */
+export interface RenderProbe {
+  /** 探针基准下的画布宽度 */
+  canvasWidth: number;
+  /** 探针基准下的画布高度 */
+  canvasHeight: number;
+  /** 模板内照片元素的布局宽度；量不到时为 0 */
+  photoWidth: number;
+  /** 照片的原始像素宽度（`naturalWidth`）；未加载时为 0 */
+  photoPixelWidth: number;
 }
 
 function getFrameElement(root: HTMLElement): HTMLElement | null {
@@ -18,8 +33,17 @@ function getCanvasElement(root: HTMLElement): HTMLElement | null {
   return canvas instanceof HTMLElement ? canvas : null;
 }
 
-/** 在给定基准下渲染，量出画布高宽比（高 / 宽）。 */
-function measureCanvasAspect(root: HTMLElement, base: number): number | null {
+function getPhotoElement(root: HTMLElement): HTMLImageElement | null {
+  return root.querySelector<HTMLImageElement>(PHOTO_SELECTOR);
+}
+
+/**
+ * 在给定基准下量一次渲染几何。
+ *
+ * 写入 `--co-base` 会立即触发布局，因此调用方必须处在 paint 之前的 layout effect 里，
+ * 探针值不会被看到。返回 null 表示画布尚未可测量。
+ */
+function probeRenderGeometry(root: HTMLElement, base: number): RenderProbe | null {
   root.style.setProperty('--co-base', `${base}px`);
 
   const canvas = getCanvasElement(root);
@@ -27,13 +51,25 @@ function measureCanvasAspect(root: HTMLElement, base: number): number | null {
     return null;
   }
 
-  const width = canvas.offsetWidth;
-  const height = canvas.offsetHeight;
-  if (width <= 0 || height <= 0) {
+  const canvasWidth = canvas.offsetWidth;
+  const canvasHeight = canvas.offsetHeight;
+  if (canvasWidth <= 0 || canvasHeight <= 0) {
     return null;
   }
 
-  return height / width;
+  const photo = getPhotoElement(root);
+
+  return {
+    canvasWidth,
+    canvasHeight,
+    photoWidth: photo?.offsetWidth ?? 0,
+    photoPixelWidth: photo?.naturalWidth ?? 0,
+  };
+}
+
+/** 画布高宽比（高 / 宽）；比例与基准无关，探针量一次即可。 */
+function canvasAspectOf(probe: RenderProbe): number {
+  return probe.canvasHeight / probe.canvasWidth;
 }
 
 /** contain 反解：让画布在可用区内等比放下，主导轴精确命中。 */
@@ -68,12 +104,13 @@ export function applyRenderSize(
     frame.style.height = '';
     root.style.removeProperty('--co-frame');
 
-    const aspect = measureCanvasAspect(root, PROBE_BASE);
-    if (aspect === null) {
+    const probe = probeRenderGeometry(root, PROBE_BASE);
+    if (!probe) {
       return false;
     }
 
-    root.style.setProperty('--co-base', `${solveBase(aspect, target.width, target.height)}px`);
+    const base = solveBase(canvasAspectOf(probe), target.width, target.height);
+    root.style.setProperty('--co-base', `${base}px`);
     return true;
   }
 
@@ -88,11 +125,87 @@ export function applyRenderSize(
     return false;
   }
 
-  const aspect = measureCanvasAspect(root, contentWidth);
-  if (aspect === null) {
+  const probe = probeRenderGeometry(root, contentWidth);
+  if (!probe) {
     return false;
   }
 
-  root.style.setProperty('--co-base', `${solveBase(aspect, contentWidth, contentHeight)}px`);
+  const base = solveBase(canvasAspectOf(probe), contentWidth, contentHeight);
+  root.style.setProperty('--co-base', `${base}px`);
   return true;
+}
+
+/**
+ * 由探针结果解算出「照片按原始宽度百分之多少显示」所需的目标框。
+ *
+ * 百分比是相对照片原始像素宽度定义的：100 即 1:1。画布几何全是 `--co-base` 的倍数，
+ * 所以先量出照片宽度与画布宽度的比例，再换算成命中目标像素数所需的画布宽。
+ * 有背景时目标框就是画框（背景铺满这块框），内边距要一并算进去：让画布正好等于
+ * 扣除内边距后的内容盒，这样预览里照片与内边距的相对关系与导出一致。
+ *
+ * 返回 null 表示照片原始宽度还未知，或背景内边距参数已经吃满整块画框。
+ */
+export function derivePhotoPercentTarget(
+  probe: RenderProbe,
+  background: TemplateBackground,
+  percent: number,
+): RenderTarget | null {
+  if (probe.photoPixelWidth <= 0) {
+    return null;
+  }
+
+  // 模板没渲染出照片元素时退回以画布宽度对齐原图宽度，保证任何模板下基准都确定
+  const unitWidth = probe.photoWidth > 0 ? probe.photoWidth : probe.canvasWidth;
+  const canvasWidth = ((percent / 100) * probe.photoPixelWidth * probe.canvasWidth) / unitWidth;
+  if (canvasWidth <= 0) {
+    return null;
+  }
+
+  const canvasHeight = canvasWidth * canvasAspectOf(probe);
+
+  if (background.mode === 'none') {
+    return { width: canvasWidth, height: canvasHeight };
+  }
+
+  const horizontal = background.paddingHorizontal * 2;
+  if (horizontal >= 1) {
+    return null;
+  }
+
+  const frameWidth = canvasWidth / (1 - horizontal);
+  return {
+    width: frameWidth,
+    height: canvasHeight + background.paddingVertical * 2 * frameWidth,
+  };
+}
+
+/** 预览的取尺寸意图。 */
+export type PreviewSizeIntent = { kind: 'fit' } | { kind: 'photoPercent'; percent: number };
+
+/**
+ * 解算预览目标框。
+ *
+ * fit：目标框就是预览可用区——无背景时画布在框内 contain 恰好占满，有背景时画框
+ * 精确等于框，背景因此铺满整块预览区。
+ *
+ * photoPercent：按照片原始像素宽度的百分比反解，见 `derivePhotoPercentTarget`。
+ *
+ * 返回 null 表示此刻还量不出目标框（画布未挂载、尺寸为 0、照片未加载），调用方应保持原尺寸。
+ */
+export function resolvePreviewSizeTarget(
+  root: HTMLElement,
+  background: TemplateBackground,
+  intent: PreviewSizeIntent,
+  available: RenderTarget,
+): RenderTarget | null {
+  if (intent.kind === 'fit') {
+    return { width: available.width, height: available.height };
+  }
+
+  const probe = probeRenderGeometry(root, PROBE_BASE);
+  if (!probe) {
+    return null;
+  }
+
+  return derivePhotoPercentTarget(probe, background, intent.percent);
 }

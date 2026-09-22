@@ -17,7 +17,7 @@ import {
   type TemplateBackground,
   toTemplateBackground,
 } from '@/features/template/background';
-import { isValidPreset, resolvePreviewTarget } from '@/features/template/lib/export-preset';
+import { isValidPreset } from '@/features/template/lib/export-preset';
 import { applyRenderSize } from '@/features/template/lib/render-size';
 import { getBuiltinTemplateSchema } from '@/features/template/runtime/template-registry';
 import { type ExportRunContext, exportSingle, resolveExportDirectory } from '@/platform';
@@ -505,8 +505,6 @@ export function TemplatePage() {
   const setPresets = useTemplateStore((state) => state.setPresets);
   const applyToOthers = useTemplateStore((state) => state.applyToOthers);
   const prune = useTemplateStore((state) => state.prune);
-  // 预览一次只能呈现一个目标比例，取第一个档位
-  const previewTarget = resolvePreviewTarget(config.presets[0]);
   // 导出期间挂起预览自适应，否则它会覆盖导出解算出的 --co-base
   const [capturing, setCapturing] = useState(false);
   const otherPhotoCount = Math.max(photos.length - (currentPhoto ? 1 : 0), 0);
@@ -651,8 +649,6 @@ export function TemplatePage() {
               templateId={config.templateId}
               params={config.params}
               background={config.background}
-              targetWidth={previewTarget.width}
-              targetHeight={previewTarget.height}
               previewRef={previewRef}
               suspendAutoFit={capturing}
             />

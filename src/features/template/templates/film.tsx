@@ -80,6 +80,7 @@ function Film({
     <div className="bg-white" style={canvasStyle}>
       <div className="relative">
         <img
+          data-co-photo=""
           src={photoUrl}
           alt=""
           className="block object-contain"

@@ -78,6 +78,7 @@ function Minimal({
   return (
     <div className="flex flex-col items-center bg-white" style={canvasStyle}>
       <img
+        data-co-photo=""
         src={photoUrl}
         alt=""
         className="block object-contain"

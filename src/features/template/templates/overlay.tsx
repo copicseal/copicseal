@@ -370,6 +370,7 @@ function Overlay({
   return (
     <div style={canvasStyle}>
       <img
+        data-co-photo=""
         src={photoUrl}
         alt=""
         className="block object-contain"

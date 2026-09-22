@@ -195,7 +195,7 @@ function WhiteFrame({
 
   return (
     <div style={canvasStyle}>
-      <img src={photoUrl} alt="" style={imageStyle} onLoad={handleLoad} />
+      <img data-co-photo="" src={photoUrl} alt="" style={imageStyle} onLoad={handleLoad} />
 
       <div style={infoStyle}>
         <div className="flex items-center" style={{ gap: '0.5em', minWidth: 0, fontWeight: 600 }}>

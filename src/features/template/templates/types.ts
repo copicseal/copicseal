@@ -134,5 +134,12 @@ export interface RegisteredTemplate {
    * 用户可以在属性面板覆盖。
    */
   backgroundDefaults?: Partial<TemplateBackground>;
+  /**
+   * 渲染模板。
+   *
+   * DOM 契约：呈现照片的那个 `<img>` 必须带 `data-co-photo`——框架靠它把缩放档位
+   * 换算成照片的原始像素宽度，并在图片加载完成后重新解算尺寸。框架只按该句柄定位
+   * 元素，不依赖类名或标签顺序。
+   */
   render: (props: TemplateInjectedProps & Record<string, unknown>) => ReactNode;
 }

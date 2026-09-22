@@ -229,7 +229,7 @@ function Rounded({
 
   return (
     <div className="flex flex-col items-center" style={canvasStyle}>
-      <img src={photoUrl} alt="" style={imageStyle} onLoad={handleLoad} />
+      <img data-co-photo="" src={photoUrl} alt="" style={imageStyle} onLoad={handleLoad} />
 
       <div style={infoStyle}>
         {hasBrandRow ? (

@@ -1,7 +1,11 @@
 import { ImageIcon, LayoutTemplate, Loader2 } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
 import type { TemplateBackground } from '@/features/template/background';
-import { applyRenderSize, type RenderTarget } from '@/features/template/lib/render-size';
+import {
+  applyRenderSize,
+  type PreviewSizeIntent,
+  resolvePreviewSizeTarget,
+} from '@/features/template/lib/render-size';
 import { TemplateRuntime } from '@/features/template/runtime';
 import { resolveBuiltinTemplate } from '@/features/template/runtime/template-registry';
 import { useElementSize } from '@/shared/hooks/use-element-size';
@@ -15,78 +19,44 @@ type TemplateZoomMode = 'fit' | 50 | 100 | 200;
 
 const ZOOM_OPTIONS: TemplateZoomMode[] = ['fit', 50, 100, 200];
 
-/** 百分比档位对应的画布宽度基准：100% 即 800px 画布。 */
-const ZOOM_REFERENCE_WIDTH = 800;
+/** 模板内照片元素的句柄；预览靠它对齐「照片原始宽度」并等待图片加载。 */
+const PHOTO_SELECTOR = '[data-co-photo]';
 
 interface TemplatePreviewProps {
   templateId: string;
   /** 当前用户参数，渲染前由 TemplateRuntime 按模板自己的 schema 兜底归一 */
   params: Record<string, unknown>;
   background: TemplateBackground;
-  /** 预览用的目标尺寸，取第一个导出档位 */
-  targetWidth: number;
-  targetHeight: number;
   previewRef?: React.RefObject<HTMLDivElement | null>;
   /** 导出期间挂起自适应，避免覆盖导出解算出的尺寸 */
   suspendAutoFit?: boolean;
 }
 
-/** 百分比档位换算出的画布宽度。 */
-function zoomedWidth(zoomMode: Exclude<TemplateZoomMode, 'fit'>): number {
-  return (ZOOM_REFERENCE_WIDTH * zoomMode) / 100;
-}
-
 /**
  * 画布与预览视口之间的留白（px）。
  *
- * 同一个值既要作为滚动内容的 padding，又要从视口尺寸里扣掉才是画布的可用区，
+ * 无背景时留一点余量给画框描边与投影；有背景时留白取 0，背景直接铺满预览区。
+ * 同一个值既要作为滚动内容的 padding，又要从视口尺寸里扣掉才是可用区，
  * 两边必须同源，因此不写成 Tailwind 的 `p-*`，避免改了类名忘了改解算。
  */
 const PREVIEW_GUTTER = 16;
 
-/**
- * 预览该用多大的目标盒。
- *
- * 无背景时画框贴合画布，目标盒只作 contain 约束：fit 直接给可用区，
- * 百分比档位给「固定参考宽度 + 无限高」，表达"宽度精确命中"。
- *
- * 有背景时画框必须是一个确定的盒子，按目标比例装进可用区。
- */
-function resolvePreviewRenderTarget(
-  zoomMode: TemplateZoomMode,
-  background: TemplateBackground,
-  targetWidth: number,
-  targetHeight: number,
-  availableWidth: number,
-  availableHeight: number,
-): RenderTarget {
-  if (background.mode === 'none') {
-    if (zoomMode === 'fit') {
-      return { width: availableWidth, height: availableHeight };
-    }
-
-    return { width: zoomedWidth(zoomMode), height: Number.POSITIVE_INFINITY };
-  }
-
-  const ratio = targetWidth / targetHeight;
-  const frameWidth =
-    zoomMode === 'fit' ? Math.min(availableWidth, availableHeight * ratio) : zoomedWidth(zoomMode);
-
-  return { width: frameWidth, height: frameWidth / ratio };
+function previewGutter(background: TemplateBackground): number {
+  return background.mode === 'none' ? PREVIEW_GUTTER : 0;
 }
 
 export function TemplatePreview({
   templateId,
   params,
   background,
-  targetWidth,
-  targetHeight,
   previewRef,
   suspendAutoFit = false,
 }: TemplatePreviewProps) {
   const { currentPhoto } = usePhotos();
   const { exif } = usePhotoExif(currentPhoto);
   const [zoomMode, setZoomMode] = useState<TemplateZoomMode>('fit');
+  // 照片加载完成的纪元：推进它即可让自适应重算一次
+  const [imageEpoch, setImageEpoch] = useState(0);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const viewport = useElementSize(viewportRef);
 
@@ -103,18 +73,37 @@ export function TemplatePreview({
     zoomMode,
     templateId,
     currentPhoto?.id ?? '',
+    imageEpoch,
     `${Math.round(viewport.width)}x${Math.round(viewport.height)}`,
     JSON.stringify(background),
-    `${targetWidth}x${targetHeight}`,
     JSON.stringify(params),
   ].join('|');
 
   /**
+   * 等待照片加载完成。
+   *
+   * 画布高宽比由照片真实比例决定：占位比例（`useImageAspect` 的 fallback）下解算出的
+   * 尺寸会偏；缩放档位更必须先知道照片原始像素宽度才能反解。图片就绪后推进纪元，
+   * 自适应随之重算一次。
+   */
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 模板或照片切换会换掉照片元素，必须重新挂监听；纪元变化则用于重挂一次
+  useLayoutEffect(() => {
+    const image = previewRef?.current?.querySelector<HTMLImageElement>(PHOTO_SELECTOR);
+    if (!image || image.naturalWidth > 0) {
+      return;
+    }
+
+    const handleLoad = () => setImageEpoch((value) => value + 1);
+    image.addEventListener('load', handleLoad, { once: true });
+    return () => image.removeEventListener('load', handleLoad);
+  }, [previewRef, templateId, currentPhoto?.id, imageEpoch]);
+
+  /**
    * 预览自适应：直接改写画框尺寸与 `--co-frame` / `--co-base`，不叠加任何 CSS transform。
    *
-   * 画布高度由内容比例决定，所以先探针量一次比例，再线性反解出能装进目标盒的基准。
-   * 可用区取滚动视口扣掉留白后的内容盒，与滚动内容的 padding 完全一致。
-   * 整个过程在 paint 之前完成，探针值不会被看到。
+   * 可用区取滚动视口扣掉留白后的内容盒，与滚动内容的 padding 完全一致；
+   * 目标框由 `resolvePreviewSizeTarget` 解算，画布高度由内容比例决定，
+   * 所以先探针量一次比例，再线性反解出基准。整个过程在 paint 之前完成，探针值不会被看到。
    */
   useLayoutEffect(() => {
     const element = previewRef?.current;
@@ -133,39 +122,26 @@ export function TemplatePreview({
       return;
     }
 
+    const gutter = previewGutter(background);
     const available = {
-      width: viewport.width - PREVIEW_GUTTER * 2,
-      height: viewport.height - PREVIEW_GUTTER * 2,
+      width: viewport.width - gutter * 2,
+      height: viewport.height - gutter * 2,
     };
     if (available.width <= 0 || available.height <= 0) {
       return;
     }
 
-    const target = resolvePreviewRenderTarget(
-      zoomMode,
-      background,
-      targetWidth,
-      targetHeight,
-      available.width,
-      available.height,
-    );
+    const intent: PreviewSizeIntent =
+      zoomMode === 'fit' ? { kind: 'fit' } : { kind: 'photoPercent', percent: zoomMode };
+    const target = resolvePreviewSizeTarget(element, background, intent, available);
 
-    if (!applyRenderSize(element, background, target)) {
+    // 目标框暂时量不出来（照片未加载）时保持原尺寸，等 load 推进纪元后再算
+    if (!target || !applyRenderSize(element, background, target)) {
       return;
     }
 
     element.dataset.fitKey = fitKey;
-  }, [
-    fitKey,
-    previewRef,
-    suspendAutoFit,
-    background,
-    targetWidth,
-    targetHeight,
-    zoomMode,
-    viewport.width,
-    viewport.height,
-  ]);
+  }, [fitKey, previewRef, suspendAutoFit, background, zoomMode, viewport.width, viewport.height]);
 
   if (!currentPhoto) {
     return (
@@ -191,15 +167,20 @@ export function TemplatePreview({
           <div
             className="box-border flex items-center justify-center"
             style={{
-              padding: PREVIEW_GUTTER,
+              padding: previewGutter(background),
               // 最小尺寸等于视口：装得下时居中，装不下时随内容一起增长而不是被裁掉。
               // 向下取整，避免亚像素让滚动区凭空多出 1px 而出现滚动条
               minWidth: Math.floor(viewport.width),
               minHeight: Math.floor(viewport.height),
             }}
           >
-            {/* 画框描边与投影只作预览提示，画在快照目标之外，不会进入导出结果 */}
-            <div className="shadow-xl ring-1 ring-foreground/15">
+            {/*
+              画框描边与投影只作预览提示，画在快照目标之外，不会进入导出结果。
+              有背景时画框就是背景本身且铺满预览区，再挂描边只会被视口裁掉。
+            */}
+            <div
+              className={background.mode === 'none' ? 'shadow-xl ring-1 ring-foreground/15' : ''}
+            >
               <div ref={previewRef}>
                 <TemplateBackgroundFrame background={background} photoUrl={currentPhoto.previewUrl}>
                   <TemplateRuntime

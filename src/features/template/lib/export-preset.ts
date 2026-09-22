@@ -28,20 +28,3 @@ export function isValidPreset(preset: ExportPreset): boolean {
     preset.height > 0
   );
 }
-
-/**
- * 取用于预览的目标尺寸。
- *
- * 预览一次只能呈现一个目标比例，这里取第一个档位；档位参数非法时回退到默认值，
- * 保证预览始终有确定的目标框。
- */
-export function resolvePreviewTarget(preset: ExportPreset | undefined): {
-  width: number;
-  height: number;
-} {
-  if (preset && isValidPreset(preset)) {
-    return { width: preset.width, height: preset.height };
-  }
-
-  return { ...DEFAULT_TARGET };
-}

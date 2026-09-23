@@ -1,0 +1,62 @@
+name: Mac Intel Build (temp)
+
+# 临时工作流：在 Intel（x86_64）macOS 运行器上产出 Intel Mac 安装包
+# 注意：macos-13 已于 2025-12-04 下线，Intel 环境请使用 macos-15-intel 标签
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - temp/gha-mac-intel
+
+jobs:
+  build-mac-intel:
+    name: 打包 macOS Intel (x64) 版本
+    runs-on: macos-15-intel
+    permissions:
+      contents: read
+    steps:
+      # 拉取代码
+      - name: 检出仓库代码
+        uses: actions/checkout@v4
+
+      # 安装 Node.js
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # 安装 pnpm
+      - name: 安装 pnpm
+        run: npm install -g pnpm
+
+      # 安装依赖（postinstall 会执行 electron-builder install-app-deps）
+      - name: 安装依赖
+        run: pnpm install
+
+      # 确认运行器架构，避免误打成 arm64
+      - name: 打印运行器架构
+        run: |
+          node -p "'runner: ' + process.platform + ' / ' + process.arch"
+
+      # 构建渲染进程产物，再显式指定 x64 架构打包
+      - name: 构建并打包 Mac Intel 版本
+        run: |
+          pnpm run build
+          pnpm exec electron-builder --mac --x64 --publish never
+        env:
+          # 临时分支不做签名，跳过钥匙串中证书的自动查找
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      # 上传构建产物供下载
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: copicseal-mac-intel
+          path: |
+            dist/*.dmg
+            dist/*.zip
+            dist/*.yml
+            dist/*.blockmap
+            !dist/builder-debug.yml
+            !dist/builder-effective-config.yaml
+          if-no-files-found: error

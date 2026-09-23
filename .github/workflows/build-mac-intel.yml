@@ -26,12 +26,24 @@ jobs:
           node-version: 20
 
       # 安装 pnpm
+      # 注意：必须固定 10.x。pnpm 12 已把构建脚本白名单从 onlyBuiltDependencies 改名为
+      # allowBuilds，本仓库 pnpm-workspace.yaml 里仍是旧写法，用最新版 pnpm 会被静默忽略，
+      # 导致 electron/esbuild 等依赖的构建脚本被拦，install 直接以 ERR_PNPM_IGNORED_BUILDS 失败。
       - name: 安装 pnpm
-        run: npm install -g pnpm
+        run: |
+          npm install -g pnpm@10
+          pnpm --version
 
       # 安装依赖（postinstall 会执行 electron-builder install-app-deps）
       - name: 安装依赖
         run: pnpm install
+
+      # 确认依赖的构建脚本真的跑过了（否则后面打包必失败，提前给出清晰报错）
+      - name: 校验 electron / esbuild 二进制
+        run: |
+          node -p "require('electron')"
+          node -e "require('esbuild').transformSync('let a = 1')"
+          echo "依赖构建产物校验通过"
 
       # 确认运行器架构，避免误打成 arm64
       - name: 打印运行器架构

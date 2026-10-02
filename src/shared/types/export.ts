@@ -1,4 +1,11 @@
-export type ExportFormat = 'jpeg' | 'png' | 'webp';
+/**
+ * 导出格式。
+ *
+ * 暂时不含 WebP：WKWebView 不支持 canvas 编码 WebP，`toBlob` 会静默退回 PNG，
+ * 产出的是一个后缀为 `.webp` 的 PNG（体积与 PNG 相同、质量参数无效）。
+ * 要恢复得先把 WebP 编码挪到 Rust 侧（`image` crate 已支持）。
+ */
+export type ExportFormat = 'jpeg' | 'png';
 
 /**
  * 单档导出配置：一档 = 一组目标尺寸 + 一套编码参数。
@@ -8,8 +15,13 @@ export type ExportFormat = 'jpeg' | 'png' | 'webp';
  */
 export interface ExportPreset {
   id: string;
-  /** 展示名，同时参与导出文件命名 */
-  label: string;
+  /**
+   * 导出文件名，不含扩展名。
+   *
+   * 留空表示自动命名：`<原图名>@<宽>x<高>`，会随目标尺寸一起变；
+   * 一旦填了就用填写的名字，扩展名始终跟随 `format`。
+   */
+  fileName?: string;
   format: ExportFormat;
   /** 目标框宽度（像素） */
   width: number;
@@ -17,7 +29,7 @@ export interface ExportPreset {
   height: number;
   /** 用户倍率：在解算出的像素尺寸之上做位图超采样 */
   scale: number;
-  /** 编码质量 1..100，仅 JPEG / WebP 生效 */
+  /** 编码质量 1..100，仅 JPEG 生效 */
   quality: number;
 }
 

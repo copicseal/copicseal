@@ -5,6 +5,7 @@ import {
   FolderOpen,
   ImageIcon,
   LayoutTemplate,
+  Loader2,
   Trash2,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -20,8 +21,17 @@ import {
 import { isValidPreset } from '@/features/template/lib/export-preset';
 import { applyRenderSize } from '@/features/template/lib/render-size';
 import { getBuiltinTemplateSchema } from '@/features/template/runtime/template-registry';
-import { type ExportRunContext, exportSingle, resolveExportDirectory } from '@/platform';
+import {
+  type ExportOptions,
+  type ExportRunContext,
+  exportSingle,
+  resolveExportDirectory,
+} from '@/platform';
 import { CoDropZone } from '@/shared/components/co-drop-zone';
+import {
+  notifyExportedDirectory,
+  notifyExportFailed,
+} from '@/shared/components/co-open-directory-link';
 import { CoPanelSection } from '@/shared/components/co-panel-section';
 import { CoWindowHeader } from '@/shared/components/co-window-header';
 import { usePhotos } from '@/shared/hooks/use-photos';
@@ -83,8 +93,47 @@ function ImportProgressPanel({
   );
 }
 
-function TemplateHeader() {
-  return <CoWindowHeader icon={LayoutTemplate} title="边框水印" description="模板渲染与导出" />;
+/** 导出动作的两种模式：当前照片 / 全部照片。 */
+type ExportMode = 'single' | 'batch';
+
+interface TemplateExportActionsProps {
+  /** 正在进行的导出；null 表示空闲，两个按钮都可点 */
+  exporting: ExportMode | null;
+  /** 档位是否齐备；不齐时禁用导出并提示去补目标宽高 */
+  ready: boolean;
+  onExport: (mode: ExportMode) => void;
+}
+
+function TemplateExportActions({ exporting, ready, onExport }: TemplateExportActionsProps) {
+  const busy = exporting !== null || !ready;
+
+  return (
+    <div className="flex items-center gap-2">
+      <Button variant="outline" size="sm" disabled={busy} onClick={() => onExport('single')}>
+        {exporting === 'single' ? (
+          <Loader2 data-icon="inline-start" className="animate-spin" />
+        ) : null}
+        导出当前
+      </Button>
+      <Button size="sm" disabled={busy} onClick={() => onExport('batch')}>
+        {exporting === 'batch' ? (
+          <Loader2 data-icon="inline-start" className="animate-spin" />
+        ) : null}
+        批量导出
+      </Button>
+    </div>
+  );
+}
+
+function TemplateHeader({ exporting, ready, onExport }: TemplateExportActionsProps) {
+  return (
+    <CoWindowHeader
+      icon={LayoutTemplate}
+      title="边框水印"
+      description="模板渲染与导出"
+      actions={<TemplateExportActions exporting={exporting} ready={ready} onExport={onExport} />}
+    />
+  );
 }
 
 function TemplateAssetsPanel({
@@ -354,6 +403,13 @@ function TemplateAssetsPanel({
   );
 }
 
+/** 一键应用提示里的范围名，与按钮文案保持一致。 */
+const APPLY_SCOPE_LABELS: Record<TemplateApplyScope, string> = {
+  template: '模板与参数',
+  background: '背景',
+  presets: '导出档位',
+};
+
 /**
  * 一键应用按钮。
  *
@@ -386,9 +442,9 @@ function TemplatePropertiesPanel({
   onBackgroundChange,
   presets,
   onPresetsChange,
-  onExportCurrent,
-  onExportBatch,
+  exportReady,
   hasPhoto,
+  baseName,
   otherPhotoCount,
   onApplyToOthers,
   palette,
@@ -401,9 +457,11 @@ function TemplatePropertiesPanel({
   onBackgroundChange: (next: TemplateBackground) => void;
   presets: Parameters<typeof TemplateExportPanel>[0]['presets'];
   onPresetsChange: Parameters<typeof TemplateExportPanel>[0]['onPresetsChange'];
-  onExportCurrent: Parameters<typeof TemplateExportPanel>[0]['onExportCurrent'];
-  onExportBatch: Parameters<typeof TemplateExportPanel>[0]['onExportBatch'];
+  /** 档位是否齐备；导出按钮在顶栏，这里只用它决定要不要提示补目标宽高 */
+  exportReady: boolean;
   hasPhoto: boolean;
+  /** 当前照片名（不含扩展名），供档位自动命名使用 */
+  baseName: string;
   otherPhotoCount: number;
   onApplyToOthers: (scope: TemplateApplyScope) => void;
   palette: PhotoPaletteState;
@@ -490,14 +548,23 @@ function TemplatePropertiesPanel({
             title="导出"
             description="每个档位保存一组尺寸和画质设置。没有背景时按比例套用目标尺寸，正方形画面配 1280×720 会导出 720×720；有背景时成片尺寸就是设定的宽高。"
           >
-            <TemplateExportPanel
-              presets={presets}
-              onPresetsChange={onPresetsChange}
-              onExportCurrent={onExportCurrent}
-              onExportBatch={onExportBatch}
-            />
+            <div className="space-y-3">
+              <TemplateExportPanel
+                presets={presets}
+                baseName={baseName}
+                ready={exportReady}
+                onPresetsChange={onPresetsChange}
+              />
+              {otherPhotoCount > 0 ? (
+                <ApplyToOthersButton
+                  label="导出档位应用到其他"
+                  count={otherPhotoCount}
+                  onClick={() => onApplyToOthers('presets')}
+                />
+              ) : null}
+            </div>
           </CoPanelSection>
-          <CoPanelSection title="EXIF 信息">
+          <CoPanelSection title="EXIF 信息" defaultOpen={false}>
             <TemplateExifCard />
           </CoPanelSection>
         </div>
@@ -525,6 +592,8 @@ export function TemplatePage() {
   const prune = useTemplateStore((state) => state.prune);
   // 导出期间挂起预览自适应，否则它会覆盖导出解算出的 --co-base
   const [capturing, setCapturing] = useState(false);
+  // 导出入口在顶栏，状态放页面级，保证按钮的转圈与禁用是同一份
+  const [exporting, setExporting] = useState<ExportMode | null>(null);
   const otherPhotoCount = Math.max(photos.length - (currentPhoto ? 1 : 0), 0);
 
   // 素材被移除后回收它的配置；prune 在无变化时返回原 state，不会引起额外渲染
@@ -601,23 +670,18 @@ export function TemplatePage() {
       currentPhoto.id,
       scope,
     );
-    toast.success(
-      scope === 'template'
-        ? `已把模板与参数应用到其余 ${otherPhotoCount} 张照片`
-        : `已把背景应用到其余 ${otherPhotoCount} 张照片`,
-    );
+    toast.success(`已把${APPLY_SCOPE_LABELS[scope]}应用到其余 ${otherPhotoCount} 张照片`);
   };
 
-  const handleExportCurrent: Parameters<typeof TemplateExportPanel>[0]['onExportCurrent'] = async (
-    options,
-  ) => {
+  const handleExportCurrent = async (options: ExportOptions) => {
     if (!previewRef.current) {
       return;
     }
 
     setCapturing(true);
     try {
-      const outputDir = await resolveExportDirectory(options.presets.length);
+      // 直接写到配置里的「保存目录」，不再弹保存对话框
+      const outputDir = await resolveExportDirectory();
       await waitForImages(previewRef.current);
       await prepareElementForSnapshot(previewRef.current);
       await exportSingle(
@@ -626,30 +690,27 @@ export function TemplatePage() {
         currentPhoto?.sourceFile ?? currentPhoto?.path,
         createRunContext(currentPhoto?.name, outputDir, config.background),
       );
+      notifyExportedDirectory(outputDir);
+    } catch (error) {
+      notifyExportFailed(error);
     } finally {
       setCapturing(false);
     }
   };
 
-  const handleExportBatch: Parameters<typeof TemplateExportPanel>[0]['onExportBatch'] = async (
-    options,
-  ) => {
+  const handleExportBatch = async (options: ExportOptions) => {
     if (!previewRef.current || photos.length === 0) {
       return;
     }
 
     const originalIndex = currentIndex;
-    // 每张照片的档位数可以不同，只要有任意一张是多档就先问一次目录，
-    // 避免多档 × 多图产生大量保存对话框
-    const maxPresetCount = photos.reduce(
-      (max, photo) => Math.max(max, getTemplatePhotoConfig(photo.id).presets.length),
-      1,
-    );
 
     setCapturing(true);
     try {
-      const outputDir = await resolveExportDirectory(maxPresetCount);
+      // 直接写到配置里的「保存目录」，不再弹保存对话框
+      const outputDir = await resolveExportDirectory();
       let skipped = 0;
+      let exported = 0;
 
       await runScheduledExports({
         items: photos,
@@ -677,21 +738,50 @@ export function TemplatePage() {
             photo.sourceFile ?? photo.path,
             createRunContext(photo.name, outputDir, photoConfig.background),
           );
+          exported += 1;
         },
       });
 
       if (skipped > 0) {
         toast.warning(`${skipped} 张照片的档位不完整，已跳过`);
       }
+      if (exported > 0) {
+        notifyExportedDirectory(outputDir);
+      }
+    } catch (error) {
+      notifyExportFailed(error);
     } finally {
       setCapturing(false);
       setCurrentIndex(originalIndex);
     }
   };
 
+  // 两轴必填：无背景时目标框是 contain 约束，有背景时它就是画框尺寸
+  const exportReady = config.presets.every(isValidPreset);
+
+  const buildExportOptions = (): ExportOptions => ({
+    presets: config.presets,
+    dpi: 72,
+    preserveExif: true,
+  });
+
+  /** 顶栏导出入口：统一在这里组装档位参数并维护进行中的状态。 */
+  const handleExport = (mode: ExportMode) => {
+    if (exporting !== null || !exportReady) {
+      return;
+    }
+
+    setExporting(mode);
+    void (
+      mode === 'single'
+        ? handleExportCurrent(buildExportOptions())
+        : handleExportBatch(buildExportOptions())
+    ).finally(() => setExporting(null));
+  };
+
   return (
     <BusinessWorkbench
-      header={<TemplateHeader />}
+      header={<TemplateHeader exporting={exporting} ready={exportReady} onExport={handleExport} />}
       assetsResizable={false}
       workspace={
         <BusinessWorkbenchWorkspace>
@@ -733,9 +823,9 @@ export function TemplatePage() {
               setPresets(currentPhoto.id, next);
             }
           }}
-          onExportCurrent={handleExportCurrent}
-          onExportBatch={handleExportBatch}
+          exportReady={exportReady}
           hasPhoto={currentPhoto !== null}
+          baseName={currentPhoto ? stripExtension(currentPhoto.name) : 'copicseal-export'}
           otherPhotoCount={otherPhotoCount}
           onApplyToOthers={handleApplyToOthers}
           palette={palette}

@@ -12,9 +12,9 @@ import type {
 
 const {
   extractJpegExif,
+  getConfig,
   insertJpegExif,
   isNativeWindowAvailable,
-  openDirectoryDialog,
   saveImageDialog,
   writeBinaryFile,
 } = platformRuntime;
@@ -40,12 +40,18 @@ async function blobToBytes(blob: Blob): Promise<Uint8Array> {
   return new Uint8Array(buf);
 }
 
-function toSnapdomFormat(f: ExportFormat): 'png' | 'jpeg' | 'webp' {
-  return f === 'jpeg' ? 'jpeg' : f === 'webp' ? 'webp' : 'png';
+function toSnapdomFormat(f: ExportFormat): 'png' | 'jpeg' {
+  return f === 'jpeg' ? 'jpeg' : 'png';
 }
 
+/**
+ * 扩展名只认 jpeg / png 两种。
+ *
+ * 不直接返回 `format`：拼图的导出设置是持久化的，万一存着历史值（比如已经不支持的
+ * webp），按它拼扩展名就会产出后缀与内容不符的文件；这里统一收敛到 png。
+ */
 function extensionOf(format: ExportFormat): string {
-  return format === 'jpeg' ? 'jpg' : format;
+  return format === 'jpeg' ? 'jpg' : 'png';
 }
 
 async function captureElement(
@@ -84,23 +90,56 @@ async function captureElement(
 }
 
 /**
- * 多档导出前确定一次输出目录。
+ * 导出落盘目录：直接取配置里的「保存目录」，导出过程不再弹保存对话框。
  *
- * 拿到目录时全部档位直接落盘；返回 null 时逐档弹出保存对话框
- * （Web 端退化为逐张下载），避免多档 × 多图产生大量弹窗。
+ * 读不到配置（或目录为空）时返回 null，调用方会退回逐张保存对话框兜底；
+ * Web 端没有本地目录的概念，同样返回 null（最终退化为浏览器下载）。
  */
-export async function resolveExportDirectory(presetCount: number): Promise<string | null> {
-  if (presetCount <= 1 || !isNativeWindowAvailable()) {
+export async function resolveExportDirectory(): Promise<string | null> {
+  if (!isNativeWindowAvailable()) {
     return null;
   }
 
-  return openDirectoryDialog();
+  try {
+    const config = await getConfig();
+    return config.save_directory?.trim() || null;
+  } catch (error) {
+    console.warn('读取导出目录失败:', error);
+    return null;
+  }
 }
 
-/** 生成 `名称@宽x高.ext`，同批次内重名时追加序号。 */
+/** 去掉文件名里的路径分隔符与非法字符，避免写到目标目录之外。 */
+function sanitizeFileName(name: string): string {
+  return (
+    [...name]
+      // 控制字符没法写进正则（biome 的 noControlCharactersInRegex 会拦），逐个滤掉
+      .filter((char) => char.charCodeAt(0) >= 0x20)
+      .join('')
+      .replace(/[\\/:*?"<>|]/g, '-')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/\.+$/, '')
+      .slice(0, 120)
+  );
+}
+
+/** 用户手填的名字自带图片扩展名时忽略它，统一按 format 生成，避免出现 `.png.png`。 */
+const IMAGE_EXTENSION_PATTERN = /\.(?:png|jpe?g|webp)$/i;
+
+/**
+ * 生成最终文件名。
+ *
+ * 名字优先用档位自己填的 `fileName`，留空则回落到 `<原图名>@<宽>x<高>`；
+ * 扩展名始终由 `format` 决定，同批次重名时追加序号。
+ */
 function buildFileName(baseName: string, preset: ExportPreset, used: Set<string>): string {
   const ext = extensionOf(preset.format);
-  const stem = `${baseName}@${preset.width}x${preset.height}`;
+  const custom = preset.fileName?.trim();
+  const rawStem = custom
+    ? custom.replace(IMAGE_EXTENSION_PATTERN, '')
+    : `${baseName}@${preset.width}x${preset.height}`;
+  const stem = sanitizeFileName(rawStem) || baseName;
 
   let candidate = `${stem}.${ext}`;
   let index = 2;

@@ -19,7 +19,7 @@ export interface TemplatePhotoConfig {
 }
 
 /** 一键应用的范围：参数脱离所属模板没有意义，因此模板与参数必须一起复制。 */
-export type TemplateApplyScope = 'template' | 'background';
+export type TemplateApplyScope = 'template' | 'background' | 'presets';
 
 function createDefaultConfig(): TemplatePhotoConfig {
   const template = resolveBuiltinTemplate(DEFAULT_TEMPLATE_ID);
@@ -138,17 +138,15 @@ export const useTemplateStore = create<TemplateStoreState>()((set) => ({
         }
 
         const target = configFor(state.configs, photoId);
-        configs[photoId] =
+        // 模板与参数必须一起复制；背景、导出档位各自独立
+        const patch: Partial<TemplatePhotoConfig> =
           scope === 'template'
-            ? {
-                ...target,
-                templateId: source.templateId,
-                params: structuredClone(source.params),
-              }
-            : {
-                ...target,
-                background: structuredClone(source.background),
-              };
+            ? { templateId: source.templateId, params: structuredClone(source.params) }
+            : scope === 'background'
+              ? { background: structuredClone(source.background) }
+              : { presets: structuredClone(source.presets) };
+
+        configs[photoId] = { ...target, ...patch };
         changed = true;
       }
 

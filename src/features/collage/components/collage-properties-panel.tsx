@@ -48,7 +48,6 @@ export function CollagePropertiesPanel({
       presets: [
         {
           id: 'default',
-          label: '默认',
           format: present.exportSettings.format,
           width: Number(width) || fallback.width,
           height: Number(height) || fallback.height,

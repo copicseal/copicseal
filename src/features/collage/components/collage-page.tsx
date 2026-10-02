@@ -3,8 +3,12 @@ import { useRef } from 'react';
 import { prepareElementForSnapshot } from '@/core/renderer';
 import { runScheduledExports } from '@/core/scheduler';
 import { useCollageStore } from '@/features/collage/store/use-collage-store';
-import { exportSingle } from '@/platform';
+import { exportSingle, resolveExportDirectory } from '@/platform';
 import { CoDropZone } from '@/shared/components/co-drop-zone';
+import {
+  notifyExportedDirectory,
+  notifyExportFailed,
+} from '@/shared/components/co-open-directory-link';
 import { CoWindowHeader } from '@/shared/components/co-window-header';
 import { usePhotos } from '@/shared/hooks/use-photos';
 import {
@@ -18,6 +22,9 @@ import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { CollageCanvas, CollagePropertiesPanel, CollageToolbar } from '../exports';
+
+/** 拼图导出文件名的自动命名主干：拼图是整块画布，没有单张原图名可沿用。 */
+const COLLAGE_BASE_NAME = '拼图';
 
 function ImportProgressPanel({
   current,
@@ -257,8 +264,18 @@ export function CollagePage() {
         return;
       }
 
-      await prepareElementForSnapshot(previewRef.current);
-      await exportSingle(previewRef.current, options);
+      try {
+        // 直接写到配置里的「保存目录」，不再弹保存对话框
+        const outputDir = await resolveExportDirectory();
+        await prepareElementForSnapshot(previewRef.current);
+        await exportSingle(previewRef.current, options, undefined, {
+          baseName: COLLAGE_BASE_NAME,
+          outputDir,
+        });
+        notifyExportedDirectory(outputDir);
+      } catch (error) {
+        notifyExportFailed(error);
+      }
     };
 
   const handleExportBatch: Parameters<typeof CollagePropertiesPanel>[0]['onExportBatch'] = async (
@@ -268,16 +285,27 @@ export function CollagePage() {
       return;
     }
 
-    await runScheduledExports({
-      items: photos,
-      runner: async () => {
-        if (!previewRef.current) {
-          return;
-        }
-        await prepareElementForSnapshot(previewRef.current);
-        await exportSingle(previewRef.current, options);
-      },
-    });
+    try {
+      const outputDir = await resolveExportDirectory();
+
+      await runScheduledExports({
+        items: photos,
+        runner: async () => {
+          if (!previewRef.current) {
+            return;
+          }
+          await prepareElementForSnapshot(previewRef.current);
+          await exportSingle(previewRef.current, options, undefined, {
+            baseName: COLLAGE_BASE_NAME,
+            outputDir,
+          });
+        },
+      });
+
+      notifyExportedDirectory(outputDir);
+    } catch (error) {
+      notifyExportFailed(error);
+    }
   };
 
   return (

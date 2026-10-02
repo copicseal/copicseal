@@ -1,6 +1,15 @@
-import { type ReactNode, useState } from 'react';
+import { type CSSProperties, type ReactNode, useState } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/shared/ui/resizable';
+
+/**
+ * 覆盖 `react-resizable-panels` 写死在面板内部 wrapper 上的 `overflow: auto`。
+ *
+ * 那层 wrapper 一旦因为一丁点高度差冒出一条原生滚动条，滚动条就会占掉十几像素宽度、
+ * 把内容挤得更高，从此自锁，表现为面板上同时出现原生滚动条和 ScrollArea 的滚动条。
+ * 面板内的滚动统一交给各业务面板自己的 ScrollArea，这里直接关掉。
+ */
+const PANEL_STYLE: CSSProperties = { overflow: 'hidden' };
 
 export interface BusinessWorkbenchAssetsRenderProps {
   collapsed: boolean;
@@ -30,10 +39,10 @@ export function BusinessWorkbench({
     <div className="flex h-full min-h-0 flex-col bg-background">
       {header}
       <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
-        <ResizablePanel minSize={64} className="min-h-0 min-w-0">
+        <ResizablePanel minSize={64} className="min-h-0 min-w-0" style={PANEL_STYLE}>
           {assetsResizable ? (
             <ResizablePanelGroup orientation="vertical" className="h-full min-h-0 min-w-0">
-              <ResizablePanel minSize={56} className="min-h-0 min-w-0">
+              <ResizablePanel minSize={56} className="min-h-0 min-w-0" style={PANEL_STYLE}>
                 {workspace}
               </ResizablePanel>
               <ResizableHandle withHandle />
@@ -42,6 +51,7 @@ export function BusinessWorkbench({
                 minSize={assetsMinSize}
                 maxSize={300}
                 className="min-h-0 min-w-0"
+                style={PANEL_STYLE}
               >
                 {assets({
                   collapsed: assetsCollapsed,
@@ -67,7 +77,13 @@ export function BusinessWorkbench({
           )}
         </ResizablePanel>
         <ResizableHandle withHandle />
-        <ResizablePanel defaultSize={280} minSize={200} maxSize={400} className="min-h-0 min-w-0">
+        <ResizablePanel
+          defaultSize={280}
+          minSize={200}
+          maxSize={400}
+          className="min-h-0 min-w-0"
+          style={PANEL_STYLE}
+        >
           {properties()}
         </ResizablePanel>
       </ResizablePanelGroup>

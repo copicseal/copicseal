@@ -164,13 +164,6 @@ export function TemplateExportPanel({
 
   return (
     <div className="space-y-3">
-      <div>
-        <h3 className="text-sm font-semibold">导出</h3>
-        <p className="mt-1 text-xs leading-6 text-muted-foreground">
-          每个档位是一组目标尺寸与编码参数。无背景时目标框只作等比约束，有背景时画框精确等于目标尺寸。
-        </p>
-      </div>
-
       <div className="space-y-2">
         {presets.map((preset, index) => (
           <ExportPresetCard

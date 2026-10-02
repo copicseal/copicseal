@@ -1,6 +1,7 @@
 import { Star } from 'lucide-react';
 import { useState } from 'react';
 import { listBuiltinTemplates } from '@/features/template/runtime/template-registry';
+import { CoPanelSection } from '@/shared/components/co-panel-section';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import {
@@ -68,9 +69,9 @@ export function TemplateSelector({ activeTemplateId, onTemplateChange }: Templat
   };
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold">模板</h3>
+    <CoPanelSection
+      title="模板"
+      actions={
         <Button
           type="button"
           variant="ghost"
@@ -82,28 +83,32 @@ export function TemplateSelector({ activeTemplateId, onTemplateChange }: Templat
           <Star data-icon="inline-start" className={cn(activeFavorite && 'fill-current')} />
           {activeFavorite ? '已收藏' : '收藏'}
         </Button>
+      }
+    >
+      <div className="space-y-2">
+        <Select value={activeTemplateId} onValueChange={handleSelect}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="选择模板" />
+          </SelectTrigger>
+          <SelectContent>
+            {/* 下拉项的 4px 内边距来自 SelectGroup（SelectContent 自身没有 p-1），
+                不包一层的话悬浮高亮会贴着弹层边缘。 */}
+            <SelectGroup>
+              {orderedTemplates.map((template) => (
+                <SelectItem key={template.meta.id} value={template.meta.id}>
+                  {template.meta.name}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+
+        {activeTemplate ? (
+          <p className="text-xs leading-5 text-muted-foreground">
+            {activeTemplate.meta.description}
+          </p>
+        ) : null}
       </div>
-
-      <Select value={activeTemplateId} onValueChange={handleSelect}>
-        <SelectTrigger className="w-full">
-          <SelectValue placeholder="选择模板" />
-        </SelectTrigger>
-        <SelectContent>
-          {/* 下拉项的 4px 内边距来自 SelectGroup（SelectContent 自身没有 p-1），
-              不包一层的话悬浮高亮会贴着弹层边缘。 */}
-          <SelectGroup>
-            {orderedTemplates.map((template) => (
-              <SelectItem key={template.meta.id} value={template.meta.id}>
-                {template.meta.name}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-
-      {activeTemplate ? (
-        <p className="text-xs leading-5 text-muted-foreground">{activeTemplate.meta.description}</p>
-      ) : null}
-    </div>
+    </CoPanelSection>
   );
 }

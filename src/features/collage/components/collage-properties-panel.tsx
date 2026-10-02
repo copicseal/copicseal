@@ -6,6 +6,7 @@ import {
   getAspectRatioValue,
 } from '@/features/collage/lib';
 import { useCollageStore } from '@/features/collage/store/use-collage-store';
+import { CoPanelSection } from '@/shared/components/co-panel-section';
 import { usePhotos } from '@/shared/hooks/use-photos';
 import type { ExportOptions } from '@/shared/lib/export-photo';
 import { Button } from '@/shared/ui/button';
@@ -80,15 +81,8 @@ export function CollagePropertiesPanel({
 
   return (
     <div className="space-y-3">
-      <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
-        <div>
-          <h3 className="text-sm font-semibold">布局</h3>
-          <p className="mt-1 text-xs leading-6 text-muted-foreground">
-            控制画布布局、间距与背景样式。
-          </p>
-        </div>
-
-        <div className="mt-4 space-y-4">
+      <CoPanelSection title="布局" description="控制画布布局、间距与背景样式。">
+        <div className="space-y-4">
           <div>
             <span className="text-xs font-medium text-foreground">画布比例</span>
             <div className="mt-2 grid grid-cols-3 gap-2">
@@ -181,20 +175,18 @@ export function CollagePropertiesPanel({
             />
           </div>
         </div>
-      </section>
+      </CoPanelSection>
 
-      <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
-        <div>
-          <h3 className="text-sm font-semibold">选中项</h3>
-          <p className="mt-1 text-xs leading-6 text-muted-foreground">
-            {selectedSlotIndex === null
-              ? '选择画布中的图片区域后，在这里调整单图属性。'
-              : `当前选中第 ${selectedSlotIndex + 1} 个拼图槽位。`}
-          </p>
-        </div>
-
+      <CoPanelSection
+        title="选中项"
+        description={
+          selectedSlotIndex === null
+            ? '点击画布里的图片，可以单独调整它的大小和位置。'
+            : `正在单独调整第 ${selectedSlotIndex + 1} 张图。`
+        }
+      >
         {selectedSlot && selectedSlotIndex !== null ? (
-          <div className="mt-4 space-y-4">
+          <div className="space-y-4">
             <div>
               <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
                 <span>缩放</span>
@@ -266,17 +258,10 @@ export function CollagePropertiesPanel({
             </div>
           </div>
         ) : null}
-      </section>
+      </CoPanelSection>
 
-      <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
-        <div>
-          <h3 className="text-sm font-semibold">导出</h3>
-          <p className="mt-1 text-xs leading-6 text-muted-foreground">
-            与边框水印共用导出参数结构，导出内容来自当前拼图工作区。
-          </p>
-        </div>
-
-        <div className="mt-4 space-y-4">
+      <CoPanelSection title="导出" description="导出参数与「边框水印」一致，导出的是当前拼图。">
+        <div className="space-y-4">
           <div className="grid grid-cols-2 gap-2">
             {(['png', 'jpeg'] as const).map((item) => (
               <button
@@ -362,7 +347,7 @@ export function CollagePropertiesPanel({
             </Button>
           </div>
         </div>
-      </section>
+      </CoPanelSection>
     </div>
   );
 }

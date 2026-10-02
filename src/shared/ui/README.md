@@ -17,11 +17,12 @@ pnpm exec shadcn add <component> --diff <file>   # 升级前看逐行差异
 
 安装 / 升级后必须做的收尾（**不要直接 `--overwrite`**，会冲掉下面的本地改动）：
 
-1. **改 `cn` 的导入**：当前 registry 的组件源码写的是 `import { cn } from 'cn'`，registry 项也声明了
-   `dependencies: ["cn"]` —— 这个 `cn` 是 shadcn 官方新发的 npm 包（clsx + tailwind-merge 的替代品）。
+1. **改 `cn` 的导入**：用到 `cn` 的 registry 项会声明 `dependencies: ["cn"]`，源码里写的是
+   `import { cn } from 'cn'` —— 这个 `cn` 是 shadcn 官方新发的 npm 包（clsx + tailwind-merge 的替代品）。
    本项目沿用自建的 `cn`（`src/shared/lib/utils.ts`），所以装完要把 `'cn'` 改回 `'@/shared/lib/utils'`：
    不改的话，要么多出一个 `cn` 依赖、项目里同时存在两套 `cn` 实现，要么（没装 `cn` 包时）直接报
-   `TS2307: Cannot find module 'cn'`。
+   `TS2307: Cannot find module 'cn'`。源码里没用到 `cn` 的组件（如 `collapsible`）不受这条影响，
+   也不会引入新依赖。
    > 长期方案是统一迁移到 `cn` 包（改 `src/shared/lib/utils.ts` 与全部引用），目前没做，按安装后替换处理。
 2. **删掉 `'use client'`**：项目是 Vite SPA（`rsc: false`），RSC 指令没有意义，统一删除。
 3. **跑一次 `pnpm check`**（`biome check --write`）统一格式。
@@ -53,6 +54,7 @@ pnpm exec shadcn add <component> --diff <file>   # 升级前看逐行差异
 | 2026-10-02 | `tabs.tsx` | 上游新增 `'use client'` | 不同步，按本目录约定本项目不加 RSC 指令 |
 | 2026-10-02 | `dialog.tsx`、`input.tsx`、`resizable.tsx`、`select.tsx` | 与上游一致 | 无需处理 |
 | 2026-10-02 | `button.tsx`、`slider.tsx`、`scroll-area.tsx` | 上游与本地的差异全部来自第二节的本地改动 | 保留本地改动，不覆盖 |
+| 2026-10-02 | `collapsible.tsx` | 新增组件（右侧属性面板的可折叠子面板用） | 按 registry 直接安装，除 biome 格式化外未改动；该组件源码不使用 `cn`，未引入新依赖 |
 
 核对方式：把 `shadcn add` 的输出按第一节的收尾规则处理后，与本目录逐文件 `diff`。
 `radix-mira` 这一版 registry 与本地文件的格式差异（引号、换行、import 分组）由 `biome check --write` 统一，不算改动。

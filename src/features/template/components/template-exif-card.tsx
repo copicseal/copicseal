@@ -45,7 +45,6 @@ export function TemplateExifCard() {
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-semibold">EXIF 信息</h3>
       {loading ? (
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
           <Loader2 className="size-3.5 animate-spin" />

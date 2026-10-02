@@ -2,7 +2,6 @@ import {
   ChevronDown,
   ChevronUp,
   Copy,
-  Download,
   FolderOpen,
   ImageIcon,
   LayoutTemplate,
@@ -23,6 +22,7 @@ import { applyRenderSize } from '@/features/template/lib/render-size';
 import { getBuiltinTemplateSchema } from '@/features/template/runtime/template-registry';
 import { type ExportRunContext, exportSingle, resolveExportDirectory } from '@/platform';
 import { CoDropZone } from '@/shared/components/co-drop-zone';
+import { CoPanelSection } from '@/shared/components/co-panel-section';
 import { CoWindowHeader } from '@/shared/components/co-window-header';
 import { usePhotos } from '@/shared/hooks/use-photos';
 import {
@@ -84,19 +84,7 @@ function ImportProgressPanel({
 }
 
 function TemplateHeader() {
-  return (
-    <CoWindowHeader
-      icon={LayoutTemplate}
-      title="边框水印"
-      description="模板渲染与导出"
-      actions={
-        <Button size="sm">
-          <Download data-icon="inline-start" />
-          导出
-        </Button>
-      }
-    />
-  );
+  return <CoWindowHeader icon={LayoutTemplate} title="边框水印" description="模板渲染与导出" />;
 }
 
 function TemplateAssetsPanel({
@@ -425,82 +413,95 @@ function TemplatePropertiesPanel({
   if (!hasPhoto) {
     return (
       <BusinessWorkbenchPropertiesPane>
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-          <section className="border border-border/80 bg-background/70 px-4 py-4 text-xs leading-6 text-muted-foreground shadow-sm">
-            导入图片后即可调整这张照片的模板、参数、背景与导出档位。
-          </section>
-        </div>
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="px-3 py-3">
+            <section className="border border-border/80 bg-background/70 px-4 py-4 text-xs leading-6 text-muted-foreground shadow-sm">
+              导入图片后即可调整这张照片的模板、参数、背景与导出档位。
+            </section>
+          </div>
+        </ScrollArea>
       </BusinessWorkbenchPropertiesPane>
     );
   }
 
   return (
     <BusinessWorkbenchPropertiesPane>
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-        <div className="space-y-3">
-          <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
-            <TemplateSelector
-              activeTemplateId={activeTemplateId}
-              onTemplateChange={onTemplateChange}
-            />
-          </section>
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="space-y-3 px-3 py-3">
+          <TemplateSelector
+            activeTemplateId={activeTemplateId}
+            onTemplateChange={onTemplateChange}
+          />
           {templateSchema ? (
-            <section className="space-y-3 border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
+            <CoPanelSection
+              title="模板参数"
+              description="每个模板有自己的可调项，换了模板就会回到新模板的默认值。"
+              defaultOpen={false}
+            >
+              <div className="space-y-3">
+                <TemplatePropsPanel
+                  schema={templateSchema}
+                  value={templateParams}
+                  onChange={onTemplateParamsChange}
+                />
+                {otherPhotoCount > 0 ? (
+                  <ApplyToOthersButton
+                    label="模板与参数应用到其他"
+                    count={otherPhotoCount}
+                    onClick={() => onApplyToOthers('template')}
+                  />
+                ) : null}
+              </div>
+            </CoPanelSection>
+          ) : null}
+          <CoPanelSection
+            title="背景"
+            description="起始值随模板变化，可按当前照片单独调整。"
+            defaultOpen={false}
+          >
+            <div className="space-y-3">
               <TemplatePropsPanel
-                schema={templateSchema}
-                value={templateParams}
-                onChange={onTemplateParamsChange}
+                schema={{ fields: TEMPLATE_BACKGROUND_FIELDS }}
+                value={background}
+                onChange={(next) => onBackgroundChange(toTemplateBackground(next))}
+                extras={{
+                  // 主题色盘只挂在颜色字段下：该字段本身只在纯色模式可见
+                  color: (
+                    <PhotoPalettePicker
+                      colors={palette.colors}
+                      selected={background.color}
+                      loading={palette.loading}
+                      failed={palette.failed}
+                      onPick={(color) => onBackgroundChange({ ...background, color })}
+                    />
+                  ),
+                }}
               />
               {otherPhotoCount > 0 ? (
                 <ApplyToOthersButton
-                  label="模板与参数应用到其他"
+                  label="背景应用到其他"
                   count={otherPhotoCount}
-                  onClick={() => onApplyToOthers('template')}
+                  onClick={() => onApplyToOthers('background')}
                 />
               ) : null}
-            </section>
-          ) : null}
-          <section className="space-y-3 border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
-            <TemplatePropsPanel
-              schema={{ fields: TEMPLATE_BACKGROUND_FIELDS }}
-              value={background}
-              onChange={(next) => onBackgroundChange(toTemplateBackground(next))}
-              title="背景"
-              description="默认值来自当前模板，可自行调整。"
-              extras={{
-                // 主题色盘只挂在颜色字段下：该字段本身只在纯色模式可见
-                color: (
-                  <PhotoPalettePicker
-                    colors={palette.colors}
-                    selected={background.color}
-                    loading={palette.loading}
-                    failed={palette.failed}
-                    onPick={(color) => onBackgroundChange({ ...background, color })}
-                  />
-                ),
-              }}
-            />
-            {otherPhotoCount > 0 ? (
-              <ApplyToOthersButton
-                label="背景应用到其他"
-                count={otherPhotoCount}
-                onClick={() => onApplyToOthers('background')}
-              />
-            ) : null}
-          </section>
-          <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
+            </div>
+          </CoPanelSection>
+          <CoPanelSection
+            title="导出"
+            description="每个档位保存一组尺寸和画质设置。没有背景时按比例套用目标尺寸，正方形画面配 1280×720 会导出 720×720；有背景时成片尺寸就是设定的宽高。"
+          >
             <TemplateExportPanel
               presets={presets}
               onPresetsChange={onPresetsChange}
               onExportCurrent={onExportCurrent}
               onExportBatch={onExportBatch}
             />
-          </section>
-          <section className="border border-border/80 bg-background/70 px-4 py-4 shadow-sm">
+          </CoPanelSection>
+          <CoPanelSection title="EXIF 信息">
             <TemplateExifCard />
-          </section>
+          </CoPanelSection>
         </div>
-      </div>
+      </ScrollArea>
     </BusinessWorkbenchPropertiesPane>
   );
 }

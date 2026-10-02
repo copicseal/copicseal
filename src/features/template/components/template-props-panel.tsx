@@ -16,9 +16,6 @@ interface TemplatePropsPanelProps {
   schema: TemplateSchema;
   value: Record<string, unknown>;
   onChange: (next: Record<string, unknown>) => void;
-  /** 分区标题，缺省用于模板参数 */
-  title?: string;
-  description?: string;
   /**
    * 字段附加控件：由调用方按字段 key 提供，渲染在该字段控件之后。
    *
@@ -140,40 +137,27 @@ function TemplateFieldControl({ field, value, onChange, extra }: TemplateFieldCo
 /**
  * 由 schema 生成属性表单，不维护任何专用表单。
  *
- * 模板参数与背景共用这一个生成器：两者的字段描述同构，区别只在数据来源与标题。
+ * 模板参数与背景共用这一个生成器：两者的字段描述同构，区别只在数据来源；
+ * 分区标题、描述与折叠由外层的 CoPanelSection 负责。
  */
-export function TemplatePropsPanel({
-  schema,
-  value,
-  onChange,
-  title = '模板参数',
-  description = '参数由当前模板自己的 propsSchema 生成，切换模板后会重置为该模板的默认值。',
-  extras,
-}: TemplatePropsPanelProps) {
+export function TemplatePropsPanel({ schema, value, onChange, extras }: TemplatePropsPanelProps) {
   const updateField = (key: string, nextValue: unknown) => {
     onChange({ ...value, [key]: nextValue });
   };
 
   return (
     <div className="space-y-3">
-      <div>
-        <h3 className="text-sm font-semibold">{title}</h3>
-        <p className="mt-1 text-xs leading-6 text-muted-foreground">{description}</p>
-      </div>
-
-      <div className="space-y-3">
-        {schema.fields
-          .filter((field) => isFieldVisible(field, value))
-          .map((field) => (
-            <TemplateFieldControl
-              key={field.key}
-              field={field}
-              value={value[field.key]}
-              onChange={updateField}
-              extra={extras?.[field.key]}
-            />
-          ))}
-      </div>
+      {schema.fields
+        .filter((field) => isFieldVisible(field, value))
+        .map((field) => (
+          <TemplateFieldControl
+            key={field.key}
+            field={field}
+            value={value[field.key]}
+            onChange={updateField}
+            extra={extras?.[field.key]}
+          />
+        ))}
     </div>
   );
 }

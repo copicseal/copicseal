@@ -176,12 +176,12 @@ Collage 页面的当前工作状态：
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | id | string | 档位标识 |
-| label | string | 档位名称 |
-| format | `png` \| `jpeg` \| `webp` | 导出格式 |
+| fileName | string \| 缺省 | 导出文件名（不含扩展名）；缺省表示按目标尺寸自动命名 |
+| format | `png` \| `jpeg` | 导出格式；WebP 暂不支持，原因见 [04 导出系统](./04-export-system.md) |
 | width | number | 目标框宽度（像素），必填 |
 | height | number | 目标框高度（像素），必填 |
 | scale | number | 位图倍率，在解算尺寸之上超采样 |
-| quality | number | 图片质量，仅 JPEG / WebP 生效 |
+| quality | number | 图片质量，仅 JPEG 生效 |
 
 尺寸解算规则见 [04 导出系统](./04-export-system.md)。
 

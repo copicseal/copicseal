@@ -3,7 +3,14 @@ import { useState } from 'react';
 import { listBuiltinTemplates } from '@/features/template/runtime/template-registry';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui/select';
 
 interface TemplateSelectorProps {
   activeTemplateId: string;
@@ -82,11 +89,15 @@ export function TemplateSelector({ activeTemplateId, onTemplateChange }: Templat
           <SelectValue placeholder="选择模板" />
         </SelectTrigger>
         <SelectContent>
-          {orderedTemplates.map((template) => (
-            <SelectItem key={template.meta.id} value={template.meta.id}>
-              {template.meta.name}
-            </SelectItem>
-          ))}
+          {/* 下拉项的 4px 内边距来自 SelectGroup（SelectContent 自身没有 p-1），
+              不包一层的话悬浮高亮会贴着弹层边缘。 */}
+          <SelectGroup>
+            {orderedTemplates.map((template) => (
+              <SelectItem key={template.meta.id} value={template.meta.id}>
+                {template.meta.name}
+              </SelectItem>
+            ))}
+          </SelectGroup>
         </SelectContent>
       </Select>
 

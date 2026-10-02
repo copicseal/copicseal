@@ -41,6 +41,7 @@ import { useWindowStyle } from '@/shared/providers/window-style-provider';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/shared/ui/radio-group';
+import { ScrollArea } from '@/shared/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -781,8 +782,8 @@ export function SettingsPage() {
           })}
         </TabsList>
 
-        <div className="min-h-0 flex-1 overflow-y-auto pl-4">
-          <div className="mx-auto w-full max-w-5xl">
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="mx-auto w-full max-w-5xl pl-4">
             <TabsContent value="general" className="mt-0">
               <GeneralTab config={config} onSelectSaveDirectory={handleSelectSaveDirectory} />
             </TabsContent>
@@ -834,7 +835,7 @@ export function SettingsPage() {
               <AboutTab />
             </TabsContent>
           </div>
-        </div>
+        </ScrollArea>
       </Tabs>
     </div>
   );

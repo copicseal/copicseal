@@ -16,6 +16,7 @@ import {
 import { selectPhotosViaDialog } from '@/shared/lib/import-photo';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
+import { ScrollArea } from '@/shared/ui/scroll-area';
 import { CollageCanvas, CollagePropertiesPanel, CollageToolbar } from '../exports';
 
 function ImportProgressPanel({
@@ -237,9 +238,11 @@ function CollagePropertiesPane({
 }) {
   return (
     <BusinessWorkbenchPropertiesPane>
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-        <CollagePropertiesPanel onExportCurrent={onExportCurrent} onExportBatch={onExportBatch} />
-      </div>
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="px-3 py-3">
+          <CollagePropertiesPanel onExportCurrent={onExportCurrent} onExportBatch={onExportBatch} />
+        </div>
+      </ScrollArea>
     </BusinessWorkbenchPropertiesPane>
   );
 }

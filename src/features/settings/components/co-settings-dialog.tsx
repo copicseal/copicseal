@@ -25,6 +25,7 @@ import {
 } from '@/shared/ui/dialog';
 import { Input } from '@/shared/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/shared/ui/radio-group';
+import { ScrollArea } from '@/shared/ui/scroll-area';
 import {
   Select,
   SelectContent,
@@ -298,17 +299,19 @@ export function CoSettingsDialog({ open, onOpenChange, defaultTab }: CoSettingsD
             })}
           </TabsList>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-3 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-muted-foreground/20 [&::-webkit-scrollbar-track]:bg-transparent">
-            {TABS.map((tab) => (
-              <TabsContent key={tab.id} value={tab.id} className="mt-0">
-                {tab.id === 'general' && <GeneralTab />}
-                {tab.id === 'export-presets' && <ExportPresetsTab />}
-                {tab.id === 'template-presets' && <TemplatePresetsTab />}
-                {tab.id === 'device-database' && <DeviceDatabaseTab />}
-                {tab.id === 'about' && <AboutTab />}
-              </TabsContent>
-            ))}
-          </div>
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="px-5 py-3">
+              {TABS.map((tab) => (
+                <TabsContent key={tab.id} value={tab.id} className="mt-0">
+                  {tab.id === 'general' && <GeneralTab />}
+                  {tab.id === 'export-presets' && <ExportPresetsTab />}
+                  {tab.id === 'template-presets' && <TemplatePresetsTab />}
+                  {tab.id === 'device-database' && <DeviceDatabaseTab />}
+                  {tab.id === 'about' && <AboutTab />}
+                </TabsContent>
+              ))}
+            </div>
+          </ScrollArea>
         </Tabs>
       </DialogContent>
     </Dialog>

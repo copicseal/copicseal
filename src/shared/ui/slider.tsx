@@ -38,10 +38,15 @@ function Slider({
           className="absolute bg-primary select-none data-horizontal:h-full data-vertical:w-full"
         />
       </SliderPrimitive.Track>
-      {_values.map((sliderValue) => (
+      {/*
+        thumb 的身份只跟顺序有关，所以只能用下标做 key：一旦把滑块的当前值写进 key，
+        每次数值变化都会换掉 DOM 节点，拖动到一半就断（表现为按住不放再拖没反应）。
+      */}
+      {Array.from({ length: _values.length }, (_, index) => (
         <SliderPrimitive.Thumb
           data-slot="slider-thumb"
-          key={`thumb-${sliderValue}-${_values.length}`}
+          // biome-ignore lint/suspicious/noArrayIndexKey: thumb 是位置固定的列表项，不会重排
+          key={index}
           className="relative block size-3 shrink-0 rounded-md border border-ring bg-white ring-ring/30 transition-[color,box-shadow] select-none after:absolute after:-inset-2 hover:ring-2 focus-visible:ring-2 focus-visible:outline-hidden active:ring-2 disabled:pointer-events-none disabled:opacity-50"
         />
       ))}

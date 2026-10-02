@@ -37,7 +37,6 @@ pnpm exec shadcn add <component> --diff <file>   # 升级前看逐行差异
 | 组件 | 改了什么 | 为什么 | 应用于什么地方 |
 |------|----------|--------|----------------|
 | `button.tsx` | 新增 variant `plain: 'text-muted-foreground hover:text-foreground'` | 需要"看着像纯文本"的图标按钮：无背景无边框，hover 才变色，语义上仍是 `<button>` 而不是链接 | [template-page.tsx:151](../../features/template/components/template-page.tsx#L151) 素材面板收起/展开按钮；[template-export-panel.tsx:44](../../features/template/components/template-export-panel.tsx#L44) 导出预设的删除按钮 |
-| `slider.tsx` | Thumb 的 key 由 `key={index}` 改为 `` key={`thumb-${sliderValue}-${_values.length}`} ``，渲染方式由 `Array.from({ length })` 改回 `_values.map` | 规避 biome `suspicious/noArrayIndexKey`；用值而不是下标做 key | 全部滑块：[settings-page.tsx:422](../../features/settings/settings-page.tsx#L422)、[template-export-panel.tsx:94](../../features/template/components/template-export-panel.tsx#L94)、[collage-properties-panel.tsx:117](../../features/collage/components/collage-properties-panel.tsx#L117) 等 |
 | `scroll-area.tsx` | 新增 4 个可选 prop：`scrollbarOrientation`、`horizontalWheelScroll`、`viewportClassName`、`viewportRef`；滚动条渲染改为按 `scrollbarOrientation` 条件渲染 | ① `viewportRef` 把 Viewport 的 ref 透出给 `useElementSize` 测量可用区（视口尺寸只由容器决定、与滚动内容无关，不会形成测量回环）；② `scrollbarOrientation: 'none'` 用于滚动位置由业务自己控制的场景；③ `viewportClassName` 给 Viewport 补类名（如 `[&>div]:h-full`）；④ `horizontalWheelScroll` 把纵向滚轮转成横向滚动，用于横向素材条 | [template-preview.tsx:162](../../features/template/components/template-preview.tsx#L162) 预览视口测量与导出时隐藏滚动条；[template-page.tsx:171](../../features/template/components/template-page.tsx#L171) 收起态横向素材条；[template-page.tsx:288](../../features/template/components/template-page.tsx#L288) 底部横向素材列表 |
 | `tooltip.tsx` | **整文件是本地实现，不是 registry 版本**：`delayDuration` 默认 `120`（registry 为 `0`）、`TooltipContent` 默认 `side='right'` / `sideOffset={10}`、样式用 `bg-popover` + `border` + `text-popover-foreground`，去掉了 registry 的箭头、`data-slot` 与深色气泡样式 | 素材面板的提示要浅色气泡、右侧出现、延迟稍长以免划过时闪烁 | [template-page.tsx:145](../../features/template/components/template-page.tsx#L145) 起的素材面板与素材列表提示 |
 | `toaster.tsx` | 保留旧版 sonner 包装（`className="toaster group"` + `group-[.toaster]:*` 类名），当前 registry 已不再提供该文件 | 当前 registry 对应的是 `sonner.tsx`（依赖 `next-themes`），迁移会牵动主题来源，暂不在本次范围内 | [app.tsx:14](../../app/app.tsx#L14)、[app.tsx:121](../../app/app.tsx#L121) 全局 toast 容器 |
@@ -53,7 +52,8 @@ pnpm exec shadcn add <component> --diff <file>   # 升级前看逐行差异
 | 2026-10-02 | `accordion.tsx`、`avatar.tsx`、`dropdown-menu.tsx` | 组件本身与上游一致，但全仓库无引用 | 已删除，减少后续升级的核对量 |
 | 2026-10-02 | `tabs.tsx` | 上游新增 `'use client'` | 不同步，按本目录约定本项目不加 RSC 指令 |
 | 2026-10-02 | `dialog.tsx`、`input.tsx`、`resizable.tsx`、`select.tsx` | 与上游一致 | 无需处理 |
-| 2026-10-02 | `button.tsx`、`slider.tsx`、`scroll-area.tsx` | 上游与本地的差异全部来自第二节的本地改动 | 保留本地改动，不覆盖 |
+| 2026-10-03 | `slider.tsx` | 之前把 Thumb 的 key 从 `key={index}` 改成了 `key={`thumb-${值}-${个数}`}` | **已回退**：thumb 的身份只跟顺序有关，而值会在拖动时不断变化，用值做 key 等于每次改动都换掉 DOM 节点，滑块按住一拖就断，只能动一次。现在与上游一致地用下标（配一句 `biome-ignore` 说明），并留了注释防止再被改回去 |
+| 2026-10-02 | `button.tsx`、`scroll-area.tsx` | 上游与本地的差异全部来自第二节的本地改动 | 保留本地改动，不覆盖 |
 | 2026-10-02 | `collapsible.tsx` | 新增组件（右侧属性面板的可折叠子面板用） | 按 registry 直接安装，除 biome 格式化外未改动；该组件源码不使用 `cn`，未引入新依赖 |
 
 核对方式：把 `shadcn add` 的输出按第一节的收尾规则处理后，与本目录逐文件 `diff`。

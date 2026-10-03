@@ -144,3 +144,19 @@
 body {
   background-color: transparent;
 }
+
+/* 从提示跳进设置页时，目标设置项闪一下底色，指明落点（见 SettingsPage 的 hash 定位）。 */
+@keyframes co-anchor-flash {
+  0%,
+  55% {
+    background-color: color-mix(in oklch, var(--color-primary) 12%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.co-anchor-flash {
+  animation: co-anchor-flash 1.6s ease-out;
+  border-radius: var(--radius);
+}

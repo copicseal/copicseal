@@ -8,6 +8,7 @@ import { platformCapabilities } from '@/platform';
 import { platformRuntime } from '@/platform/providers/platform-runtime';
 import { CoSidebar } from '@/shared/components/co-sidebar';
 import { cn } from '@/shared/lib/utils';
+import { NavigationProvider } from '@/shared/providers/navigation-provider';
 import { PageActivityProvider } from '@/shared/providers/page-activity-provider';
 import { PhotoProvider } from '@/shared/providers/photo-provider';
 import { useWindowStyle, WindowStyleProvider } from '@/shared/providers/window-style-provider';
@@ -79,8 +80,9 @@ function AppContent() {
   // 首次进入某页时 render 早于上面的 effect，这里先补上当前页，避免闪一帧空白。
   const renderedRoutes = visitedRoutes.includes(route) ? visitedRoutes : [...visitedRoutes, route];
 
-  const handleRouteChange = (nextRoute: AppRoute) => {
-    navigate(nextRoute);
+  // targetId 会写进地址栏 hash，由目标页读取后定位到对应设置项
+  const handleRouteChange = (nextRoute: AppRoute, targetId?: string) => {
+    navigate(nextRoute, targetId);
     setRoute(nextRoute);
   };
 
@@ -94,31 +96,35 @@ function AppContent() {
       data-window-frame-mode={frameMode}
     >
       <CoSidebar route={route} onRouteChange={handleRouteChange} />
-      <div className="relative min-h-0 min-w-0 flex-1">
-        {renderedRoutes.map((pageRoute) => {
-          const active = pageRoute === route;
+      <NavigationProvider onNavigate={handleRouteChange}>
+        <div className="relative min-h-0 min-w-0 flex-1">
+          {renderedRoutes.map((pageRoute) => {
+            const active = pageRoute === route;
 
-          return (
-            <PageActivityProvider key={pageRoute} active={active}>
-              {/*
-                隐藏页用 visibility 而非 display 保留布局：预览自适应、面板尺寸与滚动位置
-                都依赖真实布局尺寸，保留布局可以让切回时不需要重新测量。
-              */}
-              <div
-                className={cn(
-                  'absolute inset-0 h-full w-full',
-                  !active && 'pointer-events-none invisible',
-                )}
-                aria-hidden={!active}
-                inert={!active}
-              >
-                {renderPage(pageRoute)}
-              </div>
-            </PageActivityProvider>
-          );
-        })}
-      </div>
-      <Toaster />
+            return (
+              <PageActivityProvider key={pageRoute} active={active}>
+                {/*
+                  隐藏页用 visibility 而非 display 保留布局：预览自适应、面板尺寸与滚动位置
+                  都依赖真实布局尺寸，保留布局可以让切回时不需要重新测量。
+                */}
+                <div
+                  className={cn(
+                    'absolute inset-0 h-full w-full',
+                    !active && 'pointer-events-none invisible',
+                  )}
+                  aria-hidden={!active}
+                  inert={!active}
+                >
+                  {renderPage(pageRoute)}
+                </div>
+              </PageActivityProvider>
+            );
+          })}
+        </div>
+        {/* Toaster 放在 Provider 内部：toast 的描述节点由 Toaster 渲染，上下文按渲染
+            位置解析，放外面的话里面的「更改」跳转按钮拿不到导航函数 */}
+        <Toaster />
+      </NavigationProvider>
     </div>
   );
 }

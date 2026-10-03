@@ -37,6 +37,7 @@ const {
 
 import { CoWindowHeader } from '@/shared/components/co-window-header';
 import { cn } from '@/shared/lib/utils';
+import { usePageActive } from '@/shared/providers/page-activity-provider';
 import { useWindowStyle } from '@/shared/providers/window-style-provider';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -63,11 +64,22 @@ const TABS = [
   { id: 'about', label: '关于', icon: Info },
 ] as const;
 
+/** 工作区目录下的默认缓存目录；缓存没被单独改过时会跟着工作区目录走。 */
 function defaultCacheDirectory(saveDirectory: string): string {
   const separator = saveDirectory.includes('\\') ? '\\' : '/';
   const normalized = saveDirectory.replace(/[\\/]+$/, '');
   return `${normalized}${separator}cache`;
 }
+
+/**
+ * 跳转锚点 id → 它所在的设置 tab。
+ *
+ * 地址栏 hash 只带元素 id，落到别的 tab 里时需要先把 tab 切过去，
+ * 否则元素虽然存在（Radix Tabs 未激活时不渲染）却定位不到。
+ */
+const ANCHOR_TABS: Record<string, string> = {
+  'export-directory': 'export',
+};
 
 /** 清理缓存时被保留下来的在用量提示；没有在使用的素材时不追加。 */
 function keepNote(count: number): string {
@@ -112,16 +124,22 @@ function FieldGroup({
 }
 
 function SettingField({
+  id,
   label,
   description,
   children,
 }: {
+  /** 锚点 id：从别处（例如导出完成提示里的「更改」）跳进来时用来定位 */
+  id?: string;
   label: string;
   description: string;
   children: React.ReactNode;
 }) {
   return (
-    <div className="grid gap-3 border-t border-border/70 py-4 first:border-t-0 first:pt-0 md:grid-cols-[220px_minmax(0,1fr)]">
+    <div
+      id={id}
+      className="grid gap-3 border-t border-border/70 py-4 first:border-t-0 first:pt-0 md:grid-cols-[220px_minmax(0,1fr)]"
+    >
       <div>
         <p className="text-sm font-medium text-foreground">{label}</p>
         <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
@@ -269,10 +287,12 @@ function PlaceholderTab({
 
 function GeneralTab({
   config,
-  onSelectSaveDirectory,
+  onSelectWorkspaceDirectory,
+  onOpenWorkspaceDirectory,
 }: {
   config: AppConfig;
-  onSelectSaveDirectory: () => Promise<void>;
+  onSelectWorkspaceDirectory: () => Promise<void>;
+  onOpenWorkspaceDirectory: () => Promise<void>;
 }) {
   const { frameMode, frameModePending, setFrameMode } = useWindowStyle();
 
@@ -332,22 +352,65 @@ function GeneralTab({
         </SettingField>
 
         <SettingField
-          label="默认保存目录"
-          description="缓存目录默认位于该目录下的 cache 文件夹。修改后如果缓存目录仍是默认值，会一起跟随更新。"
+          label="工作区目录"
+          description="应用自己的数据目录，缓存目录默认位于它下面的 cache 文件夹。修改后如果缓存目录仍是默认值，会一起跟随更新。"
         >
           <div className="flex max-w-3xl items-center gap-2">
             <Input value={config.save_directory} readOnly />
-            <Button variant="outline" onClick={() => void onSelectSaveDirectory()}>
+            <Button variant="outline" onClick={() => void onOpenWorkspaceDirectory()}>
+              <FolderOpen data-icon="inline-start" />
+              打开
+            </Button>
+            <Button variant="outline" onClick={() => void onSelectWorkspaceDirectory()}>
               <FolderOpen data-icon="inline-start" />
               选择
             </Button>
           </div>
         </SettingField>
+      </FieldGroup>
+    </div>
+  );
+}
 
-        <SettingField label="默认导出目录" description="导出默认使用当前保存目录。">
-          <Input value={config.output.default_path} readOnly className="max-w-3xl" />
+function ExportTab({
+  config,
+  onSelectExportDirectory,
+  onOpenExportDirectory,
+}: {
+  config: AppConfig;
+  onSelectExportDirectory: () => Promise<void>;
+  onOpenExportDirectory: () => Promise<void>;
+}) {
+  return (
+    <div className="space-y-4">
+      <FieldGroup title="导出" description="导出成品的落盘位置；导出过程不会再弹保存对话框。">
+        <SettingField
+          id="export-directory"
+          label="文件导出目录"
+          description="导出的图片直接写到这个目录，文件名由导出面板里的档位决定。"
+        >
+          <div className="flex max-w-3xl items-center gap-2">
+            <Input value={config.output.default_path} readOnly />
+            <Button variant="outline" onClick={() => void onOpenExportDirectory()}>
+              <FolderOpen data-icon="inline-start" />
+              打开
+            </Button>
+            <Button variant="outline" onClick={() => void onSelectExportDirectory()}>
+              <FolderOpen data-icon="inline-start" />
+              选择
+            </Button>
+          </div>
         </SettingField>
       </FieldGroup>
+
+      <PlaceholderTab
+        title="导出默认项"
+        description="默认格式、倍率与质量仍保持占位状态，目前这些参数在导出面板里按档位单独设置。"
+        cards={[
+          { title: '默认导出格式', description: '后续与导出管线默认值联动。' },
+          { title: '默认倍率与质量', description: '后续与导出面板联动。' },
+        ]}
+      />
     </div>
   );
 }
@@ -557,6 +620,8 @@ function AboutTab() {
 }
 
 export function SettingsPage() {
+  const pageActive = usePageActive();
+  const [tab, setTab] = useState('general');
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [overview, setOverview] = useState<CacheOverview | null>(null);
   const [loading, setLoading] = useState(true);
@@ -600,7 +665,41 @@ export function SettingsPage() {
     }
   }, []);
 
-  const handleSelectSaveDirectory = useCallback(async () => {
+  // 从别处跳进来时（例如导出完成提示里的「更改」）滚到目标设置项并闪一下，
+  // 让用户一眼看到该改哪里。地址栏 hash 由导航写入，读完即清掉。
+  useEffect(() => {
+    if (!pageActive || loading) {
+      return;
+    }
+
+    const targetId = window.location.hash.replace(/^#/, '');
+    if (!targetId) {
+      return;
+    }
+
+    // 目标可能在别的 tab 里：Radix 不会渲染未激活的 TabsContent，
+    // 不先切过去就找不到元素。切完 tab 后这次 effect 会重跑。
+    const targetTab = ANCHOR_TABS[targetId];
+    if (targetTab && targetTab !== tab) {
+      setTab(targetTab);
+      return;
+    }
+
+    const element = document.getElementById(targetId);
+    if (!element) {
+      // 目标尚未渲染时不消费 hash，等内容就绪后这次 effect 会重跑
+      return;
+    }
+
+    window.history.replaceState({}, '', window.location.pathname);
+    element.scrollIntoView({ block: 'center' });
+    element.classList.add('co-anchor-flash');
+    const timer = window.setTimeout(() => element.classList.remove('co-anchor-flash'), 1600);
+
+    return () => window.clearTimeout(timer);
+  }, [pageActive, loading, tab]);
+
+  const handleSelectWorkspaceDirectory = useCallback(async () => {
     if (!config) {
       return;
     }
@@ -610,28 +709,72 @@ export function SettingsPage() {
       return;
     }
 
+    // 缓存目录默认跟着工作区目录走，但只在这个值还是默认值时才跟随
     const followsDefaultCache =
       config.cache.directory === defaultCacheDirectory(config.save_directory);
-    const nextConfig: AppConfig = {
-      ...config,
-      save_directory: selected,
-      output: {
-        ...config.output,
-        default_path: selected,
-      },
-      cache: followsDefaultCache
-        ? {
-            ...config.cache,
-            directory: defaultCacheDirectory(selected),
-          }
-        : config.cache,
-    };
 
     await withCacheAction(async () => {
-      await saveConfig(nextConfig);
-      toast.success('默认保存目录已更新');
+      await saveConfig({
+        ...config,
+        save_directory: selected,
+        cache: followsDefaultCache
+          ? {
+              ...config.cache,
+              directory: defaultCacheDirectory(selected),
+            }
+          : config.cache,
+      });
+      toast.success('工作区目录已更新');
     });
   }, [config, saveConfig, withCacheAction]);
+
+  const handleOpenWorkspaceDirectory = useCallback(async () => {
+    if (!config) {
+      return;
+    }
+
+    try {
+      await openDirectory(config.save_directory);
+    } catch (error) {
+      console.error('Open workspace directory failed:', error);
+      toast.error('打开工作区目录失败');
+    }
+  }, [config]);
+
+  const handleSelectExportDirectory = useCallback(async () => {
+    if (!config) {
+      return;
+    }
+
+    const selected = await openDirectoryDialog();
+    if (!selected || Array.isArray(selected)) {
+      return;
+    }
+
+    try {
+      await saveConfig({
+        ...config,
+        output: { ...config.output, default_path: selected },
+      });
+      toast.success('文件导出目录已更新');
+    } catch (error) {
+      console.error('Update export directory failed:', error);
+      toast.error('更新文件导出目录失败');
+    }
+  }, [config, saveConfig]);
+
+  const handleOpenExportDirectory = useCallback(async () => {
+    if (!config) {
+      return;
+    }
+
+    try {
+      await openDirectory(config.output.default_path);
+    } catch (error) {
+      console.error('Open export directory failed:', error);
+      toast.error('打开文件导出目录失败');
+    }
+  }, [config]);
 
   const handleSelectCacheDirectory = useCallback(async () => {
     if (!config) {
@@ -769,7 +912,13 @@ export function SettingsPage() {
         description="管理软件行为、缓存目录、缩略图生成与自动清理策略。"
       />
 
-      <Tabs defaultValue="general" orientation="vertical" className="min-h-0 flex-1 p-4">
+      {/* 受控 tab：从提示跳进来时（hash 锚点）需要先切到目标所在的 tab */}
+      <Tabs
+        value={tab}
+        onValueChange={setTab}
+        orientation="vertical"
+        className="min-h-0 flex-1 p-4"
+      >
         <TabsList variant="line" className="w-56 shrink-0 border border-border/80 bg-card p-3">
           {TABS.map((tab) => {
             const Icon = tab.icon;
@@ -785,7 +934,11 @@ export function SettingsPage() {
         <ScrollArea className="min-h-0 flex-1">
           <div className="mx-auto w-full max-w-5xl pl-4">
             <TabsContent value="general" className="mt-0">
-              <GeneralTab config={config} onSelectSaveDirectory={handleSelectSaveDirectory} />
+              <GeneralTab
+                config={config}
+                onSelectWorkspaceDirectory={handleSelectWorkspaceDirectory}
+                onOpenWorkspaceDirectory={handleOpenWorkspaceDirectory}
+              />
             </TabsContent>
             <TabsContent value="template" className="mt-0">
               <PlaceholderTab
@@ -808,13 +961,10 @@ export function SettingsPage() {
               />
             </TabsContent>
             <TabsContent value="export" className="mt-0">
-              <PlaceholderTab
-                title="导出"
-                description="导出默认项仍保持占位状态，本次优先落地素材缓存链路。"
-                cards={[
-                  { title: '默认导出格式', description: '后续与导出管线默认值联动。' },
-                  { title: '默认倍率与质量', description: '后续与导出面板联动。' },
-                ]}
+              <ExportTab
+                config={config}
+                onSelectExportDirectory={handleSelectExportDirectory}
+                onOpenExportDirectory={handleOpenExportDirectory}
               />
             </TabsContent>
             <TabsContent value="cache" className="mt-0">

@@ -5,12 +5,13 @@ import {
   Database,
   Download,
   Info,
+  type LucideIcon,
   Palette,
   RefreshCw,
   Settings2,
   Trash2,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import {
   type AppConfig,
@@ -54,14 +55,48 @@ import { Slider } from '@/shared/ui/slider';
 import { Switch } from '@/shared/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
 
-const TABS = [
-  { id: 'general', label: '通用', icon: Cog },
-  { id: 'template', label: '边框水印', icon: Box },
-  { id: 'collage', label: '拼图', icon: Palette },
-  { id: 'export', label: '导出', icon: Download },
-  { id: 'cache', label: '缓存', icon: Database },
-  { id: 'about', label: '关于', icon: Info },
-] as const;
+interface SettingsTab {
+  id: string;
+  label: string;
+  /** 只有一级 tab 带图标；二级 tab 靠缩进表达层级，不再重复图标 */
+  icon?: LucideIcon;
+}
+
+interface SettingsTabGroup {
+  /** 有 label 就是分组：标题不可点，内容放在子项里 */
+  label?: string;
+  icon?: LucideIcon;
+  items: SettingsTab[];
+}
+
+/**
+ * 侧边 tab 的两级结构。
+ *
+ * 只对某个功能生效的设置挂在功能下面（如「边框水印 → 导出」），不和全局设置混在
+ * 一起；纯分组标题不可点，避免出现"父级有内容、子级也有内容"的双份入口。
+ */
+const TAB_GROUPS: SettingsTabGroup[] = [
+  { items: [{ id: 'general', label: '通用', icon: Cog }] },
+  {
+    label: '边框水印',
+    icon: Box,
+    items: [
+      { id: 'template', label: '默认项' },
+      { id: 'template-export', label: '导出' },
+    ],
+  },
+  {
+    label: '拼图',
+    icon: Palette,
+    items: [
+      { id: 'collage', label: '默认项' },
+      { id: 'collage-export', label: '导出' },
+    ],
+  },
+  { items: [{ id: 'export', label: '导出', icon: Download }] },
+  { items: [{ id: 'cache', label: '缓存', icon: Database }] },
+  { items: [{ id: 'about', label: '关于', icon: Info }] },
+];
 
 /** 工作区目录下的默认缓存目录；缓存没被单独改过时会跟着工作区目录走。 */
 function defaultCacheDirectory(saveDirectory: string): string {
@@ -376,7 +411,10 @@ function ExportTab({
 }) {
   return (
     <div className="space-y-4">
-      <FieldGroup title="导出" description="导出成品的落盘位置；导出过程不会再弹保存对话框。">
+      <FieldGroup
+        title="导出"
+        description="边框水印与拼图共用这个目录，导出过程不会再弹保存对话框。"
+      >
         <SettingField
           id="export-directory"
           label="文件导出目录"
@@ -389,15 +427,6 @@ function ExportTab({
           />
         </SettingField>
       </FieldGroup>
-
-      <PlaceholderTab
-        title="导出默认项"
-        description="默认格式、倍率与质量仍保持占位状态，目前这些参数在导出面板里按档位单独设置。"
-        cards={[
-          { title: '默认导出格式', description: '后续与导出管线默认值联动。' },
-          { title: '默认倍率与质量', description: '后续与导出面板联动。' },
-        ]}
-      />
     </div>
   );
 }
@@ -900,14 +929,48 @@ export function SettingsPage() {
         orientation="vertical"
         className="min-h-0 flex-1 p-4"
       >
-        <TabsList variant="line" className="w-56 shrink-0 border border-border/80 bg-card p-3">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
+        <TabsList
+          variant="line"
+          className="w-56 shrink-0 gap-0 border border-border/80 bg-card p-3"
+        >
+          {TAB_GROUPS.map((group, index) => {
+            const GroupIcon = group.icon;
+
             return (
-              <TabsTrigger key={tab.id} value={tab.id}>
-                <Icon className="size-3.5" />
-                {tab.label}
-              </TabsTrigger>
+              <Fragment key={group.label ?? group.items[0].id}>
+                {index > 0 ? (
+                  // w-full 不能省：TabsList 是 items-center 的 flex 列，没有宽度的
+                  // 元素会被压成 0 宽并居中（分隔线会直接看不见）
+                  <span aria-hidden="true" className="my-1.5 h-px w-full bg-border/70" />
+                ) : null}
+                {group.label ? (
+                  // 同理，分组标题也必须铺满，否则会被 TabsList 居中
+                  <span
+                    aria-hidden="true"
+                    className="flex w-full items-center gap-2 px-1.5 pt-1 pb-0.5 text-[10px] font-medium text-muted-foreground"
+                  >
+                    {GroupIcon ? <GroupIcon className="size-3.5" /> : null}
+                    {group.label}
+                  </span>
+                ) : null}
+                {group.items.map((tab) => {
+                  const Icon = tab.icon;
+
+                  return (
+                    <TabsTrigger
+                      key={tab.id}
+                      value={tab.id}
+                      // 子项缩进一级，父级图标已表达归属，这里不再重复
+                      className={cn(group.label && 'pl-6')}
+                      // 分组标题对读屏隐藏，靠可访问名把归属补回去
+                      aria-label={group.label ? `${group.label} ${tab.label}` : undefined}
+                    >
+                      {Icon ? <Icon className="size-3.5" /> : null}
+                      {tab.label}
+                    </TabsTrigger>
+                  );
+                })}
+              </Fragment>
             );
           })}
         </TabsList>
@@ -923,21 +986,41 @@ export function SettingsPage() {
             </TabsContent>
             <TabsContent value="template" className="mt-0">
               <PlaceholderTab
-                title="边框水印"
-                description="模板默认项仍保持占位状态，本次优先落地素材缓存链路。"
+                title="边框水印默认项"
+                description="模板与参数的默认值仍保持占位状态，目前这些设置按当前照片在模板页调整。"
                 cards={[
                   { title: '默认模板', description: '后续与模板系统联动。' },
                   { title: '默认字体', description: '后续与字体收藏和模板 schema 联动。' },
                 ]}
               />
             </TabsContent>
+            <TabsContent value="template-export" className="mt-0">
+              <PlaceholderTab
+                title="边框水印导出"
+                description="只对边框水印生效的导出默认值仍保持占位状态，目前这些参数在模板页的导出面板里按档位设置。"
+                cards={[
+                  { title: '默认导出格式', description: '后续与模板导出管线联动。' },
+                  { title: '默认倍率与质量', description: '后续与模板导出面板联动。' },
+                ]}
+              />
+            </TabsContent>
             <TabsContent value="collage" className="mt-0">
               <PlaceholderTab
-                title="拼图"
+                title="拼图默认项"
                 description="拼图默认项仍保持占位状态，本次优先落地素材缓存链路。"
                 cards={[
                   { title: '默认布局', description: '后续与拼图布局预设联动。' },
                   { title: '默认画布样式', description: '后续与拼图渲染设置联动。' },
+                ]}
+              />
+            </TabsContent>
+            <TabsContent value="collage-export" className="mt-0">
+              <PlaceholderTab
+                title="拼图导出"
+                description="只对拼图生效的导出默认值仍保持占位状态，目前这些参数在拼图页的导出面板里按次设置。"
+                cards={[
+                  { title: '默认导出格式', description: '后续与拼图导出管线联动。' },
+                  { title: '默认倍率与质量', description: '后续与拼图导出面板联动。' },
                 ]}
               />
             </TabsContent>

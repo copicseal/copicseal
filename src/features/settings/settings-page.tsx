@@ -4,7 +4,6 @@ import {
   Cog,
   Database,
   Download,
-  FolderOpen,
   Info,
   Palette,
   RefreshCw,
@@ -35,12 +34,12 @@ const {
   updateConfig,
 } = platformRuntime;
 
+import { CoDirectoryField } from '@/shared/components/co-directory-field';
 import { CoWindowHeader } from '@/shared/components/co-window-header';
 import { cn } from '@/shared/lib/utils';
 import { usePageActive } from '@/shared/providers/page-activity-provider';
 import { useWindowStyle } from '@/shared/providers/window-style-provider';
 import { Button } from '@/shared/ui/button';
-import { Input } from '@/shared/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/shared/ui/radio-group';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import {
@@ -355,17 +354,11 @@ function GeneralTab({
           label="工作区目录"
           description="应用自己的数据目录，缓存目录默认位于它下面的 cache 文件夹。修改后如果缓存目录仍是默认值，会一起跟随更新。"
         >
-          <div className="flex max-w-3xl items-center gap-2">
-            <Input value={config.save_directory} readOnly />
-            <Button variant="outline" onClick={() => void onOpenWorkspaceDirectory()}>
-              <FolderOpen data-icon="inline-start" />
-              打开
-            </Button>
-            <Button variant="outline" onClick={() => void onSelectWorkspaceDirectory()}>
-              <FolderOpen data-icon="inline-start" />
-              选择
-            </Button>
-          </div>
+          <CoDirectoryField
+            directory={config.save_directory}
+            onOpen={() => void onOpenWorkspaceDirectory()}
+            onSelect={() => void onSelectWorkspaceDirectory()}
+          />
         </SettingField>
       </FieldGroup>
     </div>
@@ -389,17 +382,11 @@ function ExportTab({
           label="文件导出目录"
           description="导出的图片直接写到这个目录，文件名由导出面板里的档位决定。"
         >
-          <div className="flex max-w-3xl items-center gap-2">
-            <Input value={config.output.default_path} readOnly />
-            <Button variant="outline" onClick={() => void onOpenExportDirectory()}>
-              <FolderOpen data-icon="inline-start" />
-              打开
-            </Button>
-            <Button variant="outline" onClick={() => void onSelectExportDirectory()}>
-              <FolderOpen data-icon="inline-start" />
-              选择
-            </Button>
-          </div>
+          <CoDirectoryField
+            directory={config.output.default_path}
+            onOpen={() => void onOpenExportDirectory()}
+            onSelect={() => void onSelectExportDirectory()}
+          />
         </SettingField>
       </FieldGroup>
 
@@ -451,17 +438,11 @@ function CacheTab({
           label="缓存目录"
           description="导入后的图片副本、预览文件与缩略图都会保存在这里。"
         >
-          <div className="flex max-w-3xl items-center gap-2">
-            <Input value={config.cache.directory} readOnly />
-            <Button variant="outline" onClick={() => void onOpenCacheDirectory()}>
-              <FolderOpen data-icon="inline-start" />
-              打开
-            </Button>
-            <Button variant="outline" onClick={() => void onSelectCacheDirectory()}>
-              <FolderOpen data-icon="inline-start" />
-              选择
-            </Button>
-          </div>
+          <CoDirectoryField
+            directory={config.cache.directory}
+            onOpen={() => void onOpenCacheDirectory()}
+            onSelect={() => void onSelectCacheDirectory()}
+          />
         </SettingField>
 
         <SettingField

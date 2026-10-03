@@ -67,7 +67,7 @@ const TABS = [
 function defaultCacheDirectory(saveDirectory: string): string {
   const separator = saveDirectory.includes('\\') ? '\\' : '/';
   const normalized = saveDirectory.replace(/[\\/]+$/, '');
-  return `${normalized}${separator}cache`;
+  return `${normalized}${separator}Cache`;
 }
 
 /**
@@ -352,7 +352,7 @@ function GeneralTab({
 
         <SettingField
           label="工作区目录"
-          description="应用自己的数据目录，缓存目录默认位于它下面的 cache 文件夹。修改后如果缓存目录仍是默认值，会一起跟随更新。"
+          description="应用自己的数据目录，缓存目录默认位于它下面的 Cache 文件夹。修改后如果缓存目录仍是默认值，会一起跟随更新。"
         >
           <CoDirectoryField
             directory={config.save_directory}

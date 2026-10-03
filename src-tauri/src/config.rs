@@ -209,10 +209,10 @@ fn default_save_directory() -> String {
     default_app_directory().to_string_lossy().to_string()
 }
 
-/// 默认缓存目录：工作区目录下的 cache。
+/// 默认缓存目录：工作区目录下的 Cache，首字母大写与 Output 保持一致。
 pub fn default_cache_directory(save_directory: &str) -> String {
     Path::new(save_directory)
-        .join("cache")
+        .join("Cache")
         .to_string_lossy()
         .to_string()
 }
@@ -299,18 +299,26 @@ fn load_from_db(app: &tauri::AppHandle) -> Result<AppConfig, String> {
     Ok(config)
 }
 
-/// 老版本里"导出目录"就是工作区目录（都是 `<文档>/Copicseal`），界面上也只有只读展示。
-/// 现在成品挪进 `<文档>/Copicseal/Output`，所以只把导出目录迁移过去；工作区目录不动，
-/// 挂在它下面的缓存目录也因此不受影响。
+/// 把"恰好等于老默认值"的配置迁移到新默认值。
 ///
-/// 只有"恰好等于老默认值"（或为空）的导出目录才迁移，用户自己选过的不动——它们本来
-/// 就存在库里，光改默认值追不上。
+/// 老的默认值都写在库里，光改默认值追不上；用户自己选过目录的则原样保留。
+///
+/// - 导出目录：老版本就是工作区目录（`<文档>/Copicseal`），现在成品挪进 `Output`
+/// - 缓存目录：老版本是工作区目录下的 `cache`，现在统一成首字母大写的 `Cache`
 fn migrate_legacy_defaults(config: &mut AppConfig) {
-    let legacy = default_save_directory();
-    let current = config.output.default_path.trim();
+    let legacy_export = default_save_directory();
+    let current_export = config.output.default_path.trim();
 
-    if current.is_empty() || current == legacy {
+    if current_export.is_empty() || current_export == legacy_export {
         config.output.default_path = default_export_directory();
+    }
+
+    let legacy_cache = Path::new(&config.save_directory)
+        .join("cache")
+        .to_string_lossy()
+        .to_string();
+    if config.cache.directory.trim() == legacy_cache {
+        config.cache.directory = default_cache_directory(&config.save_directory);
     }
 }
 

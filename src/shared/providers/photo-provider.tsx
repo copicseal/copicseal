@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useId,
+  useRef,
   useState,
 } from 'react';
 import { platformRuntime } from '@/platform/providers/platform-runtime';
@@ -49,6 +50,19 @@ interface PhotoContextValue {
 
 export const PhotoContext = createContext<PhotoContextValue | null>(null);
 
+/**
+ * 是否暂停「导入完成后自动选中新素材」。
+ *
+ * 导出期间必须暂停：批量导出自己会逐张切换素材再截图，此时被导入改掉选中，
+ * 会有一张截到别的照片——文件名与背景却仍是原来那张，属于静默产出错误内容。
+ * 由导出方显式开关，导入侧不猜。
+ */
+let importSelectionSuspended = false;
+
+export function setImportSelectionSuspended(suspended: boolean): void {
+  importSelectionSuspended = suspended;
+}
+
 export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
   const pageActive = usePageActive();
   const sessionId = useId();
@@ -71,6 +85,12 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
       photos.map((photo) => photo.path),
     );
   }, [photos, sessionId]);
+
+  // 事件回调里读不到最新的 photos（闭包会过期），用 ref 兜住数量
+  const photoCountRef = useRef(0);
+  useEffect(() => {
+    photoCountRef.current = photos.length;
+  }, [photos.length]);
 
   useEffect(() => () => releaseSessionAssets(sessionId), [sessionId]);
 
@@ -108,7 +128,13 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
     );
   }, []);
 
+  // 导入开始时已有多少张素材，导入结束按它切到新素材的第一张
+  const importStartIndexRef = useRef(0);
+
   const startImport = useCallback((source: PhotoImportSource) => {
+    // 新素材一律接在列表末尾：记下开始时的数量，导入结束就能定位第一张新素材。
+    // 列表只追加不重排，所以这个下标在导入结束后依然有效。
+    importStartIndexRef.current = photoCountRef.current;
     setImportState({
       active: true,
       source,
@@ -141,6 +167,23 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }));
   }, []);
 
+  /**
+   * 导入收尾：结束进度提示，并把选中切到这一轮新素材的第一张。
+   *
+   * 导入完通常马上要调这张的模板/排版，停在旧素材上还得自己再点一次；
+   * 一张都没进来（全部失败或用户取消）时保持当前选中不变。
+   */
+  const selectImported = useCallback(
+    (source: PhotoImportSource, imported: ImportedPhoto[]) => {
+      finishImport(source);
+
+      if (imported.length > 0 && !importSelectionSuspended) {
+        setCurrentIndex(importStartIndexRef.current);
+      }
+    },
+    [finishImport],
+  );
+
   const importViaDialog = useCallback(async () => {
     startImport('dialog');
     const result = await selectPhotosViaDialog({
@@ -148,12 +191,8 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
       onPhotoImported: (photo) => addPhotos([photo]),
       onPhotoUpdated: updatePhoto,
     });
-    if (!result.length) {
-      finishImport('dialog');
-      return;
-    }
-    finishImport('dialog');
-  }, [addPhotos, finishImport, startImport, updateImportProgress, updatePhoto]);
+    selectImported('dialog', result);
+  }, [addPhotos, selectImported, startImport, updateImportProgress, updatePhoto]);
 
   const importViaDirectory = useCallback(async () => {
     startImport('directory');
@@ -162,12 +201,8 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
       onPhotoImported: (photo) => addPhotos([photo]),
       onPhotoUpdated: updatePhoto,
     });
-    if (!result.length) {
-      finishImport('directory');
-      return;
-    }
-    finishImport('directory');
-  }, [addPhotos, finishImport, startImport, updateImportProgress, updatePhoto]);
+    selectImported('directory', result);
+  }, [addPhotos, selectImported, startImport, updateImportProgress, updatePhoto]);
 
   const importViaDrop = useCallback(
     async (files: FileList | File[]) => {
@@ -177,13 +212,9 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
         onPhotoImported: (photo) => addPhotos([photo]),
         onPhotoUpdated: updatePhoto,
       });
-      if (!result.length) {
-        finishImport('drop');
-        return;
-      }
-      finishImport('drop');
+      selectImported('drop', result);
     },
-    [addPhotos, finishImport, startImport, updateImportProgress, updatePhoto],
+    [addPhotos, selectImported, startImport, updateImportProgress, updatePhoto],
   );
 
   useEffect(() => {
@@ -212,11 +243,7 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
               onPhotoImported: (photo) => addPhotos([photo]),
               onPhotoUpdated: updatePhoto,
             });
-            if (!result.length) {
-              finishImport('drop');
-              break;
-            }
-            finishImport('drop');
+            selectImported('drop', result);
             break;
           }
         }
@@ -232,7 +259,7 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
     return () => {
       cleanup?.();
     };
-  }, [addPhotos, finishImport, pageActive, startImport, updateImportProgress, updatePhoto]);
+  }, [addPhotos, pageActive, selectImported, startImport, updateImportProgress, updatePhoto]);
 
   const currentPhoto = photos[currentIndex] ?? null;
 

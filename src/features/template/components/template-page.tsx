@@ -49,6 +49,7 @@ import {
 } from '@/shared/layouts/business-workbench';
 import { cn } from '@/shared/lib/utils';
 import { usePageActive } from '@/shared/providers/page-activity-provider';
+import { setImportSelectionSuspended } from '@/shared/providers/photo-provider';
 import { Button } from '@/shared/ui/button';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui/tooltip';
@@ -709,6 +710,7 @@ export function TemplatePage() {
     }
 
     setCapturing(true);
+    setImportSelectionSuspended(true);
     try {
       // 直接写到配置里的「保存目录」，不再弹保存对话框
       const outputDir = await resolveExportDirectory();
@@ -725,6 +727,7 @@ export function TemplatePage() {
       notifyExportFailed(error);
     } finally {
       setCapturing(false);
+      setImportSelectionSuspended(false);
     }
   };
 
@@ -736,6 +739,7 @@ export function TemplatePage() {
     const originalIndex = currentIndex;
 
     setCapturing(true);
+    setImportSelectionSuspended(true);
     try {
       // 直接写到配置里的「保存目录」，不再弹保存对话框
       const outputDir = await resolveExportDirectory();
@@ -782,6 +786,7 @@ export function TemplatePage() {
       notifyExportFailed(error);
     } finally {
       setCapturing(false);
+      setImportSelectionSuspended(false);
       setCurrentIndex(originalIndex);
     }
   };

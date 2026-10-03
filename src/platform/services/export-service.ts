@@ -1,5 +1,6 @@
 import { snapdom } from '@zumer/snapdom';
 import { capEmbeddedImages } from '@/core/renderer';
+import type { OutputPreset } from '@/platform/contracts';
 import type { ExportServiceContract } from '@/platform/contracts/platform';
 import { platformRuntime, writeExifSource } from '@/platform/providers/platform-runtime';
 import { webFiles } from '@/platform/providers/web/web-platform-provider';
@@ -16,6 +17,7 @@ const {
   insertJpegExif,
   isNativeWindowAvailable,
   saveImageDialog,
+  updateConfig,
   writeBinaryFile,
 } = platformRuntime;
 
@@ -110,6 +112,29 @@ export async function resolveExportDirectory(): Promise<string | null> {
     console.warn('读取导出目录失败:', error);
     return null;
   }
+}
+
+/**
+ * 读取设置里保存的「默认档位」（`output.presets`）。
+ *
+ * 读不到配置时返回空数组，调用方会退回内置的单个档位。
+ */
+export async function resolveDefaultOutputPresets(): Promise<OutputPreset[]> {
+  try {
+    const config = await getConfig();
+    return config.output.presets ?? [];
+  } catch (error) {
+    console.warn('读取默认档位失败:', error);
+    return [];
+  }
+}
+
+/** 把一组档位写进设置作为「默认档位」，之后新导入的图片会自动套用它。 */
+export async function saveDefaultOutputPresets(presets: OutputPreset[]): Promise<void> {
+  // 配置是整段读写的：先取回完整配置再只替换 output.presets，
+  // 避免把其他设置一起覆盖成旧值
+  const config = await getConfig();
+  await updateConfig({ ...config, output: { ...config.output, presets } });
 }
 
 /** 去掉文件名里的路径分隔符与非法字符，避免写到目标目录之外。 */

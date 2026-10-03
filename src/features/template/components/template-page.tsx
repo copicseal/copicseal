@@ -18,14 +18,20 @@ import {
   type TemplateBackground,
   toTemplateBackground,
 } from '@/features/template/background';
-import { isValidPreset } from '@/features/template/lib/export-preset';
+import {
+  isValidPreset,
+  parseDefaultPresets,
+  toDefaultPresets,
+} from '@/features/template/lib/export-preset';
 import { applyRenderSize } from '@/features/template/lib/render-size';
 import { getBuiltinTemplateSchema } from '@/features/template/runtime/template-registry';
 import {
   type ExportOptions,
   type ExportRunContext,
   exportSingle,
+  resolveDefaultOutputPresets,
   resolveExportDirectory,
+  saveDefaultOutputPresets,
 } from '@/platform';
 import { CoDropZone } from '@/shared/components/co-drop-zone';
 import {
@@ -442,6 +448,7 @@ function TemplatePropertiesPanel({
   onBackgroundChange,
   presets,
   onPresetsChange,
+  onSaveAsDefault,
   exportReady,
   hasPhoto,
   baseName,
@@ -457,6 +464,7 @@ function TemplatePropertiesPanel({
   onBackgroundChange: (next: TemplateBackground) => void;
   presets: Parameters<typeof TemplateExportPanel>[0]['presets'];
   onPresetsChange: Parameters<typeof TemplateExportPanel>[0]['onPresetsChange'];
+  onSaveAsDefault: Parameters<typeof TemplateExportPanel>[0]['onSaveAsDefault'];
   /** 档位是否齐备；导出按钮在顶栏，这里只用它决定要不要提示补目标宽高 */
   exportReady: boolean;
   hasPhoto: boolean;
@@ -546,7 +554,7 @@ function TemplatePropertiesPanel({
           </CoPanelSection>
           <CoPanelSection
             title="导出"
-            description="每个档位保存一组尺寸和画质设置。没有背景时按比例套用目标尺寸，正方形画面配 1280×720 会导出 720×720；有背景时成片尺寸就是设定的宽高。"
+            description="每个档位保存一组尺寸和画质设置。没有背景时按比例套用目标尺寸，正方形画面配 1280×720 会导出 720×720；有背景时成片尺寸就是设定的宽高。存为默认档位后，之后导入的图片会自动套用这组档位。"
           >
             <div className="space-y-3">
               <TemplateExportPanel
@@ -554,6 +562,7 @@ function TemplatePropertiesPanel({
                 baseName={baseName}
                 ready={exportReady}
                 onPresetsChange={onPresetsChange}
+                onSaveAsDefault={onSaveAsDefault}
               />
               {otherPhotoCount > 0 ? (
                 <ApplyToOthersButton
@@ -589,12 +598,33 @@ export function TemplatePage() {
   const setBackground = useTemplateStore((state) => state.setBackground);
   const setPresets = useTemplateStore((state) => state.setPresets);
   const applyToOthers = useTemplateStore((state) => state.applyToOthers);
+  const setDefaultPresets = useTemplateStore((state) => state.setDefaultPresets);
   const prune = useTemplateStore((state) => state.prune);
   // 导出期间挂起预览自适应，否则它会覆盖导出解算出的 --co-base
   const [capturing, setCapturing] = useState(false);
   // 导出入口在顶栏，状态放页面级，保证按钮的转圈与禁用是同一份
   const [exporting, setExporting] = useState<ExportMode | null>(null);
   const otherPhotoCount = Math.max(photos.length - (currentPhoto ? 1 : 0), 0);
+
+  /**
+   * 启动时把设置里存的「默认档位」装进 store。
+   *
+   * 没存过就保持框架内置的单个 2000×2000：空清单不等于「默认没有档位」。
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      const presets = parseDefaultPresets(await resolveDefaultOutputPresets());
+      if (!cancelled && presets.length > 0) {
+        setDefaultPresets(presets);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [setDefaultPresets]);
 
   // 素材被移除后回收它的配置；prune 在无变化时返回原 state，不会引起额外渲染
   useEffect(() => {
@@ -779,6 +809,28 @@ export function TemplatePage() {
     ).finally(() => setExporting(null));
   };
 
+  /**
+   * 把当前照片的档位存成设置里的「默认档位」。
+   *
+   * 会话内的默认值一起换掉，这样没动过档位的照片（含之后导入的）立刻跟上；
+   * 已经调过档位的照片不受影响。
+   */
+  const handleSaveAsDefault = async () => {
+    if (!exportReady) {
+      return;
+    }
+
+    try {
+      const presets = toDefaultPresets(config.presets);
+      await saveDefaultOutputPresets(presets);
+      setDefaultPresets(parseDefaultPresets(presets));
+      toast.success('已存为默认档位，之后导入的图片会自动套用');
+    } catch (error) {
+      console.error('Save default export presets failed:', error);
+      toast.error('保存默认档位失败');
+    }
+  };
+
   return (
     <BusinessWorkbench
       header={<TemplateHeader exporting={exporting} ready={exportReady} onExport={handleExport} />}
@@ -823,6 +875,7 @@ export function TemplatePage() {
               setPresets(currentPhoto.id, next);
             }
           }}
+          onSaveAsDefault={() => void handleSaveAsDefault()}
           exportReady={exportReady}
           hasPhoto={currentPhoto !== null}
           baseName={currentPhoto ? stripExtension(currentPhoto.name) : 'copicseal-export'}

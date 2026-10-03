@@ -29,9 +29,9 @@
 - [ ] **A4 档位排序**｜缺口｜成本 小
   旧：设置页「输出设置」表格支持上移/下移（`dialogs/components/setting-output.vue:19-29`）｜新：只有增删
 
-- [ ] **A5 「存为默认」档位与导出目录**｜缺口｜成本 中
+- [x] **A5 「存为默认」档位与导出目录**｜已补齐｜成本 中
   旧：把当前档位清单 + 目录写进 `config.output.presets/defaultPath`，之后新导入的图片自动套用（`co-output-panel.vue:176-184`、`uses/co-pic.ts:87-99`）
-  新：档位只存在会话 store，注释明确不持久化，重开应用回到单个 2000×2000（`src/features/template/store/use-template-store.ts:24-33,67-71`）
+  新：模板页导出面板「存为默认档位」写入 `output.presets`，设置 → 边框水印 → 导出只读展示；启动时装载，未编辑过的照片（含新导入）自动套用（`src/features/template/lib/export-preset.ts`、`src/features/template/store/use-template-store.ts`）。导出目录另见 A7
 
 - [ ] **A6 档位的「应用全部」**｜缺口｜成本 小
   旧：档位 + 导出目录复制到列表所有图片（`co-output-panel.vue:159-174`）

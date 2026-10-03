@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Save, Trash2 } from 'lucide-react';
 import { createExportPreset, resolvePresetFileName } from '@/features/template/lib/export-preset';
 import type { ExportFormat, ExportPreset } from '@/shared/types/export';
 import { Button } from '@/shared/ui/button';
@@ -12,6 +12,8 @@ interface TemplateExportPanelProps {
   /** 档位是否齐备（两轴都为正数）；不齐时导出按钮禁用，由页面统一判定 */
   ready: boolean;
   onPresetsChange: (next: ExportPreset[]) => void;
+  /** 把当前这组档位存成设置里的「默认档位」；档位不齐时按钮禁用 */
+  onSaveAsDefault: () => void;
 }
 
 interface ExportPresetCardProps {
@@ -143,6 +145,7 @@ export function TemplateExportPanel({
   baseName,
   ready,
   onPresetsChange,
+  onSaveAsDefault,
 }: TemplateExportPanelProps) {
   const updatePreset = (index: number, next: ExportPreset) => {
     onPresetsChange(presets.map((preset, i) => (i === index ? next : preset)));
@@ -170,16 +173,30 @@ export function TemplateExportPanel({
         ))}
       </div>
 
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="w-full"
-        onClick={() => onPresetsChange([...presets, createExportPreset()])}
-      >
-        <Plus data-icon="inline-start" />
-        添加档位
-      </Button>
+      {/* 竖着排：属性面板最窄能拖到 200px，并排会把「存为默认档位」压出格 */}
+      <div className="space-y-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={() => onPresetsChange([...presets, createExportPreset()])}
+        >
+          <Plus data-icon="inline-start" />
+          添加档位
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full"
+          disabled={!ready}
+          onClick={onSaveAsDefault}
+        >
+          <Save data-icon="inline-start" />
+          存为默认档位
+        </Button>
+      </div>
 
       {!ready ? (
         <p className="text-[10px] leading-4 text-destructive">

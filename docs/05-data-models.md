@@ -224,9 +224,11 @@ Collage 页面的当前工作状态：
 
 | 字段 | 说明 |
 |------|------|
-| defaultFormat | 默认格式 |
-| defaultScale | 默认倍率 |
-| defaultQuality | 默认质量 |
+| defaultPath | 文件导出目录，边框水印与拼图共用 |
+| presets | 边框水印的默认档位（`ExportPreset[]`），由模板页「存为默认档位」写入 |
+
+默认档位同时覆盖了格式、尺寸、倍率与质量，因此不再单独存 `defaultFormat` /
+`defaultScale` / `defaultQuality`：三者只是档位的字段，拆开存会出现互相矛盾的中间态。
 
 ---
 

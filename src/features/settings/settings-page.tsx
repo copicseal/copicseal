@@ -5,6 +5,7 @@ import {
   Database,
   Download,
   Info,
+  LayoutTemplate,
   type LucideIcon,
   Palette,
   RefreshCw,
@@ -13,12 +14,15 @@ import {
 } from 'lucide-react';
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { parseDefaultPresets } from '@/features/template/lib/export-preset';
+import { useTemplateStore } from '@/features/template/store/use-template-store';
 import {
   type AppConfig,
   type AppUpdateInfo,
   type CacheOverview,
   clearAssetCaches,
   getInUseAssetPaths,
+  type OutputPreset,
   platformCapabilities,
 } from '@/platform';
 import { platformRuntime } from '@/platform/providers/platform-runtime';
@@ -38,6 +42,7 @@ const {
 import { CoDirectoryField } from '@/shared/components/co-directory-field';
 import { CoWindowHeader } from '@/shared/components/co-window-header';
 import { cn } from '@/shared/lib/utils';
+import { useAppNavigation } from '@/shared/providers/navigation-provider';
 import { usePageActive } from '@/shared/providers/page-activity-provider';
 import { useWindowStyle } from '@/shared/providers/window-style-provider';
 import { Button } from '@/shared/ui/button';
@@ -295,6 +300,16 @@ function StorageSummary({ overview }: { overview: CacheOverview | null }) {
   );
 }
 
+/** 默认档位一行的摘要：尺寸 + 倍率（JPEG 才带质量）。 */
+function describeOutputPreset(preset: OutputPreset): string {
+  const parts = [`${preset.width} × ${preset.height}`, `倍率 ${preset.scale.toFixed(1)}x`];
+  if (preset.type === 'jpeg') {
+    parts.push(`质量 ${Math.round(preset.quality)}`);
+  }
+
+  return parts.join(' · ');
+}
+
 function PlaceholderTab({
   title,
   description,
@@ -394,6 +409,72 @@ function GeneralTab({
             onOpen={() => void onOpenWorkspaceDirectory()}
             onSelect={() => void onSelectWorkspaceDirectory()}
           />
+        </SettingField>
+      </FieldGroup>
+    </div>
+  );
+}
+
+function TemplateExportDefaultsTab({
+  presets,
+  onRemovePreset,
+  onGoToTemplate,
+}: {
+  presets: OutputPreset[];
+  onRemovePreset: (index: number) => void;
+  onGoToTemplate: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <FieldGroup
+        title="边框水印导出"
+        description="只对边框水印生效。在模板页导出面板点「存为默认档位」写入，新导入的图片自动套用。"
+      >
+        <SettingField
+          id="template-export-presets"
+          label="默认档位"
+          description="每档一组格式、尺寸、倍率与质量，导出时逐档输出一份文件。"
+        >
+          {presets.length === 0 ? (
+            <p className="text-xs leading-5 text-muted-foreground">
+              还没有默认档位，新图片会从 2000 × 2000 的 PNG 开始。
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {presets.map((preset, index) => {
+                const presetLabel = `${preset.type.toUpperCase()} ${describeOutputPreset(preset)}`;
+
+                return (
+                  <li
+                    key={preset.id ?? `${preset.type}-${preset.width}x${preset.height}`}
+                    className="flex items-center gap-3 border border-border/70 bg-background/60 px-3 py-1.5"
+                  >
+                    <span className="shrink-0 border border-border px-1.5 py-0.5 text-[10px] font-medium text-foreground">
+                      {preset.type.toUpperCase()}
+                    </span>
+                    <span className="min-w-0 flex-1 text-xs text-muted-foreground">
+                      {describeOutputPreset(preset)}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="plain"
+                      size="icon-sm"
+                      aria-label={`删除 ${presetLabel}`}
+                      onClick={() => onRemovePreset(index)}
+                    >
+                      <Trash2 />
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+          <div className="mt-3">
+            <Button type="button" variant="outline" size="sm" onClick={onGoToTemplate}>
+              <LayoutTemplate data-icon="inline-start" />
+              去模板页设置档位
+            </Button>
+          </div>
         </SettingField>
       </FieldGroup>
     </div>
@@ -631,6 +712,8 @@ function AboutTab() {
 
 export function SettingsPage() {
   const pageActive = usePageActive();
+  const navigate = useAppNavigation();
+  const setDefaultPresets = useTemplateStore((state) => state.setDefaultPresets);
   const [tab, setTab] = useState('general');
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [overview, setOverview] = useState<CacheOverview | null>(null);
@@ -655,6 +738,35 @@ export function SettingsPage() {
   useEffect(() => {
     void loadConfig();
   }, [loadConfig]);
+
+  /**
+   * 切回设置页时静默重读一次配置。
+   *
+   * 「存为默认档位」这类写入发生在模板页，本页 keep-alive 挂着不会重挂载；
+   * 这里只回填配置，不动 loading，避免每次切页都闪一下「正在加载设置」。
+   */
+  useEffect(() => {
+    if (!pageActive) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const nextConfig = await getConfig();
+        if (!cancelled) {
+          setConfig(nextConfig);
+        }
+      } catch (error) {
+        console.error('Refresh settings failed:', error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pageActive]);
 
   const saveConfig = useCallback(async (nextConfig: AppConfig) => {
     setConfig(nextConfig);
@@ -772,6 +884,33 @@ export function SettingsPage() {
       toast.error('更新文件导出目录失败');
     }
   }, [config, saveConfig]);
+
+  /**
+   * 删掉一个默认档位。
+   *
+   * 只改设置里的默认清单，不去动任何照片已有的档位；删到空就等于「没存过默认档位」，
+   * 新图片回到内置的单档。
+   */
+  const handleRemoveDefaultPreset = useCallback(
+    async (index: number) => {
+      if (!config) {
+        return;
+      }
+
+      const presets = config.output.presets.filter((_, i) => i !== index);
+
+      try {
+        await saveConfig({ ...config, output: { ...config.output, presets } });
+        // 同一会话里新导入的图片立刻用上剩下的档位，不必重启
+        setDefaultPresets(parseDefaultPresets(presets));
+        toast.success('已删除默认档位');
+      } catch (error) {
+        console.error('Remove default export preset failed:', error);
+        toast.error('删除默认档位失败');
+      }
+    },
+    [config, saveConfig, setDefaultPresets],
+  );
 
   const handleOpenExportDirectory = useCallback(async () => {
     if (!config) {
@@ -995,13 +1134,10 @@ export function SettingsPage() {
               />
             </TabsContent>
             <TabsContent value="template-export" className="mt-0">
-              <PlaceholderTab
-                title="边框水印导出"
-                description="只对边框水印生效的导出默认值仍保持占位状态，目前这些参数在模板页的导出面板里按档位设置。"
-                cards={[
-                  { title: '默认导出格式', description: '后续与模板导出管线联动。' },
-                  { title: '默认倍率与质量', description: '后续与模板导出面板联动。' },
-                ]}
+              <TemplateExportDefaultsTab
+                presets={config.output.presets}
+                onRemovePreset={(index) => void handleRemoveDefaultPreset(index)}
+                onGoToTemplate={() => navigate('/template')}
               />
             </TabsContent>
             <TabsContent value="collage" className="mt-0">

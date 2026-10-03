@@ -840,6 +840,8 @@ export function TemplatePage() {
     <BusinessWorkbench
       header={<TemplateHeader exporting={exporting} ready={exportReady} onExport={handleExport} />}
       assetsResizable={false}
+      // 属性面板里内容偏宽（档位的文件名输入框、目录路径等），再窄就会被挤到换行
+      propertiesMinSize={260}
       workspace={
         <BusinessWorkbenchWorkspace>
           <div className="flex h-full w-full min-h-0 min-w-0 items-center justify-center">

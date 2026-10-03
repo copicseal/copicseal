@@ -173,7 +173,7 @@ export function TemplateExportPanel({
         ))}
       </div>
 
-      {/* 竖着排：属性面板最窄能拖到 200px，并排会把「存为默认档位」压出格 */}
+      {/* 竖着排：属性面板会被拖窄，两个按钮并排时「存为默认档位」会被压出格 */}
       <div className="space-y-2">
         <Button
           type="button"

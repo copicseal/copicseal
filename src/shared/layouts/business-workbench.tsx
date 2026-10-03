@@ -23,6 +23,8 @@ interface BusinessWorkbenchProps {
   properties: () => ReactNode;
   assetsMinSize?: number;
   assetsResizable?: boolean;
+  /** 右侧属性面板的最小宽度（像素）；各页按自己面板里最宽的内容给 */
+  propertiesMinSize?: number;
 }
 
 export function BusinessWorkbench({
@@ -32,6 +34,7 @@ export function BusinessWorkbench({
   properties,
   assetsMinSize = 100,
   assetsResizable = true,
+  propertiesMinSize = 200,
 }: BusinessWorkbenchProps) {
   const [assetsCollapsed, setAssetsCollapsed] = useState(false);
 
@@ -79,7 +82,7 @@ export function BusinessWorkbench({
         <ResizableHandle withHandle />
         <ResizablePanel
           defaultSize={280}
-          minSize={200}
+          minSize={propertiesMinSize}
           maxSize={400}
           className="min-h-0 min-w-0"
           style={PANEL_STYLE}

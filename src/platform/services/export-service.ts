@@ -90,7 +90,8 @@ async function captureElement(
 }
 
 /**
- * 导出落盘目录：直接取配置里的「保存目录」，导出过程不再弹保存对话框。
+ * 导出落盘目录：直接取配置里「文件导出目录」（`output.default_path`），导出过程不再弹
+ * 保存对话框。
  *
  * 读不到配置（或目录为空）时返回 null，调用方会退回逐张保存对话框兜底；
  * Web 端没有本地目录的概念，同样返回 null（最终退化为浏览器下载）。
@@ -101,8 +102,10 @@ export async function resolveExportDirectory(): Promise<string | null> {
   }
 
   try {
+    // 取的是设置 → 导出里的「文件导出目录」（output.default_path），
+    // 不是工作区目录（save_directory）
     const config = await getConfig();
-    return config.save_directory?.trim() || null;
+    return config.output.default_path?.trim() || null;
   } catch (error) {
     console.warn('读取导出目录失败:', error);
     return null;

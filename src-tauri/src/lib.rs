@@ -23,6 +23,9 @@ pub fn run() {
             if config.cache.auto_cleanup_on_startup {
                 let _ = fs::auto_cleanup_cache(&config.cache.directory, config.cache.max_age_days);
             }
+            // 导出目录可能还没被创建过（默认目录是新建的，或者用户刚改过），
+            // 先建出来，这样「打开」按钮和导出完成提示里的目录链接立刻可用
+            let _ = std::fs::create_dir_all(&config.output.default_path);
             window::apply_main_window_frame_mode(app.handle(), &config.window_frame_mode)?;
 
             Ok(())

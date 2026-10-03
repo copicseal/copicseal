@@ -118,6 +118,15 @@ impl ThumbnailTaskScheduler {
 
 #[tauri::command]
 pub async fn write_file(path: String, contents: Vec<u8>) -> Result<(), String> {
+    // 目标目录可能还不存在（用户刚改过导出目录，或首次导出到新目录），先补上；
+    // 否则 fs::write 会直接报 "No such file or directory"
+    if let Some(parent) = Path::new(&path).parent() {
+        if !parent.as_os_str().is_empty() {
+            fs::create_dir_all(parent)
+                .map_err(|e| format!("创建目录 {} 失败: {e}", parent.display()))?;
+        }
+    }
+
     fs::write(&path, contents).map_err(|e| format!("写入文件失败: {e}"))
 }
 

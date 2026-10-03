@@ -141,7 +141,7 @@ impl Default for OutputConfig {
     fn default() -> Self {
         Self {
             presets: Vec::new(),
-            default_path: default_save_directory(),
+            default_path: default_export_directory(),
             retain_exif: true,
         }
     }
@@ -197,17 +197,30 @@ impl Default for TemplateListConfig {
     }
 }
 
-fn default_save_directory() -> String {
+/// 应用数据根目录，同时也是默认的工作区目录。
+fn default_app_directory() -> PathBuf {
     dirs::document_dir()
         .unwrap_or_else(|| PathBuf::from("."))
         .join("Copicseal")
+}
+
+/// 工作区目录：应用自己的数据根目录，缓存等派生目录挂在它下面。
+fn default_save_directory() -> String {
+    default_app_directory().to_string_lossy().to_string()
+}
+
+/// 默认缓存目录：工作区目录下的 cache。
+pub fn default_cache_directory(save_directory: &str) -> String {
+    Path::new(save_directory)
+        .join("cache")
         .to_string_lossy()
         .to_string()
 }
 
-pub fn default_cache_directory(save_directory: &str) -> String {
-    Path::new(save_directory)
-        .join("cache")
+/// 默认文件导出目录：工作区根目录下的 Output，成品不和缓存混在一起。
+fn default_export_directory() -> String {
+    default_app_directory()
+        .join("Output")
         .to_string_lossy()
         .to_string()
 }
@@ -266,7 +279,7 @@ fn load_from_db(app: &tauri::AppHandle) -> Result<AppConfig, String> {
         read_json_value(&conn, "save_directory")?.unwrap_or(defaults.save_directory);
     let cache = normalize_cache_config(read_json_value(&conn, "cache")?, &save_directory);
 
-    Ok(AppConfig {
+    let mut config = AppConfig {
         language: read_json_value(&conn, "language")?.unwrap_or(defaults.language),
         theme: read_json_value(&conn, "theme")?.unwrap_or(defaults.theme),
         window_frame_mode: read_json_value(&conn, "window_frame_mode")?
@@ -280,7 +293,25 @@ fn load_from_db(app: &tauri::AppHandle) -> Result<AppConfig, String> {
         template_list: read_json_value(&conn, "template_list")?.unwrap_or(defaults.template_list),
         user_devices: read_json_value(&conn, "user_devices")?.unwrap_or(defaults.user_devices),
         device_id: read_json_value(&conn, "device_id")?.unwrap_or_default(),
-    })
+    };
+
+    migrate_legacy_defaults(&mut config);
+    Ok(config)
+}
+
+/// 老版本里"导出目录"就是工作区目录（都是 `<文档>/Copicseal`），界面上也只有只读展示。
+/// 现在成品挪进 `<文档>/Copicseal/Output`，所以只把导出目录迁移过去；工作区目录不动，
+/// 挂在它下面的缓存目录也因此不受影响。
+///
+/// 只有"恰好等于老默认值"（或为空）的导出目录才迁移，用户自己选过的不动——它们本来
+/// 就存在库里，光改默认值追不上。
+fn migrate_legacy_defaults(config: &mut AppConfig) {
+    let legacy = default_save_directory();
+    let current = config.output.default_path.trim();
+
+    if current.is_empty() || current == legacy {
+        config.output.default_path = default_export_directory();
+    }
 }
 
 fn save_to_db(app: &tauri::AppHandle, config: &AppConfig) -> Result<(), String> {

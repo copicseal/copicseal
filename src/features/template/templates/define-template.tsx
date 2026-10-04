@@ -14,6 +14,8 @@ interface TemplateDefinitionInput<TFields extends readonly TemplateField[]> {
   fields: TFields;
   /** 该模板推荐的默认背景，缺省表示无背景 */
   backgroundDefaults?: Partial<TemplateBackground>;
+  /** 该模板偏好的字体栈，缺省表示跟随框架默认 */
+  fontDefaults?: string;
   component: ComponentType<TemplateInjectedProps & TemplateParams<TFields>>;
 }
 
@@ -28,12 +30,13 @@ interface TemplateDefinitionInput<TFields extends readonly TemplateField[]> {
 export function defineTemplate<const TFields extends readonly TemplateField[]>(
   input: TemplateDefinitionInput<TFields>,
 ): RegisteredTemplate {
-  const { meta, fields, backgroundDefaults, component: Component } = input;
+  const { meta, fields, backgroundDefaults, fontDefaults, component: Component } = input;
 
   return {
     meta,
     schema: { fields },
     backgroundDefaults,
+    fontDefaults,
     render: (props) => (
       <Component {...(props as unknown as TemplateInjectedProps & TemplateParams<TFields>)} />
     ),

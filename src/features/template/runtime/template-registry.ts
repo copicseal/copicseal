@@ -26,6 +26,26 @@ export function resolveBuiltinTemplate(id?: string): RegisteredTemplate {
 }
 
 /**
+ * 字段条件显示：未声明 `visibleWhen` 时始终可见。
+ *
+ * 属性面板（决定渲染哪些控件）与预设摘要（决定说明里写哪些行）共用同一条规则，
+ * 避免两处各写一遍导致摘要里出现当前模式根本用不到的项。
+ */
+export function isTemplateFieldVisible(
+  field: TemplateField,
+  value: Record<string, unknown>,
+): boolean {
+  if (!field.visibleWhen) {
+    return true;
+  }
+
+  const current = value[field.visibleWhen.key];
+  return typeof current === 'string' || typeof current === 'number' || typeof current === 'boolean'
+    ? field.visibleWhen.equals.includes(current)
+    : false;
+}
+
+/**
  * 按 schema 归一化单个字段值。
  *
  * 数值截断到 `min` / `max`，select 校验选项合法性，

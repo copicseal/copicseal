@@ -65,13 +65,13 @@
   旧：渲染时用 Proxy 收集模板实际用到的 EXIF 键（`usedExifKeys`），参数面板逐字段生成可编辑输入框写入 `modifiedExif`，渲染与导出都用合并值，面板标题有「还原」（`co-render.vue:114-127`、`utils/co-pic.tsx:85-100`、`panels/co-props-panel.vue:34-43`）
   新：EXIF 卡片纯只读，无覆盖、无编辑、无还原（`src/features/template/components/template-exif-card.tsx`）
 
-- [ ] **A14 全局字体选择**｜缺口｜成本 中
+- [x] **A14 全局字体选择**｜已补齐｜成本 中
   旧：模板面板顶部系统字体下拉 + 刷新按钮，选中即写 `config.fonts.defaultFont` 并套用到每张照片，字体注入画布根与 SVG 水印（`panels/co-tpl-panel.vue:5-16,143-155`、`utils/co-pic.tsx:45`、`views/components/co-render.vue:244`）
-  新：无字体 UI；水印字体写死（`templates/watermark.tsx:95,145`）；后端 `listSystemFonts` 命令、`FontConfig` 契约、`fonts.default_font` 默认值均已就位但无消费方
+  新：属性面板「模板」分区顶部与 设置 → 边框水印 → 默认项 两处都是系统字体下拉 + 刷新按钮，写入 `config.fonts.default_font`；设置里可维护收藏字体（`config.fonts.favorites`），模板页下拉只列收藏项、空清单时回退全量；字体挂在画布根由 HTML 继承，平铺水印的 SVG 走 `TemplateInjectedProps.font` 显式透传；模板可用 `fontDefaults` 声明偏好字体栈（`src/features/template/hooks/use-system-fonts.ts`、`runtime/template-runtime.tsx`、`templates/watermark.tsx`）。字体收藏（`fonts.favorites`）仍未接线，见 E5
 
-- [ ] **A15 模板预设（保存与复用）**｜缺口｜成本 中
+- [x] **A15 模板预设（保存与复用）**｜已补齐｜成本 中
   旧：「存为新配置」（上限 10、名称 2–10 字）/ 应用当前 / 应用全部 / 覆盖配置 / 删除，preset 含 `templateId + templateProps + background + fontFamily`，持久化在 `config.templatePresets`，设置页还能改名排序删除（`dropdowns/co-presets-dropdown.vue`、`dialogs/components/setting-template-presets.vue`）
-  新：无；设置页「边框水印」分组是空占位（`settings-page.tsx:789-797`）
+  新：属性面板最上方「模板预设」分区，同样四个动作；持久化在 `config.template_presets`，读回时按模板 schema 与背景字段归一，模板已移除的预设标记失效；设置 → 边框水印 → 模板预设 可改名（≤20 字）、上移下移、删除与展开摘要（`src/features/template/components/template-preset-menu.tsx`、`lib/template-preset.ts`、`hooks/use-template-presets.ts`、`features/settings/settings-page.tsx`）。差异：名称上限统一为 20 字；预设不含导出档位（档位走「存为默认档位」，见 A5）
 
 - [ ] **A16 素材列表右键菜单**｜缺口｜成本 小
   旧：关闭 / 关闭其他 / 关闭左侧 / 关闭右侧 / 全部关闭（`views/components/co-image-list.vue:41-89`）
@@ -189,7 +189,7 @@
 - [ ] **E2 拼图页整体是新增能力**（旧版没有）——确认作为长期产品扩展保留？
 - [ ] **E3 EXIF 变量策略**：是否保留旧变量名别名（A21）、缺失值是替换为空串还是保留占位符？
 - [ ] **E4 三个默认值**（B1 背景 / B2 档位 / B3 格式）是否回退到旧版观感？
-- [ ] **E5 「看似完成实则不可用」的字段**：`theme`、`language`、`template_presets`、`fonts.default_font`、`user_devices`、`output.retain_exif`、`device_id`、能力位 `system.tray: true`——排期未做还是设计上废弃？建议要么接线要么删除，避免配置契约与实现长期不一致
+- [ ] **E5 「看似完成实则不可用」的字段**：`theme`、`language`、`user_devices`、`output.retain_exif`、`device_id`、能力位 `system.tray: true`——排期未做还是设计上废弃？建议要么接线要么删除，避免配置契约与实现长期不一致（`template_presets`、`fonts.default_font` 与 `fonts.favorites` 已于 A14 / A15 接线）
 - [ ] **E6 单实例与全局快捷键**：旧版也没有 → 确认不补
 
 ---
@@ -199,6 +199,6 @@
 1. **C 组四个缺陷**——几乎零成本，用户立刻能碰到
 2. **A1 + A2 + A3**：档位预设清单、原始图片档位、宽高互换
 3. **A9 + A7 + A8**：保留 EXIF 开关、导出目录接通、导出进度与取消（链路均已支持，属接线工作）
-4. **A14 → A15 + A5**：全局字体；模板预设与「存为默认」（同一个持久化动作，建议一起做）
+4. ~~**A14 → A15 + A5**：全局字体；模板预设与「存为默认」~~ ✅ 已完成（`fonts.favorites` 除外）
 5. **B1 / B2 / B3**：默认值回退，改动极小但影响所有老用户观感，需先确认
 6. **A12 + A13**：用户设备与 EXIF 覆盖，最重，建议单独立项

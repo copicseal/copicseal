@@ -91,7 +91,12 @@ const SVG_TILE_UNITS = 100;
 const MIN_TILE_RATIO = 0.001;
 const MIN_FONT_RATIO = 0.001;
 
-/** 水印字体栈：不跟随 EXIF 变化，直接用跨平台的无衬线字体。 */
+/**
+ * 水印字体栈的兜底值。
+ *
+ * 正常情况下字体由框架从画布根透传进来（用户能在属性面板里换）；这里只在
+ * 没有拿到值时兜底，保证 SVG 里总有明确的 font-family 可用。
+ */
 const WATERMARK_FONT_FAMILY = 'Inter, Helvetica Neue, Arial, sans-serif';
 
 /** 转义 XML 特殊字符，避免用户文案里的 `&`、`<` 破坏 SVG 结构。 */
@@ -119,6 +124,8 @@ interface WatermarkTileOptions {
   width: number;
   /** SVG 坐标系下的瓦片高度 */
   height: number;
+  /** 水印字体族；空串回落到模板自带的字体栈 */
+  font: string;
 }
 
 /**
@@ -135,6 +142,7 @@ function buildWatermarkTile({
   fontSize,
   width,
   height,
+  font,
 }: WatermarkTileOptions): string {
   const centerX = round(width / 2);
   const centerY = round(height / 2);
@@ -142,7 +150,7 @@ function buildWatermarkTile({
     `<svg xmlns="http://www.w3.org/2000/svg" width="${round(width)}" height="${round(height)}"` +
     ` viewBox="0 0 ${round(width)} ${round(height)}">` +
     `<text x="${centerX}" y="${centerY}" fill="${color}" fill-opacity="${round(opacity)}"` +
-    ` font-size="${round(width * fontSize)}" font-family="${WATERMARK_FONT_FAMILY}"` +
+    ` font-size="${round(width * fontSize)}" font-family="${font || WATERMARK_FONT_FAMILY}"` +
     ` text-anchor="middle" dominant-baseline="middle"` +
     ` transform="rotate(${round(rotate)} ${centerX} ${centerY})">${escapeXml(text)}</text>` +
     '</svg>';
@@ -159,6 +167,7 @@ function Watermark({
   textColor,
   textOpacity,
   rotate,
+  font,
   fontSize,
   tileWidth,
   tileHeight,
@@ -180,6 +189,8 @@ function Watermark({
         fontSize: fontScale,
         width: tileWidthRatio * SVG_TILE_UNITS,
         height: tileHeightRatio * SVG_TILE_UNITS,
+        // SVG 是独立文档，继承不到画布根的字体，只能显式写进 data URL
+        font,
       })
     : null;
 

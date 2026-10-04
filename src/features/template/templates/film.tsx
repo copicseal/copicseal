@@ -1,4 +1,5 @@
 import { defineTemplate } from './define-template';
+import { MONO_FONT_STACK } from './font-stacks';
 import { formatExifText } from './format-exif-text';
 import type {
   RegisteredTemplate,
@@ -92,7 +93,7 @@ function Film({
         />
         {cornerText ? (
           <span
-            className="absolute font-mono tracking-[0.2em]"
+            className="absolute tracking-[0.2em]"
             style={{
               top: 'calc(var(--co-base) * var(--co-frame-width) * 0.5)',
               left: 'calc(var(--co-base) * var(--co-frame-width) * 0.5)',
@@ -115,14 +116,14 @@ function Film({
         }}
       >
         <span
-          className="font-mono tracking-[0.35em]"
+          className="tracking-[0.35em]"
           style={{ fontSize: 'calc(var(--co-base) * 0.012 * var(--co-font-scale))' }}
         >
           FILM
         </span>
         {captionText ? (
           <span
-            className="text-right font-mono"
+            className="text-right"
             style={{ fontSize: 'calc(var(--co-base) * 0.015 * var(--co-font-scale))' }}
           >
             {captionText}
@@ -145,5 +146,7 @@ export const FILM_TEMPLATE: RegisteredTemplate = defineTemplate({
   backgroundDefaults: {
     mode: 'none',
   },
+  // 角标与底栏信息用等宽字：以前是写在元素上的 font-mono 类，现在由模板声明
+  fontDefaults: MONO_FONT_STACK,
   component: Film,
 });

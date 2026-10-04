@@ -29,8 +29,11 @@ import {
   type ExportOptions,
   type ExportRunContext,
   exportSingle,
+  resolveDefaultFont,
   resolveDefaultOutputPresets,
   resolveExportDirectory,
+  resolveFontFavorites,
+  saveDefaultFont,
   saveDefaultOutputPresets,
 } from '@/platform';
 import { CoDropZone } from '@/shared/components/co-drop-zone';
@@ -57,6 +60,7 @@ import {
   PhotoPalettePicker,
   TemplateExifCard,
   TemplateExportPanel,
+  TemplatePresetMenu,
   TemplatePreview,
   TemplatePropsPanel,
   TemplateSelector,
@@ -447,6 +451,8 @@ function TemplatePropertiesPanel({
   onTemplateParamsChange,
   background,
   onBackgroundChange,
+  font,
+  onFontChange,
   presets,
   onPresetsChange,
   onSaveAsDefault,
@@ -463,6 +469,9 @@ function TemplatePropertiesPanel({
   onTemplateParamsChange: (next: Record<string, unknown>) => void;
   background: TemplateBackground;
   onBackgroundChange: (next: TemplateBackground) => void;
+  /** 当前生效的字体族；空串表示跟随模板自带的字体栈 */
+  font: string;
+  onFontChange: (next: string) => void;
   presets: Parameters<typeof TemplateExportPanel>[0]['presets'];
   onPresetsChange: Parameters<typeof TemplateExportPanel>[0]['onPresetsChange'];
   onSaveAsDefault: Parameters<typeof TemplateExportPanel>[0]['onSaveAsDefault'];
@@ -495,9 +504,14 @@ function TemplatePropertiesPanel({
     <BusinessWorkbenchPropertiesPane>
       <ScrollArea className="min-h-0 flex-1">
         <div className="space-y-3 px-3 py-3">
+          <TemplatePresetMenu
+            content={{ templateId: activeTemplateId, params: templateParams, background, font }}
+          />
           <TemplateSelector
             activeTemplateId={activeTemplateId}
             onTemplateChange={onTemplateChange}
+            font={font}
+            onFontChange={onFontChange}
           />
           {templateSchema ? (
             <CoPanelSection
@@ -600,6 +614,10 @@ export function TemplatePage() {
   const setPresets = useTemplateStore((state) => state.setPresets);
   const applyToOthers = useTemplateStore((state) => state.applyToOthers);
   const setDefaultPresets = useTemplateStore((state) => state.setDefaultPresets);
+  const setFont = useTemplateStore((state) => state.setFont);
+  const setDefaultFont = useTemplateStore((state) => state.setDefaultFont);
+  const setFontFavorites = useTemplateStore((state) => state.setFontFavorites);
+  const defaultFont = useTemplateStore((state) => state.defaultConfig.font);
   const prune = useTemplateStore((state) => state.prune);
   // 导出期间挂起预览自适应，否则它会覆盖导出解算出的 --co-base
   const [capturing, setCapturing] = useState(false);
@@ -608,24 +626,38 @@ export function TemplatePage() {
   const otherPhotoCount = Math.max(photos.length - (currentPhoto ? 1 : 0), 0);
 
   /**
-   * 启动时把设置里存的「默认档位」装进 store。
+   * 启动时把设置里存的「默认档位」「全局字体」与「收藏字体」装进 store。
    *
-   * 没存过就保持框架内置的单个 2000×2000：空清单不等于「默认没有档位」。
+   * 没存过就保持框架内置的单个 2000×2000 与模板自带的字体栈：
+   * 空清单不等于「默认没有档位」，空字体也不等于「没有字体」。
    */
   useEffect(() => {
     let cancelled = false;
 
     void (async () => {
-      const presets = parseDefaultPresets(await resolveDefaultOutputPresets());
-      if (!cancelled && presets.length > 0) {
-        setDefaultPresets(presets);
+      const [presets, font, favorites] = await Promise.all([
+        resolveDefaultOutputPresets(),
+        resolveDefaultFont(),
+        resolveFontFavorites(),
+      ]);
+      if (cancelled) {
+        return;
       }
+
+      const parsed = parseDefaultPresets(presets);
+      if (parsed.length > 0) {
+        setDefaultPresets(parsed);
+      }
+      if (font) {
+        setDefaultFont(font);
+      }
+      setFontFavorites(favorites);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [setDefaultPresets]);
+  }, [setDefaultFont, setDefaultPresets, setFontFavorites]);
 
   // 素材被移除后回收它的配置；prune 在无变化时返回原 state，不会引起额外渲染
   useEffect(() => {
@@ -690,6 +722,25 @@ export function TemplatePage() {
       },
     },
   });
+
+  /**
+   * 切换全局字体。
+   *
+   * 全局字体是「新导入与没单独调过的图片用哪个字体」，因此只写配置里的默认值；
+   * 当前图片若被预设钉过字体，顺手解除钉住——否则用户在这里选完会发现当前图片
+   * 纹丝不动，像是开关失灵。
+   */
+  const handleFontChange = (next: string) => {
+    if (currentPhoto && config.font) {
+      setFont(currentPhoto.id, '');
+    }
+
+    setDefaultFont(next);
+    void saveDefaultFont(next).catch((error) => {
+      console.error('保存默认字体失败:', error);
+      toast.error('保存默认字体失败');
+    });
+  };
 
   const handleApplyToOthers = (scope: TemplateApplyScope) => {
     if (!currentPhoto || otherPhotoCount === 0) {
@@ -793,6 +844,8 @@ export function TemplatePage() {
 
   // 两轴必填：无背景时目标框是 contain 约束，有背景时它就是画框尺寸
   const exportReady = config.presets.every(isValidPreset);
+  // 预设可以给单张图片钉一个字体；没钉过就跟随全局字体，再没有则由模板自己兜底
+  const resolvedFont = config.font || defaultFont;
 
   const buildExportOptions = (): ExportOptions => ({
     presets: config.presets,
@@ -849,6 +902,7 @@ export function TemplatePage() {
               templateId={config.templateId}
               params={config.params}
               background={config.background}
+              font={resolvedFont}
               previewRef={previewRef}
               suspendAutoFit={capturing}
             />
@@ -876,6 +930,8 @@ export function TemplatePage() {
               setBackground(currentPhoto.id, next);
             }
           }}
+          font={resolvedFont}
+          onFontChange={handleFontChange}
           presets={config.presets}
           onPresetsChange={(next) => {
             if (currentPhoto) {

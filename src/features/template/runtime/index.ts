@@ -3,6 +3,7 @@ export {
   getBuiltinTemplateById,
   getBuiltinTemplateSchema,
   getDefaultParams,
+  isTemplateFieldVisible,
   listBuiltinTemplates,
   normalizeFieldValue,
   normalizeParams,

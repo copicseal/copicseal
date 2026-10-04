@@ -1,6 +1,10 @@
 import {
+  ArrowDown,
+  ArrowUp,
   Box,
   Check,
+  ChevronDown,
+  ChevronRight,
   Cog,
   Database,
   Download,
@@ -8,13 +12,20 @@ import {
   LayoutTemplate,
   type LucideIcon,
   Palette,
+  Pencil,
   RefreshCw,
   Settings2,
   Trash2,
+  X,
 } from 'lucide-react';
-import { Fragment, useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { useTemplatePresets } from '@/features/template/hooks/use-template-presets';
 import { parseDefaultPresets } from '@/features/template/lib/export-preset';
+import {
+  MAX_TEMPLATE_PRESETS,
+  TEMPLATE_PRESET_NAME_MAX,
+} from '@/features/template/lib/template-preset';
 import { useTemplateStore } from '@/features/template/store/use-template-store';
 import {
   type AppConfig,
@@ -40,12 +51,23 @@ const {
 } = platformRuntime;
 
 import { CoDirectoryField } from '@/shared/components/co-directory-field';
+import { CoFontField } from '@/shared/components/co-font-field';
 import { CoWindowHeader } from '@/shared/components/co-window-header';
+import { useSystemFonts } from '@/shared/hooks/use-system-fonts';
 import { cn } from '@/shared/lib/utils';
 import { useAppNavigation } from '@/shared/providers/navigation-provider';
 import { usePageActive } from '@/shared/providers/page-activity-provider';
 import { useWindowStyle } from '@/shared/providers/window-style-provider';
 import { Button } from '@/shared/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/shared/ui/dropdown-menu';
+import { Input } from '@/shared/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/shared/ui/radio-group';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import {
@@ -87,6 +109,7 @@ const TAB_GROUPS: SettingsTabGroup[] = [
     icon: Box,
     items: [
       { id: 'template', label: '默认项' },
+      { id: 'template-preset', label: '模板预设' },
       { id: 'template-export', label: '导出' },
     ],
   },
@@ -175,15 +198,12 @@ function SettingField({
   children: React.ReactNode;
 }) {
   return (
-    <div
-      id={id}
-      className="grid gap-3 border-t border-border/70 py-4 first:border-t-0 first:pt-0 md:grid-cols-[220px_minmax(0,1fr)]"
-    >
-      <div>
-        <p className="text-sm font-medium text-foreground">{label}</p>
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
-      </div>
-      <div className="min-w-0">{children}</div>
+    <div id={id} className="border-t border-border/70 py-4 first:border-t-0 first:pt-0">
+      {/* 标题与说明在上、控件在下：右侧一栏被标题挤窄后，长路径、档位清单这类
+          本就偏宽的控件会先被压到换行，倒不如让它们独占整行 */}
+      <p className="text-sm font-medium text-foreground">{label}</p>
+      <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
+      <div className="mt-3 min-w-0">{children}</div>
     </div>
   );
 }
@@ -409,6 +429,314 @@ function GeneralTab({
             onOpen={() => void onOpenWorkspaceDirectory()}
             onSelect={() => void onSelectWorkspaceDirectory()}
           />
+        </SettingField>
+      </FieldGroup>
+    </div>
+  );
+}
+
+function TemplateDefaultsTab({
+  font,
+  onFontChange,
+  favoriteFonts,
+  onToggleFavoriteFont,
+}: {
+  font: string;
+  onFontChange: (font: string) => void;
+  favoriteFonts: string[];
+  onToggleFavoriteFont: (font: string) => void;
+}) {
+  const { fonts, loading, reload } = useSystemFonts();
+  const [fontQuery, setFontQuery] = useState('');
+  const [fontMenuOpen, setFontMenuOpen] = useState(false);
+  const searchRef = useRef<HTMLInputElement | null>(null);
+
+  /**
+   * 菜单打开后把焦点交给搜索框。
+   *
+   * 这个版本的 Radix 菜单内容没有 `onOpenAutoFocus`（只有关闭时的回调），
+   * 所以自己盯开合状态：内容挂到 portal 上之后再聚焦，关闭时顺手清掉关键词。
+   */
+  useEffect(() => {
+    if (!fontMenuOpen) {
+      setFontQuery('');
+      return;
+    }
+
+    const timer = window.setTimeout(() => searchRef.current?.focus(), 0);
+    return () => window.clearTimeout(timer);
+  }, [fontMenuOpen]);
+
+  // 系统字体动辄几百个，靠搜索收窄；只在已读到的清单里过滤，不做远程查询
+  const matchedFonts = useMemo(() => {
+    const keyword = fontQuery.trim().toLowerCase();
+    if (!keyword) {
+      return fonts;
+    }
+
+    return fonts.filter((item) => item.family.toLowerCase().includes(keyword));
+  }, [fonts, fontQuery]);
+
+  return (
+    <div className="space-y-4">
+      <FieldGroup
+        title="边框水印默认项"
+        description="新导入的图片默认使用的样式；已经单独调过的图片不受影响。"
+      >
+        <SettingField
+          id="template-default-font"
+          label="全局字体"
+          description="不指定时由模板自带的字体栈决定；模板预设可以给单张图片单独指定字体。"
+        >
+          <CoFontField
+            value={font}
+            onChange={onFontChange}
+            fonts={fonts}
+            loading={loading}
+            onRefresh={reload}
+          />
+          {!loading && fonts.length === 0 ? (
+            <p className="mt-2 text-xs leading-5 text-muted-foreground">
+              没有读到系统字体，可点右侧刷新重试；网页版没有系统字体来源。
+            </p>
+          ) : null}
+        </SettingField>
+
+        <SettingField
+          id="template-font-favorites"
+          label="收藏字体"
+          description="模板页的字体下拉只列出收藏的字体；一条都没收藏时先显示全部系统字体，方便直接开用。"
+        >
+          <div className="space-y-3">
+            <DropdownMenu open={fontMenuOpen} onOpenChange={setFontMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="outline" className="w-full justify-between">
+                  {favoriteFonts.length > 0
+                    ? `已收藏 ${favoriteFonts.length} 个字体`
+                    : '选择要收藏的字体'}
+                  <ChevronDown data-icon="inline-end" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="max-h-80 w-80">
+                <div className="sticky top-0 z-10 -mx-1 bg-popover px-1 pb-1">
+                  <Input
+                    ref={searchRef}
+                    value={fontQuery}
+                    placeholder="搜索字体"
+                    aria-label="搜索字体"
+                    // 不让方向键与输入一起被菜单的键盘导航吃掉
+                    onKeyDown={(event) => event.stopPropagation()}
+                    onChange={(event) => setFontQuery(event.target.value)}
+                  />
+                </div>
+                <DropdownMenuSeparator />
+                {matchedFonts.length === 0 ? (
+                  <DropdownMenuItem disabled>
+                    {fonts.length === 0 ? '没有读到系统字体' : '没有匹配的字体'}
+                  </DropdownMenuItem>
+                ) : (
+                  matchedFonts.map((item) => (
+                    <DropdownMenuCheckboxItem
+                      key={item.family}
+                      checked={favoriteFonts.includes(item.family)}
+                      // 勾选后菜单默认会关掉，多选就没法连着点；这里拦住关闭，
+                      // onCheckedChange 不受影响（Radix 内部不检查默认行为）
+                      onSelect={(event) => event.preventDefault()}
+                      onCheckedChange={() => onToggleFavoriteFont(item.family)}
+                    >
+                      <span className="truncate">{item.family}</span>
+                    </DropdownMenuCheckboxItem>
+                  ))
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {favoriteFonts.length === 0 ? (
+              <p className="text-xs leading-5 text-muted-foreground">
+                还没有收藏字体，模板页的字体下拉会临时列出全部系统字体。
+              </p>
+            ) : (
+              // 一字体一枚标签、自动换行：收藏几十个也只是几行高，
+              // 不像逐行列表那样把整页撑长（顺序仍是收藏顺序）
+              <div className="flex flex-wrap gap-1.5">
+                {favoriteFonts.map((family) => (
+                  <span
+                    key={family}
+                    className="inline-flex max-w-full items-center gap-0.5 border border-border/70 bg-background/60 py-0.5 pr-0.5 pl-2"
+                  >
+                    <span className="min-w-0 truncate text-xs text-foreground">{family}</span>
+                    <Button
+                      type="button"
+                      variant="plain"
+                      size="icon-xs"
+                      aria-label={`取消收藏 ${family}`}
+                      onClick={() => onToggleFavoriteFont(family)}
+                    >
+                      <X />
+                    </Button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </SettingField>
+      </FieldGroup>
+    </div>
+  );
+}
+
+function TemplatePresetsTab({ onGoToTemplate }: { onGoToTemplate: () => void }) {
+  const { presets, removePreset, renamePreset, movePreset } = useTemplatePresets();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [nameDraft, setNameDraft] = useState('');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const startRename = (id: string, name: string) => {
+    setEditingId(id);
+    setNameDraft(name);
+  };
+
+  const commitRename = async () => {
+    if (!editingId) {
+      return;
+    }
+
+    const id = editingId;
+    setEditingId(null);
+    await renamePreset(id, nameDraft);
+  };
+
+  return (
+    <div className="space-y-4">
+      <FieldGroup
+        title="模板预设"
+        description="只对边框水印生效。在模板页属性面板的「模板预设」里保存，这里可以改名、排序与删除。"
+      >
+        <SettingField
+          id="template-presets"
+          label="已保存的配置"
+          description={`最多 ${MAX_TEMPLATE_PRESETS} 条。应用配置只改模板、参数、背景与字体，各张图片自己的导出档位保持不动。`}
+        >
+          {presets.length === 0 ? (
+            <p className="text-xs leading-5 text-muted-foreground">
+              还没有保存的配置，新导入的图片会从模板自带的默认样式开始。
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {presets.map((preset, index) => {
+                const editing = editingId === preset.id;
+                const expanded = expandedId === preset.id;
+                const templateLabel = preset.templateName ?? '模板已失效';
+
+                return (
+                  <li key={preset.id} className="border border-border/70 bg-background/60">
+                    <div className="flex items-center gap-1.5 px-2 py-1.5">
+                      <Button
+                        type="button"
+                        variant="plain"
+                        size="icon-sm"
+                        aria-label={expanded ? `收起 ${preset.name}` : `展开 ${preset.name}`}
+                        aria-expanded={expanded}
+                        onClick={() => setExpandedId(expanded ? null : preset.id)}
+                      >
+                        <ChevronRight
+                          className={cn('transition-transform', expanded && 'rotate-90')}
+                        />
+                      </Button>
+
+                      {editing ? (
+                        <Input
+                          autoFocus
+                          value={nameDraft}
+                          maxLength={TEMPLATE_PRESET_NAME_MAX}
+                          className="h-6 flex-1 text-xs"
+                          aria-label="配置名称"
+                          onChange={(event) => setNameDraft(event.target.value)}
+                          onBlur={() => void commitRename()}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') {
+                              void commitRename();
+                            }
+                            if (event.key === 'Escape') {
+                              setEditingId(null);
+                            }
+                          }}
+                        />
+                      ) : (
+                        <span className="min-w-0 flex-1 truncate text-xs text-foreground">
+                          {preset.name}
+                        </span>
+                      )}
+
+                      <span
+                        className={cn(
+                          'shrink-0 text-[10px]',
+                          preset.templateName ? 'text-muted-foreground' : 'text-destructive',
+                        )}
+                      >
+                        {templateLabel}
+                      </span>
+
+                      <Button
+                        type="button"
+                        variant="plain"
+                        size="icon-sm"
+                        aria-label={`上移 ${preset.name}`}
+                        disabled={index === 0}
+                        onClick={() => void movePreset(preset.id, -1)}
+                      >
+                        <ArrowUp />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="plain"
+                        size="icon-sm"
+                        aria-label={`下移 ${preset.name}`}
+                        disabled={index === presets.length - 1}
+                        onClick={() => void movePreset(preset.id, 1)}
+                      >
+                        <ArrowDown />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="plain"
+                        size="icon-sm"
+                        aria-label={`重命名 ${preset.name}`}
+                        onClick={() => startRename(preset.id, preset.name)}
+                      >
+                        <Pencil />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="plain"
+                        size="icon-sm"
+                        aria-label={`删除 ${preset.name}`}
+                        onClick={() => {
+                          void removePreset(preset.id);
+                          toast.success(`已删除配置「${preset.name}」`);
+                        }}
+                      >
+                        <Trash2 />
+                      </Button>
+                    </div>
+
+                    {expanded ? (
+                      <pre className="border-t border-border/60 px-3 py-2 font-sans text-[10px] leading-5 whitespace-pre-wrap text-muted-foreground">
+                        {preset.description || '这条配置没有摘要。'}
+                      </pre>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+
+          <div className="mt-3">
+            <Button type="button" variant="outline" size="sm" onClick={onGoToTemplate}>
+              <LayoutTemplate data-icon="inline-start" />
+              去模板页保存新配置
+            </Button>
+          </div>
         </SettingField>
       </FieldGroup>
     </div>
@@ -714,11 +1042,15 @@ export function SettingsPage() {
   const pageActive = usePageActive();
   const navigate = useAppNavigation();
   const setDefaultPresets = useTemplateStore((state) => state.setDefaultPresets);
+  const setDefaultFont = useTemplateStore((state) => state.setDefaultFont);
+  const setFontFavorites = useTemplateStore((state) => state.setFontFavorites);
   const [tab, setTab] = useState('general');
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [overview, setOverview] = useState<CacheOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [cacheActionPending, setCacheActionPending] = useState(false);
+  /** 收藏字体的写盘队列：见 handleToggleFavoriteFont 的说明 */
+  const favoritesWriteRef = useRef<Promise<void>>(Promise.resolve());
 
   const loadConfig = useCallback(async () => {
     setLoading(true);
@@ -910,6 +1242,68 @@ export function SettingsPage() {
       }
     },
     [config, saveConfig, setDefaultPresets],
+  );
+
+  /**
+   * 改全局字体。
+   *
+   * 不走 `saveConfig`：那个还会顺带重扫一次缓存目录，换个字体没必要扫盘。
+   * 与模板页属性面板的区别只有一处——这里没有「当前照片」的语境，
+   * 因此不去解开设了预设字体的那张图（预设的字体是故意钉住的）。
+   */
+  const handleGlobalFontChange = useCallback(
+    async (font: string) => {
+      if (!config) {
+        return;
+      }
+
+      const nextConfig = { ...config, fonts: { ...config.fonts, default_font: font } };
+      // 本页状态先跟上，下拉立刻显示新值
+      setConfig(nextConfig);
+      // 同一会话里未调整过的图片与新导入的图片立刻用上新字体，不必重启
+      setDefaultFont(font);
+
+      try {
+        await updateConfig(nextConfig);
+      } catch (error) {
+        console.error('Save default font failed:', error);
+        toast.error('保存默认字体失败');
+      }
+    },
+    [config, setDefaultFont],
+  );
+
+  /**
+   * 收藏 / 取消收藏一个字体。
+   *
+   * 只影响模板页下拉列出哪些选项，不改变任何照片的字体。多选下拉里可以连着点，
+   * 因此两件事要处理好：下一份清单基于最新值累加（不能各算各的覆盖掉前一次），
+   * 以及整段配置的写盘要排队（两次交错落盘会让后写的旧值盖掉新值）。
+   */
+  const handleToggleFavoriteFont = useCallback(
+    (font: string) => {
+      if (!config || !font) {
+        return;
+      }
+
+      const current = config.fonts.favorites ?? [];
+      const favorites = current.includes(font)
+        ? current.filter((item) => item !== font)
+        : [...current, font];
+      const nextConfig = { ...config, fonts: { ...config.fonts, favorites } };
+
+      setConfig(nextConfig);
+      // 模板页 keep-alive 挂着不会重挂载，同步更新会话内的清单
+      setFontFavorites(favorites);
+
+      favoritesWriteRef.current = favoritesWriteRef.current
+        .then(() => updateConfig(nextConfig))
+        .catch((error) => {
+          console.error('Save font favorites failed:', error);
+          toast.error('保存收藏字体失败');
+        });
+    },
+    [config, setFontFavorites],
   );
 
   const handleOpenExportDirectory = useCallback(async () => {
@@ -1124,14 +1518,15 @@ export function SettingsPage() {
               />
             </TabsContent>
             <TabsContent value="template" className="mt-0">
-              <PlaceholderTab
-                title="边框水印默认项"
-                description="模板与参数的默认值仍保持占位状态，目前这些设置按当前照片在模板页调整。"
-                cards={[
-                  { title: '默认模板', description: '后续与模板系统联动。' },
-                  { title: '默认字体', description: '后续与字体收藏和模板 schema 联动。' },
-                ]}
+              <TemplateDefaultsTab
+                font={config.fonts.default_font}
+                onFontChange={(next) => void handleGlobalFontChange(next)}
+                favoriteFonts={config.fonts.favorites}
+                onToggleFavoriteFont={handleToggleFavoriteFont}
               />
+            </TabsContent>
+            <TabsContent value="template-preset" className="mt-0">
+              <TemplatePresetsTab onGoToTemplate={() => navigate('/template')} />
             </TabsContent>
             <TabsContent value="template-export" className="mt-0">
               <TemplateExportDefaultsTab

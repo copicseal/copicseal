@@ -27,6 +27,8 @@ interface TemplatePreviewProps {
   /** 当前用户参数，渲染前由 TemplateRuntime 按模板自己的 schema 兜底归一 */
   params: Record<string, unknown>;
   background: TemplateBackground;
+  /** 当前生效的字体族；空串表示跟随模板自带的字体栈 */
+  font: string;
   previewRef?: React.RefObject<HTMLDivElement | null>;
   /** 导出期间挂起自适应，避免覆盖导出解算出的尺寸 */
   suspendAutoFit?: boolean;
@@ -49,6 +51,7 @@ export function TemplatePreview({
   templateId,
   params,
   background,
+  font,
   previewRef,
   suspendAutoFit = false,
 }: TemplatePreviewProps) {
@@ -77,6 +80,7 @@ export function TemplatePreview({
     `${Math.round(viewport.width)}x${Math.round(viewport.height)}`,
     JSON.stringify(background),
     JSON.stringify(params),
+    font,
   ].join('|');
 
   /**
@@ -188,6 +192,7 @@ export function TemplatePreview({
                     photoUrl={currentPhoto.previewUrl}
                     exif={exif}
                     params={params}
+                    font={font}
                   />
                 </TemplateBackgroundFrame>
               </div>

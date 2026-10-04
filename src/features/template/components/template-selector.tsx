@@ -1,7 +1,9 @@
 import { Star } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { listBuiltinTemplates } from '@/features/template/runtime/template-registry';
+import { CoFontField } from '@/shared/components/co-font-field';
 import { CoPanelSection } from '@/shared/components/co-panel-section';
+import { useSystemFonts } from '@/shared/hooks/use-system-fonts';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import {
@@ -12,10 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/select';
+import { useTemplateStore } from '../store/use-template-store';
 
 interface TemplateSelectorProps {
   activeTemplateId: string;
   onTemplateChange: (templateId: string) => void;
+  /** 当前生效的字体族；空串表示跟随模板自带的字体栈 */
+  font: string;
+  onFontChange: (font: string) => void;
 }
 
 /** 收藏排在最近使用之前，其余保持注册顺序。 */
@@ -33,10 +39,33 @@ function resolveRank(templateId: string, favorites: string[], recentIds: string[
   return Number.MAX_SAFE_INTEGER;
 }
 
-export function TemplateSelector({ activeTemplateId, onTemplateChange }: TemplateSelectorProps) {
+export function TemplateSelector({
+  activeTemplateId,
+  onTemplateChange,
+  font,
+  onFontChange,
+}: TemplateSelectorProps) {
   const templates = listBuiltinTemplates();
   const [favorites, setFavorites] = useState<string[]>(['minimal', 'film']);
   const [recentIds, setRecentIds] = useState<string[]>(['minimal']);
+  const { fonts, loading, reload } = useSystemFonts();
+  // 模板收藏另有其人（上面的 favorites 是模板的星标），这里显式带上 font 前缀
+  const fontFavorites = useTemplateStore((state) => state.fontFavorites);
+
+  /**
+   * 下拉里列出的字体族。
+   *
+   * 收藏过就只列收藏项，把系统里几百个字体挡在外面；一条都没收藏时（刚装好
+   * 或刚清空）回退到全部系统字体，否则新用户会卡在「一个字体都选不了」。
+   */
+  const familyOptions = useMemo(() => {
+    if (fontFavorites.length === 0) {
+      return fonts;
+    }
+
+    const picked = new Set(fontFavorites);
+    return fonts.filter((font) => picked.has(font.family));
+  }, [fonts, fontFavorites]);
 
   // 收藏与最近使用只影响下拉里的排序，模板列表本身始终是完整的一份。
   const orderedTemplates = templates
@@ -85,29 +114,47 @@ export function TemplateSelector({ activeTemplateId, onTemplateChange }: Templat
         </Button>
       }
     >
-      <div className="space-y-2">
-        <Select value={activeTemplateId} onValueChange={handleSelect}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="选择模板" />
-          </SelectTrigger>
-          <SelectContent>
-            {/* 下拉项的 4px 内边距来自 SelectGroup（SelectContent 自身没有 p-1），
-                不包一层的话悬浮高亮会贴着弹层边缘。 */}
-            <SelectGroup>
-              {orderedTemplates.map((template) => (
-                <SelectItem key={template.meta.id} value={template.meta.id}>
-                  {template.meta.name}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-
-        {activeTemplate ? (
-          <p className="text-xs leading-5 text-muted-foreground">
-            {activeTemplate.meta.description}
+      <div className="space-y-3">
+        <div className="space-y-1.5">
+          <span className="text-xs font-medium text-foreground">全局字体</span>
+          <CoFontField
+            value={font}
+            onChange={onFontChange}
+            fonts={familyOptions}
+            loading={loading}
+            onRefresh={reload}
+          />
+          <p className="text-[10px] leading-4 text-muted-foreground">
+            {fontFavorites.length === 0
+              ? '还没有收藏字体，暂时列出全部系统字体；可在设置 → 边框水印 → 默认项 里收藏常用字体。'
+              : '只列出收藏的字体，可在设置 → 边框水印 → 默认项 里调整。'}
           </p>
-        ) : null}
+        </div>
+
+        <div className="space-y-2">
+          <Select value={activeTemplateId} onValueChange={handleSelect}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="选择模板" />
+            </SelectTrigger>
+            <SelectContent>
+              {/* 下拉项的 4px 内边距来自 SelectGroup（SelectContent 自身没有 p-1），
+                  不包一层的话悬浮高亮会贴着弹层边缘。 */}
+              <SelectGroup>
+                {orderedTemplates.map((template) => (
+                  <SelectItem key={template.meta.id} value={template.meta.id}>
+                    {template.meta.name}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+
+          {activeTemplate ? (
+            <p className="text-xs leading-5 text-muted-foreground">
+              {activeTemplate.meta.description}
+            </p>
+          ) : null}
+        </div>
       </div>
     </CoPanelSection>
   );

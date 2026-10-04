@@ -1,6 +1,7 @@
 export { PhotoPalettePicker } from './components/photo-palette-picker';
 export { TemplateExifCard } from './components/template-exif-card';
 export { TemplateExportPanel } from './components/template-export-panel';
+export { TemplatePresetMenu } from './components/template-preset-menu';
 export { TemplatePreview } from './components/template-preview';
 export { TemplatePropsPanel } from './components/template-props-panel';
 export { TemplateSelector } from './components/template-selector';

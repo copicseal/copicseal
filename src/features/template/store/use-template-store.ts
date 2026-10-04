@@ -2,7 +2,13 @@ import { create } from 'zustand';
 import type { ExportPreset } from '@/shared/types/export';
 import { resolveTemplateBackground, type TemplateBackground } from '../background';
 import { createExportPreset } from '../lib/export-preset';
-import { getDefaultParams, resolveBuiltinTemplate } from '../runtime/template-registry';
+import type { TemplatePresetContent, TemplatePresetRecord } from '../lib/template-preset';
+import {
+  getBuiltinTemplateById,
+  getDefaultParams,
+  normalizeParams,
+  resolveBuiltinTemplate,
+} from '../runtime/template-registry';
 import { DEFAULT_TEMPLATE_ID } from '../templates';
 
 /**
@@ -15,19 +21,22 @@ export interface TemplatePhotoConfig {
   templateId: string;
   params: Record<string, unknown>;
   background: TemplateBackground;
+  /** 字体族名；空串表示跟随模板自带的字体栈 */
+  font: string;
   presets: ExportPreset[];
 }
 
 /** 一键应用的范围：参数脱离所属模板没有意义，因此模板与参数必须一起复制。 */
 export type TemplateApplyScope = 'template' | 'background' | 'presets';
 
-function createDefaultConfig(presets?: ExportPreset[]): TemplatePhotoConfig {
+function createDefaultConfig(presets?: ExportPreset[], font?: string): TemplatePhotoConfig {
   const template = resolveBuiltinTemplate(DEFAULT_TEMPLATE_ID);
 
   return {
     templateId: template.meta.id,
     params: getDefaultParams(template.schema),
     background: resolveTemplateBackground(template.backgroundDefaults),
+    font: font ?? '',
     presets: presets ?? [createExportPreset()],
   };
 }
@@ -54,6 +63,8 @@ interface TemplateStoreState {
   setParams: (photoId: string, params: Record<string, unknown>) => void;
   setBackground: (photoId: string, background: TemplateBackground) => void;
   setPresets: (photoId: string, presets: ExportPreset[]) => void;
+  /** 设置某张照片的字体；空串表示回到模板自带的字体栈。 */
+  setFont: (photoId: string, font: string) => void;
   /**
    * 用一组档位替换默认档位。
    *
@@ -61,6 +72,26 @@ interface TemplateStoreState {
    * 已经调过档位的照片保持原样。
    */
   setDefaultPresets: (presets: ExportPreset[]) => void;
+  /** 换掉默认字体；同样只影响没有自己配置的照片。 */
+  setDefaultFont: (font: string) => void;
+  /**
+   * 用户在设置里收藏的字体族。
+   *
+   * 只影响模板页字体下拉里列出哪些选项，不改变任何照片的字体本身；
+   * 一条都没有时下拉回退到全部系统字体。
+   */
+  fontFavorites: string[];
+  setFontFavorites: (favorites: string[]) => void;
+  /**
+   * 把一条模板预设应用到若干张照片。
+   *
+   * 模板、参数、背景与字体一次性写入：它们共同构成「一套样式」，
+   * 分开应用会短暂出现参数与新模板不匹配的中间态。导出档位不动。
+   */
+  applyPreset: (photoIds: readonly string[], content: TemplatePresetContent) => void;
+  /** 设置里保存的模板预设；由页面从配置读出后写入。 */
+  templatePresets: TemplatePresetRecord[];
+  setTemplatePresets: (presets: TemplatePresetRecord[]) => void;
   /** 把某张照片的配置复制给其他照片，源照片本身不变。 */
   applyToOthers: (
     photoIds: readonly string[],
@@ -75,12 +106,15 @@ interface TemplateStoreState {
  * Template 页的每图配置表。
  *
  * 每张照片的配置不做持久化：照片 id 是会话级的，跨会话恢复没有意义
- * （见 docs/05 存储原则）。只有 `defaultConfig` 里的档位来自设置中的
- * 「默认档位」，并在启动时由页面写入。
+ * （见 docs/05 存储原则）。来自设置、并在启动时由页面写入的有三样：
+ * `defaultConfig` 里的档位与字体（「默认档位」「全局字体」），以及从配置
+ * 读出的模板预设清单与收藏字体清单。
  */
 export const useTemplateStore = create<TemplateStoreState>()((set) => ({
   configs: {},
   defaultConfig: createDefaultConfig(),
+  templatePresets: [],
+  fontFavorites: [],
 
   setTemplate: (photoId, templateId) => {
     const template = resolveBuiltinTemplate(templateId);
@@ -136,6 +170,18 @@ export const useTemplateStore = create<TemplateStoreState>()((set) => ({
     }));
   },
 
+  setFont: (photoId, font) => {
+    set((state) => ({
+      configs: {
+        ...state.configs,
+        [photoId]: {
+          ...configFor(state.configs, state.defaultConfig, photoId),
+          font,
+        },
+      },
+    }));
+  },
+
   setDefaultPresets: (presets) => {
     set((state) => ({
       defaultConfig: {
@@ -144,6 +190,46 @@ export const useTemplateStore = create<TemplateStoreState>()((set) => ({
         presets: presets.length > 0 ? structuredClone(presets) : [createExportPreset()],
       },
     }));
+  },
+
+  setDefaultFont: (font) => {
+    set((state) => ({
+      defaultConfig: { ...state.defaultConfig, font },
+    }));
+  },
+
+  setFontFavorites: (fontFavorites) => {
+    set({ fontFavorites });
+  },
+
+  applyPreset: (photoIds, content) => {
+    const template = getBuiltinTemplateById(content.templateId);
+    // 模板已被移除时调用方就该拦下；这里再兜一层，避免写进一个渲染不出的模板
+    if (!template) {
+      return;
+    }
+
+    set((state) => {
+      const params = normalizeParams(template.schema, content.params);
+      const background = resolveTemplateBackground(content.background);
+      const configs = { ...state.configs };
+
+      for (const photoId of photoIds) {
+        configs[photoId] = {
+          ...configFor(state.configs, state.defaultConfig, photoId),
+          templateId: template.meta.id,
+          params: structuredClone(params),
+          background: structuredClone(background),
+          font: content.font,
+        };
+      }
+
+      return { configs };
+    });
+  },
+
+  setTemplatePresets: (templatePresets) => {
+    set({ templatePresets });
   },
 
   applyToOthers: (photoIds, sourcePhotoId, scope) => {

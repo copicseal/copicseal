@@ -1,5 +1,8 @@
 import type { ReactNode } from 'react';
-import { normalizeFieldValue } from '@/features/template/runtime/template-registry';
+import {
+  isTemplateFieldVisible,
+  normalizeFieldValue,
+} from '@/features/template/runtime/template-registry';
 import type { TemplateField, TemplateSchema } from '@/features/template/templates';
 import { Input } from '@/shared/ui/input';
 import {
@@ -36,18 +39,6 @@ const HEX_COLOR_PATTERN = /^#[0-9a-fA-F]{6}$/;
 
 function readString(value: unknown, fallback: string): string {
   return typeof value === 'string' ? value : fallback;
-}
-
-/** 字段条件显示：未声明 `visibleWhen` 时始终可见。 */
-function isFieldVisible(field: TemplateField, value: Record<string, unknown>): boolean {
-  if (!field.visibleWhen) {
-    return true;
-  }
-
-  const current = value[field.visibleWhen.key];
-  return typeof current === 'string' || typeof current === 'number' || typeof current === 'boolean'
-    ? field.visibleWhen.equals.includes(current)
-    : false;
 }
 
 /** 单个参数的控件；控件形态完全由字段自己的 `type` 决定。 */
@@ -148,7 +139,7 @@ export function TemplatePropsPanel({ schema, value, onChange, extras }: Template
   return (
     <div className="space-y-3">
       {schema.fields
-        .filter((field) => isFieldVisible(field, value))
+        .filter((field) => isTemplateFieldVisible(field, value))
         .map((field) => (
           <TemplateFieldControl
             key={field.key}

@@ -41,7 +41,8 @@ pnpm exec shadcn add <component> --diff <file>   # 升级前看逐行差异
 | `tooltip.tsx` | **整文件是本地实现，不是 registry 版本**：`delayDuration` 默认 `120`（registry 为 `0`）、`TooltipContent` 默认 `side='right'` / `sideOffset={10}`、样式用 `bg-popover` + `border` + `text-popover-foreground`，去掉了 registry 的箭头、`data-slot` 与深色气泡样式 | 素材面板的提示要浅色气泡、右侧出现、延迟稍长以免划过时闪烁 | [template-page.tsx:145](../../features/template/components/template-page.tsx#L145) 起的素材面板与素材列表提示 |
 | `toaster.tsx` | 保留旧版 sonner 包装（`className="toaster group"` + `group-[.toaster]:*` 类名），当前 registry 已不再提供该文件 | 当前 registry 对应的是 `sonner.tsx`（依赖 `next-themes`），迁移会牵动主题来源，暂不在本次范围内 | [app.tsx:14](../../app/app.tsx#L14)、[app.tsx:121](../../app/app.tsx#L121) 全局 toast 容器 |
 
-`accordion.tsx`、`avatar.tsx`、`dropdown-menu.tsx` 全仓库无引用，已于 2026-10-02 删除。
+`accordion.tsx`、`avatar.tsx` 全仓库无引用，已于 2026-10-02 删除；`dropdown-menu.tsx` 同日删除，
+2026-10-04 因「模板配置」菜单重新安装（见第三节）。
 
 ## 三、上游更新记录
 
@@ -55,6 +56,7 @@ pnpm exec shadcn add <component> --diff <file>   # 升级前看逐行差异
 | 2026-10-03 | `slider.tsx` | 之前把 Thumb 的 key 从 `key={index}` 改成了 `key={`thumb-${值}-${个数}`}` | **已回退**：thumb 的身份只跟顺序有关，而值会在拖动时不断变化，用值做 key 等于每次改动都换掉 DOM 节点，滑块按住一拖就断，只能动一次。现在与上游一致地用下标（配一句 `biome-ignore` 说明），并留了注释防止再被改回去 |
 | 2026-10-02 | `button.tsx`、`scroll-area.tsx` | 上游与本地的差异全部来自第二节的本地改动 | 保留本地改动，不覆盖 |
 | 2026-10-02 | `collapsible.tsx` | 新增组件（右侧属性面板的可折叠子面板用） | 按 registry 直接安装，除 biome 格式化外未改动；该组件源码不使用 `cn`，未引入新依赖 |
+| 2026-10-04 | `dropdown-menu.tsx` | 2026-10-02 因无引用删除，本次重新安装（模板页「模板配置」菜单用） | 按 registry 安装，只做第一节的两项收尾（`cn` 改回 `@/shared/lib/utils`、删掉 `'use client'`），源码未改。**这次 `shadcn add` 把 `cn` 包写进了 `package.json`**，已按第一节第 1 条 `pnpm remove cn` 清掉，`package.json` 与 `pnpm-lock.yaml` 回到安装前 |
 
 核对方式：把 `shadcn add` 的输出按第一节的收尾规则处理后，与本目录逐文件 `diff`。
 `radix-mira` 这一版 registry 与本地文件的格式差异（引号、换行、import 分组）由 `biome check --write` 统一，不算改动。

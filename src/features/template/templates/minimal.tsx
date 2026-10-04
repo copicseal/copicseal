@@ -1,5 +1,6 @@
 import { cn } from '@/shared/lib/utils';
 import { defineTemplate } from './define-template';
+import { MONO_FONT_STACK } from './font-stacks';
 import { formatExifText } from './format-exif-text';
 import type {
   RegisteredTemplate,
@@ -104,12 +105,7 @@ function Minimal({
           </p>
         ) : null}
         {line2 ? (
-          <p
-            className="font-mono"
-            style={{ fontSize: 'calc(var(--co-base) * 0.015 * var(--co-font-scale))' }}
-          >
-            {line2}
-          </p>
+          <p style={{ fontSize: 'calc(var(--co-base) * 0.015 * var(--co-font-scale))' }}>{line2}</p>
         ) : null}
       </div>
     </div>
@@ -131,5 +127,7 @@ export const MINIMAL_TEMPLATE: RegisteredTemplate = defineTemplate({
     paddingHorizontal: 0.06,
     paddingVertical: 0.06,
   },
+  // 第二行 EXIF 是等宽字，同上：字体由模板声明，用户选了字体则以后者为准
+  fontDefaults: MONO_FONT_STACK,
   component: Minimal,
 });

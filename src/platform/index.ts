@@ -10,3 +10,4 @@ export * from './services/cache-service';
 export * from './services/export-service';
 export * from './services/file-service';
 export * from './services/storage-service';
+export * from './services/template-defaults-service';

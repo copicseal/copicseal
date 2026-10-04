@@ -11,6 +11,13 @@ import type { TemplateBackground } from '../background';
 export interface TemplateInjectedProps {
   photoUrl: string;
   exif: ExifData | null;
+  /**
+   * 用户选择的字体族；空串表示没有选择，模板用自己的默认字体栈。
+   *
+   * 浏览器里的 HTML 文本可以直接从画布根继承字体，但模板自建的 SVG
+   * （如平铺水印的 data URL）是独立文档、继承不到，只能显式透传。
+   */
+  font: string;
 }
 
 export interface TemplateMeta {
@@ -134,6 +141,13 @@ export interface RegisteredTemplate {
    * 用户可以在属性面板覆盖。
    */
   backgroundDefaults?: Partial<TemplateBackground>;
+  /**
+   * 该模板偏好的字体栈，用户没单独选字体时生效。
+   *
+   * 与 `backgroundDefaults` 同理：字体是框架级能力，模板只声明自己认为
+   * 合适的默认值（比如胶片模板的等宽字），用户可以在属性面板覆盖。
+   */
+  fontDefaults?: string;
   /**
    * 渲染模板。
    *

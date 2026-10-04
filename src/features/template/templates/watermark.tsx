@@ -99,6 +99,16 @@ const MIN_FONT_RATIO = 0.001;
  */
 const WATERMARK_FONT_FAMILY = 'Inter, Helvetica Neue, Arial, sans-serif';
 
+/**
+ * 瓦片 SVG 里的字体栈。
+ *
+ * SVG 是独立文档、取不到系统字体表，因此补一个通用族收尾——否则字体没命中时会
+ * 退到 SVG 的默认衬线字体。族名要转义：它会被写进 XML 属性里。
+ */
+function resolveTileFont(font: string): string {
+  return font ? `${escapeXml(font)}, sans-serif` : WATERMARK_FONT_FAMILY;
+}
+
 /** 转义 XML 特殊字符，避免用户文案里的 `&`、`<` 破坏 SVG 结构。 */
 function escapeXml(value: string): string {
   return value
@@ -150,7 +160,7 @@ function buildWatermarkTile({
     `<svg xmlns="http://www.w3.org/2000/svg" width="${round(width)}" height="${round(height)}"` +
     ` viewBox="0 0 ${round(width)} ${round(height)}">` +
     `<text x="${centerX}" y="${centerY}" fill="${color}" fill-opacity="${round(opacity)}"` +
-    ` font-size="${round(width * fontSize)}" font-family="${font || WATERMARK_FONT_FAMILY}"` +
+    ` font-size="${round(width * fontSize)}" font-family="${resolveTileFont(font)}"` +
     ` text-anchor="middle" dominant-baseline="middle"` +
     ` transform="rotate(${round(rotate)} ${centerX} ${centerY})">${escapeXml(text)}</text>` +
     '</svg>';

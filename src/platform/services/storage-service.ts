@@ -6,6 +6,7 @@ export class StorageService implements StorageServiceContract {
   updateConfig = (config: Parameters<StorageAdapter['updateConfig']>[0]) =>
     this.adapter.updateConfig(config);
   listSystemFonts = () => this.adapter.listSystemFonts();
+  inlineSystemFont = (family: string, text: string) => this.adapter.inlineSystemFont(family, text);
 }
 
 export type {
@@ -13,6 +14,7 @@ export type {
   CacheConfig,
   ComarkTemplateRecord,
   FontInfo,
+  InlineFont,
   TemplateListConfig,
   TemplatePreset,
   UpsertComarkTemplatePayload,

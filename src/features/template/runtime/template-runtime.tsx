@@ -42,11 +42,22 @@ export function TemplateRuntime({
 
   // 用户选的字体优先；没选时用模板自己的字体栈，再没有就让画布继承外层
   const resolvedFont = font || template.fontDefaults || '';
+  /**
+   * 画布上写的字体栈。
+   *
+   * 整条栈末尾再补一个通用族：导出的快照是在独立的 SVG 图片文档里栅格化的，系统
+   * 字体可能取不到，没有兜底时浏览器会退到「标准字体」（衬线），字宽一大就会溢出
+   * 画框、把本该一行的文案挤成两行。模板自带的字体栈（如等宽栈）排在前面，先命中
+   * 的仍是它，补在末尾不影响原有观感。
+   */
+  const pick = font ? `"${font.replace(/"/g, '')}"` : resolvedFont;
+  const canvasFont = pick ? `${pick}, sans-serif` : '';
+  // 内联输入给原始族名：模板自己拼 SVG 时会写进属性，不能带引号与逗号
   const injected: TemplateInjectedProps = { photoUrl, exif, font: resolvedFont };
 
   // 画布盒子只作为稳定句柄，尺寸由模板根自己按 --co-base 决定
   return (
-    <div data-co-canvas-box="" style={resolvedFont ? { fontFamily: resolvedFont } : undefined}>
+    <div data-co-canvas-box="" style={canvasFont ? { fontFamily: canvasFont } : undefined}>
       {template.render({ ...injected, ...resolvedParams })}
     </div>
   );

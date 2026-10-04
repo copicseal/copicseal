@@ -1,4 +1,4 @@
-import type { AppConfig, FontInfo } from '@/platform/contracts';
+import type { AppConfig, FontInfo, InlineFont } from '@/platform/contracts';
 import { PlatformError } from '@/platform/contracts';
 import type { StorageAdapter } from '@/platform/contracts/platform';
 
@@ -80,5 +80,10 @@ export class WebStorageAdapter implements StorageAdapter {
 
   async listSystemFonts(): Promise<FontInfo[]> {
     return [];
+  }
+
+  async inlineSystemFont(): Promise<InlineFont | null> {
+    // 网页端没有系统字体来源，导出只能退回通用字体
+    return null;
   }
 }

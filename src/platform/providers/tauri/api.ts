@@ -15,6 +15,7 @@ import type {
   ExifData,
   FontInfo,
   ImageFileMeta,
+  InlineFont,
   UpsertComarkTemplatePayload,
   WindowFrameMode,
 } from '@/platform/contracts';
@@ -35,6 +36,7 @@ export type {
   FontConfig,
   FontInfo,
   ImageFileMeta,
+  InlineFont,
   OutputConfig,
   OutputPreset,
   TemplateListConfig,
@@ -59,6 +61,14 @@ export function listImageFilesInDirectory(path: string): Promise<string[]> {
 }
 export function listSystemFonts(): Promise<FontInfo[]> {
   return invoke('list_system_fonts');
+}
+/**
+ * 把字体家族按用到的字符子集化，返回可内联的 data URL。
+ *
+ * 中文字体动辄几十兆，整体内联既慢又会被 WebKit 丢弃，所以只保留画布上出现的字形。
+ */
+export function inlineSystemFont(family: string, text: string): Promise<InlineFont | null> {
+  return invoke('inline_system_font', { family, text });
 }
 export function getConfig(): Promise<AppConfig> {
   return invoke('get_config');

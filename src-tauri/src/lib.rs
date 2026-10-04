@@ -57,6 +57,7 @@ pub fn run() {
             exif::extract_jpeg_exif,
             exif::insert_jpeg_exif,
             font::list_system_fonts,
+            font::inline_system_font,
             system::get_app_info,
         ])
         .run(tauri::generate_context!())

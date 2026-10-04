@@ -1,4 +1,4 @@
-import { snapdom } from '@zumer/snapdom';
+import { type LocalFont, snapdom } from '@zumer/snapdom';
 import { capEmbeddedImages } from '@/core/renderer';
 import type { OutputPreset } from '@/platform/contracts';
 import type { ExportServiceContract } from '@/platform/contracts/platform';
@@ -42,6 +42,105 @@ async function blobToBytes(blob: Blob): Promise<Uint8Array> {
   return new Uint8Array(buf);
 }
 
+/** 同一批导出里画布文字往往不变，子集化结果按「字体栈 + 文字」缓存，省掉重复解析 */
+const snapshotFontCache = new Map<string, LocalFont[]>();
+
+/**
+ * 通用字体族：它们由引擎自己解析，没有可查的字型文件，不必浪费一次平台查询。
+ */
+const GENERIC_FONT_FAMILIES = new Set([
+  'serif',
+  'sans-serif',
+  'monospace',
+  'cursive',
+  'fantasy',
+  'system-ui',
+  'ui-serif',
+  'ui-sans-serif',
+  'ui-monospace',
+  'ui-rounded',
+  'math',
+  'emoji',
+  'fangsong',
+]);
+
+/** 一条字体栈里最多内联几个族：子集本身很小，但每个都要解析一次字体文件 */
+const MAX_INLINE_FAMILIES = 3;
+
+/** 画布根节点；模板运行时把用户选的字体写在这层的内联样式上。 */
+const CANVAS_BOX_SELECTOR = '[data-co-canvas-box]';
+
+/**
+ * 取画布上实际使用的字体族。
+ *
+ * 内联样式形如 `"PingFang SC", sans-serif`，只取第一个族名；没有写字体（跟随
+ * 模板/框架默认）时返回空列表。
+ *
+ * 画布上写的是一整条字体栈（用户选的字体、模板自带的字体栈都写在这一层），
+ * 因此这里要把栈拆开：真正能查到字型的往往是栈里第一个**具体**字体族，而不是
+ * 开头的 `ui-monospace` 这类通用族。
+ */
+function readCanvasFontFamilies(element: HTMLElement): string[] {
+  const canvas = element.querySelector<HTMLElement>(CANVAS_BOX_SELECTOR);
+  const stack = canvas?.style.fontFamily ?? '';
+
+  return stack
+    .split(',')
+    .map((family) => family.trim().replace(/^["']|["']$/g, ''))
+    .filter((family) => family.length > 0 && !GENERIC_FONT_FAMILIES.has(family.toLowerCase()));
+}
+
+/**
+ * 快照要内联的字体。
+ *
+ * 快照的实现是「把 DOM 序列化进 SVG 图片再栅格化」，而 SVG 图片文档拿不到系统
+ * 字体表：不内联的话，用户选的字体在导出里会退回浏览器默认字体，字宽一变就会
+ * 出现文字溢出画框、本该一行的文案换行。
+ *
+ * 字体本身由平台侧按画布上用到的字符做子集化（中文字体原始文件几十兆，整体内联
+ * 会被 WebKit 直接丢掉），这里只负责把画布上的文字与字体栈交出去。栈里可能有
+ * 多个能查到的族（比如等宽栈里的 Menlo、Monaco），全部内联：混排文本要靠后面的
+ * 族兜底缺字。
+ */
+async function resolveSnapshotFonts(element: HTMLElement): Promise<LocalFont[]> {
+  const families = readCanvasFontFamilies(element).slice(0, MAX_INLINE_FAMILIES);
+  if (families.length === 0) {
+    return [];
+  }
+
+  const text = element.textContent ?? '';
+  const cacheKey = `${families.join('|')}\u0000${text}`;
+  const cached = snapshotFontCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const fonts: LocalFont[] = [];
+  for (const family of families) {
+    try {
+      const font = await platformRuntime.inlineSystemFont(family, text);
+      if (!font) {
+        continue;
+      }
+
+      console.log(
+        `[snapshot] 已内联字体 ${family}（子集 ${Math.round(font.data_url.length / 1024)} KB）`,
+      );
+      fonts.push({ family, src: font.data_url });
+    } catch (error) {
+      console.warn(`[snapshot] 子集化字体失败（${family}），该族交给通用字体兜底:`, error);
+    }
+  }
+
+  if (fonts.length === 0) {
+    console.warn(`[snapshot] 字体栈无法内联，导出退回通用字体: ${families.join(', ')}`);
+    return [];
+  }
+
+  snapshotFontCache.set(cacheKey, fonts);
+  return fonts;
+}
+
 function toSnapdomFormat(f: ExportFormat): 'png' | 'jpeg' {
   return f === 'jpeg' ? 'jpeg' : 'png';
 }
@@ -74,6 +173,8 @@ async function captureElement(
   const restoreImages = await capEmbeddedImages(element, { scale });
 
   try {
+    // 字体必须显式内联：snapdom 默认不嵌入字体，快照里的文字会退回到默认字体
+    const localFonts = await resolveSnapshotFonts(element);
     const blob = await snapdom.toBlob(element, {
       type: fmt,
       format: fmt,
@@ -83,6 +184,8 @@ async function captureElement(
       dpr: 1,
       backgroundColor: fmt !== 'png' ? '#ffffff' : undefined,
       exclude: options.exclude,
+      embedFonts: true,
+      localFonts,
     });
 
     return blobToBytes(blob);

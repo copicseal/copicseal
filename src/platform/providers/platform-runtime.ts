@@ -37,6 +37,7 @@ const webRuntime = {
     image_height: null,
   }),
   listSystemFonts: async () => [],
+  inlineSystemFont: async () => null,
   getConfig: async () => (await webStorage.get('app-config')) ?? defaultConfig,
   updateConfig: (config: Parameters<typeof tauriApi.updateConfig>[0]) =>
     webStorage.set('app-config', config),

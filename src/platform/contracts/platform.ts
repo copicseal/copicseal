@@ -7,6 +7,7 @@ import type {
   CacheOverview,
   FontInfo,
   ImageFileMeta,
+  InlineFont,
 } from './index';
 import type { ImportProgressSnapshot } from './services';
 
@@ -68,6 +69,12 @@ export interface StorageServiceContract {
   getConfig(): Promise<AppConfig>;
   updateConfig(config: AppConfig): Promise<void>;
   listSystemFonts(): Promise<FontInfo[]>;
+  /**
+   * 按画布上真正出现的字符，把一个字体家族子集化成可内联的 data URL。
+   *
+   * `text` 是画布里的全部文字；返回 `null` 表示不内联，由调用方退回通用字体。
+   */
+  inlineSystemFont(family: string, text: string): Promise<InlineFont | null>;
 }
 
 export interface StorageAdapter extends StorageServiceContract {}

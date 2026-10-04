@@ -53,6 +53,12 @@ export interface FontInfo {
   postscript_name: string | null;
 }
 
+export interface InlineFont {
+  family: string;
+  /** `data:font/ttf;base64,...`，已按用到的字符做过子集化，可直接写进 `@font-face` */
+  data_url: string;
+}
+
 export interface ImageFileMeta {
   name: string;
   path: string;

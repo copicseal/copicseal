@@ -33,8 +33,23 @@ for (const [path, url] of Object.entries(logoModules)) {
   logoUrlMap[brandKeyOf(path)] = url;
 }
 
+/**
+ * 内联用的 SVG 源码清理。
+ *
+ * 原始文件带 BOM 与 `<?xml … ?>` 声明：直接塞进 `dangerouslySetInnerHTML` 时，
+ * 前者会渲染成一个占位的行内字符、后者变成注释节点，它们和真正的 `<svg>`
+ * 会在同一行盒里排布，把标志挤出垂直居中（白框 / 圆角模板里表现为标志下沉）。
+ * 这里只保留 `<svg>` 本身，内联结果与普通元素一样可预测。
+ */
+function toInlineSvg(svg: string): string {
+  return svg
+    .replace(/^\uFEFF/, '')
+    .replace(/<\?xml[\s\S]*?\?>/i, '')
+    .trim();
+}
+
 for (const [path, svg] of Object.entries(logoSvgModules)) {
-  logoSvgMap[brandKeyOf(path)] = svg;
+  logoSvgMap[brandKeyOf(path)] = toInlineSvg(svg);
 }
 
 /** 厂商品牌别名：把 EXIF 里的原始写法映射到统一展示名。 */

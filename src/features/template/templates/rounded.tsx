@@ -42,9 +42,12 @@ const TEXT_RATIO = fromRem(0.1);
 const DATE_RATIO = fromRem(0.08);
 const DATE_MARGIN_TOP = fromRem(0.02);
 
-/** 旧版标志盒：高 0.2rem、宽 0.6rem，机型名左间距 0.05rem，标志阴影 0.02rem。 */
-const LOGO_HEIGHT = fromRem(0.2);
-const LOGO_WIDTH = fromRem(0.6);
+/**
+ * 旧版给标志本身设的上下限：高不超过 0.2rem、宽不超过 0.6rem（**上限**，不是固定尺寸），
+ * 另有型号名左间距 0.05rem、标志阴影 0.02rem。
+ */
+const LOGO_MAX_HEIGHT = fromRem(0.2);
+const LOGO_MAX_WIDTH = fromRem(0.6);
 const MODEL_GAP = fromRem(0.05);
 const LOGO_SHADOW_BLUR = fromRem(0.02);
 
@@ -188,17 +191,22 @@ function Rounded({
     gap: `calc(var(--co-base) * ${INFO_GAP} * var(--co-font-scale))`,
   };
 
-  // 固定尺寸的标志盒：内部 SVG / 图片按 contain 自适应，不会拉伸变形
-  const logoBoxStyle: CSSProperties = {
+  /**
+   * 标志盒：只声明尺寸上限，实际大小交给标志元素自己。
+   *
+   * 盒子随 ink 收缩，单色 SVG 与彩色图片因此占同样的版面；品牌行再按基线对齐，
+   * 标志底线就与型号文字的行基线齐平。
+   */
+  const logoBoxStyle: TemplateStyle = {
+    '--co-logo-height': `calc(var(--co-base) * ${LOGO_MAX_HEIGHT} * var(--co-font-scale))`,
+    '--co-logo-width': `calc(var(--co-base) * ${LOGO_MAX_WIDTH} * var(--co-font-scale))`,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: `calc(var(--co-base) * ${LOGO_WIDTH} * var(--co-font-scale))`,
-    height: `calc(var(--co-base) * ${LOGO_HEIGHT} * var(--co-font-scale))`,
   };
 
   const brandTextStyle: CSSProperties = {
-    fontSize: `calc(var(--co-base) * ${LOGO_HEIGHT} * var(--co-font-scale))`,
+    fontSize: `calc(var(--co-base) * ${LOGO_MAX_HEIGHT} * var(--co-font-scale))`,
     fontWeight: 700,
     whiteSpace: 'nowrap',
   };
@@ -233,11 +241,11 @@ function Rounded({
 
       <div style={infoStyle}>
         {hasBrandRow ? (
-          <div className="flex items-center">
+          <div className="flex items-baseline">
             {autoLogo ? (
               <div style={logoBoxStyle}>
                 <span
-                  className="block h-full w-full [&>svg]:h-full [&>svg]:w-full"
+                  className="block [&>svg]:block [&>svg]:h-auto [&>svg]:w-auto [&>svg]:max-h-(--co-logo-height) [&>svg]:max-w-(--co-logo-width)"
                   style={{ color: textColor }}
                   // biome-ignore lint/security/noDangerouslySetInnerHtml: 内容来自打包进应用的 Logo 资产，不经过用户输入
                   dangerouslySetInnerHTML={{ __html: autoLogo }}
@@ -248,7 +256,7 @@ function Rounded({
                 <img
                   src={coloredLogo}
                   alt={brand}
-                  className="h-full w-full object-contain"
+                  className="block h-auto w-auto max-h-(--co-logo-height) max-w-(--co-logo-width) object-contain"
                   style={{
                     filter: logoShadow
                       ? `drop-shadow(0 0 calc(var(--co-base) * ${LOGO_SHADOW_BLUR}) ${textColor}) drop-shadow(0 0 calc(var(--co-base) * ${LOGO_SHADOW_BLUR}) ${textColor})`
@@ -260,11 +268,7 @@ function Rounded({
               <span style={brandTextStyle}>{brand}</span>
             )}
 
-            {model ? (
-              <span className="flex items-end" style={modelStyle}>
-                {model}
-              </span>
-            ) : null}
+            {model ? <span style={modelStyle}>{model}</span> : null}
           </div>
         ) : null}
 

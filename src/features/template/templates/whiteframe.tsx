@@ -104,8 +104,15 @@ type WhiteFrameParams = TemplateParams<typeof whiteFrameFields>;
 /** 字体与图标的尺寸都以画布宽度为基准，再乘上用户设定的文字缩放。 */
 const TEXT_RATIO = 0.015;
 const DATE_RATIO = 0.012;
-const LOGO_HEIGHT_RATIO = 0.03;
-const LOGO_WIDTH_RATIO = 0.09;
+/**
+ * 标志的尺寸**上限**（不是固定尺寸）：高不超过两行文字、宽不超过六行文字。
+ *
+ * 沿用旧版 `max-height: 0.2rem` / `max-width: 0.6rem` 的语义。写成固定盒子再用
+ * `contain` 塞进去，宽字标（SONY 这类约 5.7:1）四周会多出一圈留白，跟型号文字
+ * 既对不齐、单色与彩色两条路径的观感也不一致。
+ */
+const LOGO_MAX_HEIGHT_RATIO = 0.03;
+const LOGO_MAX_WIDTH_RATIO = 0.09;
 
 function WhiteFrame({
   photoUrl,
@@ -175,19 +182,25 @@ function WhiteFrame({
     flex: 'none',
     boxSizing: 'border-box',
     minHeight: isHorizontal ? undefined : 'calc(var(--co-base) * 0.06)',
-    paddingLeft: isHorizontal ? 'calc(var(--co-base) * 0.015)' : undefined,
+    // 标志靠左、文案靠右：两侧给同样的内缩，纵向排布时标志才不会贴到卡片边上
+    paddingLeft: 'calc(var(--co-base) * 0.015)',
     paddingRight: isHorizontal ? undefined : 'calc(var(--co-base) * 0.015)',
     paddingTop: isHorizontal ? undefined : 'calc(var(--co-base) * var(--co-border-padding) / 2)',
     fontSize: `calc(var(--co-base) * ${TEXT_RATIO} * var(--co-font-scale))`,
   };
 
-  // 固定尺寸的标志盒；内部 SVG / 图片按 contain 自适应，不会拉伸变形
-  const logoStyle: CSSProperties = {
+  /**
+   * 标志盒：只声明尺寸上限，实际大小交给标志元素自己。
+   *
+   * 盒子随 ink 收缩（宽高都由内容决定），所以内联 SVG 与彩色图片占的版面完全
+   * 一致；外层按基线对齐后，标志的底线正好落在型号文字的行基线上。
+   */
+  const logoStyle: TemplateStyle = {
+    '--co-logo-height': `calc(var(--co-base) * ${LOGO_MAX_HEIGHT_RATIO} * var(--co-font-scale))`,
+    '--co-logo-width': `calc(var(--co-base) * ${LOGO_MAX_WIDTH_RATIO} * var(--co-font-scale))`,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    width: `calc(var(--co-base) * ${LOGO_WIDTH_RATIO} * var(--co-font-scale))`,
-    height: `calc(var(--co-base) * ${LOGO_HEIGHT_RATIO} * var(--co-font-scale))`,
     filter: logoShadow
       ? `drop-shadow(0 0 calc(var(--co-base) * 0.003) ${textColor}) drop-shadow(0 0 calc(var(--co-base) * 0.003) ${textColor})`
       : undefined,
@@ -198,11 +211,13 @@ function WhiteFrame({
       <img data-co-photo="" src={photoUrl} alt="" style={imageStyle} onLoad={handleLoad} />
 
       <div style={infoStyle}>
-        <div className="flex items-center" style={{ gap: '0.5em', minWidth: 0, fontWeight: 600 }}>
+        {/* 基线对齐：标志底线与型号文字的基线齐平，不再靠两端盒子的中心对齐 */}
+        <div className="flex items-baseline" style={{ gap: '0.5em', minWidth: 0, fontWeight: 600 }}>
           {autoLogo ? (
             <div style={logoStyle}>
               <span
-                className="block h-full w-full [&>svg]:h-full [&>svg]:w-full"
+                // 尺寸上限直接作用在内联 SVG 上：盒子紧贴 ink，也不参与行盒的基线对齐
+                className="block [&>svg]:block [&>svg]:h-auto [&>svg]:w-auto [&>svg]:max-h-(--co-logo-height) [&>svg]:max-w-(--co-logo-width)"
                 style={{ color: textColor }}
                 // 单色标志是随包内置的 SVG 资产（非用户输入），靠 currentColor 跟随文字颜色
                 // biome-ignore lint/security/noDangerouslySetInnerHtml: 内容来自打包进应用的 Logo 资产，不经过用户输入
@@ -211,17 +226,18 @@ function WhiteFrame({
             </div>
           ) : coloredLogo ? (
             <div style={logoStyle}>
-              <img src={coloredLogo} alt={brand} className="h-full w-full object-contain" />
+              <img
+                src={coloredLogo}
+                alt={brand}
+                className="block h-auto w-auto max-h-(--co-logo-height) max-w-(--co-logo-width) object-contain"
+              />
             </div>
           ) : (
             <span>{brand}</span>
           )}
 
           {model ? (
-            <span
-              className="flex items-end"
-              style={{ marginLeft: 'calc(var(--co-base) * 0.0075)', whiteSpace: 'nowrap' }}
-            >
+            <span style={{ marginLeft: 'calc(var(--co-base) * 0.0075)', whiteSpace: 'nowrap' }}>
               {model}
             </span>
           ) : null}

@@ -1,6 +1,7 @@
-import type { AppConfig, FontInfo, InlineFont } from '@/platform/contracts';
+import type { AppConfig, FontInfo, ImportedFont, InlineFont } from '@/platform/contracts';
 import { PlatformError } from '@/platform/contracts';
 import type { StorageAdapter } from '@/platform/contracts/platform';
+import { unsupportedWebPathOperation } from './web-platform-provider';
 
 type StorageValue = unknown;
 
@@ -84,6 +85,17 @@ export class WebStorageAdapter implements StorageAdapter {
 
   async inlineSystemFont(): Promise<InlineFont | null> {
     // 网页端没有系统字体来源，导出只能退回通用字体
+    return null;
+  }
+
+  importFontFile = async (): Promise<ImportedFont> => unsupportedWebPathOperation('importFontFile');
+
+  importFontBytes = async (): Promise<ImportedFont> =>
+    unsupportedWebPathOperation('importFontBytes');
+
+  removeFontFile = async (): Promise<void> => unsupportedWebPathOperation('removeFontFile');
+
+  async inlineImportedFont(): Promise<InlineFont | null> {
     return null;
   }
 }

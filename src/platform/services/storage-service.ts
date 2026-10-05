@@ -7,6 +7,14 @@ export class StorageService implements StorageServiceContract {
     this.adapter.updateConfig(config);
   listSystemFonts = () => this.adapter.listSystemFonts();
   inlineSystemFont = (family: string, text: string) => this.adapter.inlineSystemFont(family, text);
+  importFontFile = (workspace: string, sourcePath: string) =>
+    this.adapter.importFontFile(workspace, sourcePath);
+  importFontBytes = (workspace: string, fileName: string | null, contents: number[]) =>
+    this.adapter.importFontBytes(workspace, fileName, contents);
+  removeFontFile = (workspace: string, fileName: string) =>
+    this.adapter.removeFontFile(workspace, fileName);
+  inlineImportedFont = (workspace: string, fileName: string, text: string) =>
+    this.adapter.inlineImportedFont(workspace, fileName, text);
 }
 
 export type {
@@ -14,6 +22,7 @@ export type {
   CacheConfig,
   ComarkTemplateRecord,
   FontInfo,
+  ImportedFont,
   InlineFont,
   TemplateListConfig,
   TemplatePreset,

@@ -1,5 +1,6 @@
 import { Star } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useFontLibrary } from '@/features/fonts/use-font-library';
 import { listBuiltinTemplates } from '@/features/template/runtime/template-registry';
 import { CoFontField } from '@/shared/components/co-font-field';
 import { CoPanelSection } from '@/shared/components/co-panel-section';
@@ -14,7 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/select';
-import { useTemplateStore } from '../store/use-template-store';
 
 interface TemplateSelectorProps {
   activeTemplateId: string;
@@ -48,24 +48,19 @@ export function TemplateSelector({
   const templates = listBuiltinTemplates();
   const [favorites, setFavorites] = useState<string[]>(['minimal', 'film']);
   const [recentIds, setRecentIds] = useState<string[]>(['minimal']);
-  const { fonts, loading, reload } = useSystemFonts();
-  // 模板收藏另有其人（上面的 favorites 是模板的星标），这里显式带上 font 前缀
-  const fontFavorites = useTemplateStore((state) => state.fontFavorites);
+  const { loading, reload } = useSystemFonts();
+  const library = useFontLibrary();
 
   /**
    * 下拉里列出的字体族。
    *
-   * 收藏过就只列收藏项，把系统里几百个字体挡在外面；一条都没收藏时（刚装好
-   * 或刚清空）回退到全部系统字体，否则新用户会卡在「一个字体都选不了」。
+   * 只列「引入过的字体」（设置 → 字体 里从在线 / 本机 / 文件三种来源引入），
+   * 不会把系统里几百个字体一股脑铺出来；重复族名去重。
    */
   const familyOptions = useMemo(() => {
-    if (fontFavorites.length === 0) {
-      return fonts;
-    }
-
-    const picked = new Set(fontFavorites);
-    return fonts.filter((font) => picked.has(font.family));
-  }, [fonts, fontFavorites]);
+    const families = [...new Set(library.entries.map((entry) => entry.family))];
+    return families.map((family) => ({ family, postscript_name: null }));
+  }, [library.entries]);
 
   // 收藏与最近使用只影响下拉里的排序，模板列表本身始终是完整的一份。
   const orderedTemplates = templates
@@ -123,11 +118,12 @@ export function TemplateSelector({
             fonts={familyOptions}
             loading={loading}
             onRefresh={reload}
+            noteOf={(family) => library.notes[family]}
           />
           <p className="text-[10px] leading-4 text-muted-foreground">
-            {fontFavorites.length === 0
-              ? '还没有收藏字体，暂时列出全部系统字体；可在设置 → 边框水印 → 默认项 里收藏常用字体。'
-              : '只列出收藏的字体，可在设置 → 边框水印 → 默认项 里调整。'}
+            {familyOptions.length === 0
+              ? '还没有引入字体；可在 设置 → 字体 里从在线、本机或文件引入。'
+              : '只列出已引入的字体，可在 设置 → 字体 里调整。'}
           </p>
         </div>
 

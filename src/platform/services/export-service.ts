@@ -4,6 +4,7 @@ import type { OutputPreset } from '@/platform/contracts';
 import type { ExportServiceContract } from '@/platform/contracts/platform';
 import { platformRuntime, writeExifSource } from '@/platform/providers/platform-runtime';
 import { webFiles } from '@/platform/providers/web/web-platform-provider';
+import { findImportedFont } from '@/shared/lib/inline-font-registry';
 import type {
   ExportFormat,
   ExportOptions,
@@ -118,7 +119,12 @@ async function resolveSnapshotFonts(element: HTMLElement): Promise<LocalFont[]> 
   const fonts: LocalFont[] = [];
   for (const family of families) {
     try {
-      const font = await platformRuntime.inlineSystemFont(family, text);
+      // 导入字体（在线/自定义）我们自己有文件，按文件子集化；否则回落到系统字体查询。
+      // 注意内联时的族名要用「画布上写的那个」——字体内部的族名可能已被改名或与系统重名
+      const imported = findImportedFont(family);
+      const font = imported
+        ? await platformRuntime.inlineImportedFont(imported.workspace, imported.fileName, text)
+        : await platformRuntime.inlineSystemFont(family, text);
       if (!font) {
         continue;
       }

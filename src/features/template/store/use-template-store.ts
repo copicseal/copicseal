@@ -75,14 +75,6 @@ interface TemplateStoreState {
   /** 换掉默认字体；同样只影响没有自己配置的照片。 */
   setDefaultFont: (font: string) => void;
   /**
-   * 用户在设置里收藏的字体族。
-   *
-   * 只影响模板页字体下拉里列出哪些选项，不改变任何照片的字体本身；
-   * 一条都没有时下拉回退到全部系统字体。
-   */
-  fontFavorites: string[];
-  setFontFavorites: (favorites: string[]) => void;
-  /**
    * 把一条模板预设应用到若干张照片。
    *
    * 模板、参数、背景与字体一次性写入：它们共同构成「一套样式」，
@@ -106,15 +98,14 @@ interface TemplateStoreState {
  * Template 页的每图配置表。
  *
  * 每张照片的配置不做持久化：照片 id 是会话级的，跨会话恢复没有意义
- * （见 docs/05 存储原则）。来自设置、并在启动时由页面写入的有三样：
- * `defaultConfig` 里的档位与字体（「默认档位」「全局字体」），以及从配置
- * 读出的模板预设清单与收藏字体清单。
+ * （见 docs/05 存储原则）。来自设置、并在启动时由页面写入的有两样：
+ * `defaultConfig` 里的档位与字体（「默认档位」「全局字体」），以及模板预设清单。
+ * 字体库（引入的字体）由 `features/fonts` 自己维护。
  */
 export const useTemplateStore = create<TemplateStoreState>()((set) => ({
   configs: {},
   defaultConfig: createDefaultConfig(),
   templatePresets: [],
-  fontFavorites: [],
 
   setTemplate: (photoId, templateId) => {
     const template = resolveBuiltinTemplate(templateId);
@@ -196,10 +187,6 @@ export const useTemplateStore = create<TemplateStoreState>()((set) => ({
     set((state) => ({
       defaultConfig: { ...state.defaultConfig, font },
     }));
-  },
-
-  setFontFavorites: (fontFavorites) => {
-    set({ fontFavorites });
   },
 
   applyPreset: (photoIds, content) => {

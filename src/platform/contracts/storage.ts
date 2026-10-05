@@ -5,6 +5,8 @@ export type {
   EnabledTemplate,
   FontConfig,
   FontInfo,
+  FontNote,
+  ImportedFont,
   InlineFont,
   OutputConfig,
   OutputPreset,

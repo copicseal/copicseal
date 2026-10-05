@@ -51,8 +51,38 @@ pub struct OutputPreset {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(default)]
 pub struct FontConfig {
+    /// 引入的本机字体族名（只记引用，不复制系统字体文件）
     pub favorites: Vec<String>,
     pub default_font: String,
+    /// 导入到工作区 `Fonts/` 的字体文件（在线下载与自定义导入都落在这里）
+    pub imported: Vec<ImportedFont>,
+    /// 字体备注：按族名记，本机引用与导入字体共用（如「手写」「正文」）
+    pub notes: Vec<FontNote>,
+}
+
+/// 一条字体备注。
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
+pub struct FontNote {
+    pub family: String,
+    pub note: String,
+}
+
+/// 一个导入的字体文件。
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
+pub struct ImportedFont {
+    pub id: String,
+    /// 工作区 `Fonts/` 下的文件名
+    pub file_name: String,
+    /// CSS 族名：默认取字体自身的族名，与系统字体重名时加后缀
+    pub family: String,
+    /// `online` | `file`
+    pub source: String,
+    /// 来源（下载地址或原始文件路径），仅作展示
+    pub origin: String,
+    pub size: u64,
+    pub added_at: u64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -167,6 +197,8 @@ impl Default for FontConfig {
         Self {
             favorites: Vec::new(),
             default_font: "Helvetica Neue".to_string(),
+            imported: Vec::new(),
+            notes: Vec::new(),
         }
     }
 }

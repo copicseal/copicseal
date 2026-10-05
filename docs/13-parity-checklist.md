@@ -67,7 +67,7 @@
 
 - [x] **A14 全局字体选择**｜已补齐｜成本 中
   旧：模板面板顶部系统字体下拉 + 刷新按钮，选中即写 `config.fonts.defaultFont` 并套用到每张照片，字体注入画布根与 SVG 水印（`panels/co-tpl-panel.vue:5-16,143-155`、`utils/co-pic.tsx:45`、`views/components/co-render.vue:244`）
-  新：属性面板「模板」分区顶部与 设置 → 边框水印 → 默认项 两处都是系统字体下拉 + 刷新按钮，写入 `config.fonts.default_font`；设置里可维护收藏字体（`config.fonts.favorites`），模板页下拉只列收藏项、空清单时回退全量；字体挂在画布根由 HTML 继承，平铺水印的 SVG 走 `TemplateInjectedProps.font` 显式透传；模板可用 `fontDefaults` 声明偏好字体栈（`src/features/template/hooks/use-system-fonts.ts`、`runtime/template-runtime.tsx`、`templates/watermark.tsx`）。字体收藏（`fonts.favorites`）仍未接线，见 E5
+  新：属性面板「模板」分区顶部与 设置 → 边框水印 → 默认项 两处都是字体下拉，写入 `config.fonts.default_font`；字体的引入统一在 设置 → 字体（在线 / 本机 / 自定义导入三种来源，带预览），模板页下拉只列已引入的字体；字体挂在画布根由 HTML 继承，平铺水印的 SVG 走 `TemplateInjectedProps.font` 显式透传；模板可用 `fontDefaults` 声明偏好字体栈（`src/features/template/hooks/use-system-fonts.ts`、`runtime/template-runtime.tsx`、`templates/watermark.tsx`）。字体收藏（`fonts.favorites`）仍未接线，见 E5
 
 - [x] **A15 模板预设（保存与复用）**｜已补齐｜成本 中
   旧：「存为新配置」（上限 10、名称 2–10 字）/ 应用当前 / 应用全部 / 覆盖配置 / 删除，preset 含 `templateId + templateProps + background + fontFamily`，持久化在 `config.templatePresets`，设置页还能改名排序删除（`dropdowns/co-presets-dropdown.vue`、`dialogs/components/setting-template-presets.vue`）

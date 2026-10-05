@@ -38,6 +38,16 @@ const webRuntime = {
   }),
   listSystemFonts: async () => [],
   inlineSystemFont: async () => null,
+  importFontFile: async () => {
+    throw new Error('网页端没有工作区目录，无法导入字体文件');
+  },
+  importFontBytes: async () => {
+    throw new Error('网页端没有工作区目录，无法导入字体文件');
+  },
+  removeFontFile: async () => {
+    throw new Error('网页端没有工作区目录，无法删除字体文件');
+  },
+  inlineImportedFont: async () => null,
   getConfig: async () => (await webStorage.get('app-config')) ?? defaultConfig,
   updateConfig: (config: Parameters<typeof tauriApi.updateConfig>[0]) =>
     webStorage.set('app-config', config),

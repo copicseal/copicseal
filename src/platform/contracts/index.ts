@@ -53,6 +53,26 @@ export interface FontInfo {
   postscript_name: string | null;
 }
 
+export interface FontNote {
+  family: string;
+  /** 用户给字体起的备注，如「手写」「正文」 */
+  note: string;
+}
+
+export interface ImportedFont {
+  id: string;
+  /** 工作区 `Fonts/` 下的文件名 */
+  file_name: string;
+  /** CSS 族名；默认取字体自身的族名 */
+  family: string;
+  /** `online`：在线下载；`file`：用户自定义导入 */
+  source: string;
+  /** 来源（下载地址或原始路径），仅作展示 */
+  origin: string;
+  size: number;
+  added_at: number;
+}
+
 export interface InlineFont {
   family: string;
   /** `data:font/ttf;base64,...`，已按用到的字符做过子集化，可直接写进 `@font-face` */
@@ -91,8 +111,13 @@ export interface OutputConfig {
 }
 
 export interface FontConfig {
+  /** 引入的本机字体族名（只记引用，不复制系统字体文件） */
   favorites: string[];
   default_font: string;
+  /** 导入到工作区 `Fonts/` 的字体文件 */
+  imported: ImportedFont[];
+  /** 字体备注：按族名记，本机引用与导入字体共用 */
+  notes: FontNote[];
 }
 
 export interface TemplatePreset {

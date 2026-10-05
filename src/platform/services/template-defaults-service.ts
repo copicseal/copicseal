@@ -1,4 +1,4 @@
-import type { TemplatePreset } from '@/platform/contracts';
+import type { FontConfig, TemplatePreset } from '@/platform/contracts';
 import { platformRuntime } from '@/platform/providers/platform-runtime';
 
 const { getConfig, updateConfig } = platformRuntime;
@@ -42,19 +42,26 @@ export async function saveDefaultFont(font: string): Promise<void> {
   await updateConfig({ ...config, fonts: { ...config.fonts, default_font: font } });
 }
 
-/** 读取「收藏字体」：模板页的字体下拉只列这些，一条都没有时才回退到全部系统字体。 */
-export async function resolveFontFavorites(): Promise<string[]> {
+/** 读取字体设置（引入的本机字体 + 导入的字体文件 + 全局字体）。 */
+export async function resolveFontConfig(): Promise<FontConfig> {
   try {
     const config = await getConfig();
-    return config.fonts?.favorites ?? [];
+    const fonts = config.fonts ?? {};
+
+    return {
+      favorites: fonts.favorites ?? [],
+      default_font: fonts.default_font ?? '',
+      imported: fonts.imported ?? [],
+      notes: fonts.notes ?? [],
+    };
   } catch (error) {
-    console.warn('读取收藏字体失败:', error);
-    return [];
+    console.warn('读取字体设置失败:', error);
+    return { favorites: [], default_font: '', imported: [], notes: [] };
   }
 }
 
-/** 写入「收藏字体」；增删都走这里，调用方负责先算出完整清单。 */
-export async function saveFontFavorites(favorites: string[]): Promise<void> {
+/** 覆盖写入字体设置；增删字体都走这里，调用方负责先算出完整清单。 */
+export async function saveFontConfig(fonts: FontConfig): Promise<void> {
   const config = await getConfig();
-  await updateConfig({ ...config, fonts: { ...config.fonts, favorites } });
+  await updateConfig({ ...config, fonts });
 }

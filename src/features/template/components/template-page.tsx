@@ -32,7 +32,6 @@ import {
   resolveDefaultFont,
   resolveDefaultOutputPresets,
   resolveExportDirectory,
-  resolveFontFavorites,
   saveDefaultFont,
   saveDefaultOutputPresets,
 } from '@/platform';
@@ -616,7 +615,6 @@ export function TemplatePage() {
   const setDefaultPresets = useTemplateStore((state) => state.setDefaultPresets);
   const setFont = useTemplateStore((state) => state.setFont);
   const setDefaultFont = useTemplateStore((state) => state.setDefaultFont);
-  const setFontFavorites = useTemplateStore((state) => state.setFontFavorites);
   const defaultFont = useTemplateStore((state) => state.defaultConfig.font);
   const prune = useTemplateStore((state) => state.prune);
   // 导出期间挂起预览自适应，否则它会覆盖导出解算出的 --co-base
@@ -626,7 +624,7 @@ export function TemplatePage() {
   const otherPhotoCount = Math.max(photos.length - (currentPhoto ? 1 : 0), 0);
 
   /**
-   * 启动时把设置里存的「默认档位」「全局字体」与「收藏字体」装进 store。
+   * 启动时把设置里存的「默认档位」与「全局字体」装进 store。
    *
    * 没存过就保持框架内置的单个 2000×2000 与模板自带的字体栈：
    * 空清单不等于「默认没有档位」，空字体也不等于「没有字体」。
@@ -635,10 +633,9 @@ export function TemplatePage() {
     let cancelled = false;
 
     void (async () => {
-      const [presets, font, favorites] = await Promise.all([
+      const [presets, font] = await Promise.all([
         resolveDefaultOutputPresets(),
         resolveDefaultFont(),
-        resolveFontFavorites(),
       ]);
       if (cancelled) {
         return;
@@ -651,13 +648,12 @@ export function TemplatePage() {
       if (font) {
         setDefaultFont(font);
       }
-      setFontFavorites(favorites);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [setDefaultFont, setDefaultPresets, setFontFavorites]);
+  }, [setDefaultFont, setDefaultPresets]);
 
   // 素材被移除后回收它的配置；prune 在无变化时返回原 state，不会引起额外渲染
   useEffect(() => {

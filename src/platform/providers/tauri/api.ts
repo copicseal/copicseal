@@ -15,6 +15,7 @@ import type {
   ExifData,
   FontInfo,
   ImageFileMeta,
+  ImportedFont,
   InlineFont,
   UpsertComarkTemplatePayload,
   WindowFrameMode,
@@ -69,6 +70,35 @@ export function listSystemFonts(): Promise<FontInfo[]> {
  */
 export function inlineSystemFont(family: string, text: string): Promise<InlineFont | null> {
   return invoke('inline_system_font', { family, text });
+}
+/** 把已有字体文件收进工作区字体目录。 */
+export function importFontFile(workspace: string, sourcePath: string): Promise<ImportedFont> {
+  return invoke('import_font_file', { workspace, sourcePath });
+}
+/** 把下载好的字体字节收进工作区字体目录。 */
+export function importFontBytes(
+  workspace: string,
+  fileName: string | null,
+  contents: number[],
+): Promise<ImportedFont> {
+  return invoke('import_font_bytes', { workspace, fileName, contents });
+}
+export function removeFontFile(workspace: string, fileName: string): Promise<void> {
+  return invoke('remove_font_file', { workspace, fileName });
+}
+export function inlineImportedFont(
+  workspace: string,
+  fileName: string,
+  text: string,
+): Promise<InlineFont | null> {
+  return invoke('inline_imported_font', { workspace, fileName, text });
+}
+/** 选择字体文件（自定义导入用）。 */
+export function openFontDialog(): Promise<string | string[] | null> {
+  return open({
+    multiple: false,
+    filters: [{ name: 'Fonts', extensions: ['ttf', 'otf', 'ttc', 'woff', 'woff2'] }],
+  });
 }
 export function getConfig(): Promise<AppConfig> {
   return invoke('get_config');

@@ -3,7 +3,6 @@ import {
   ArrowUp,
   Box,
   Check,
-  ChevronDown,
   ChevronRight,
   Cog,
   Database,
@@ -16,10 +15,11 @@ import {
   RefreshCw,
   Settings2,
   Trash2,
-  X,
+  Type,
 } from 'lucide-react';
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { useFontLibrary } from '@/features/fonts/use-font-library';
 import { useTemplatePresets } from '@/features/template/hooks/use-template-presets';
 import { parseDefaultPresets } from '@/features/template/lib/export-preset';
 import {
@@ -53,20 +53,11 @@ const {
 import { CoDirectoryField } from '@/shared/components/co-directory-field';
 import { CoFontField } from '@/shared/components/co-font-field';
 import { CoWindowHeader } from '@/shared/components/co-window-header';
-import { useSystemFonts } from '@/shared/hooks/use-system-fonts';
 import { cn } from '@/shared/lib/utils';
 import { useAppNavigation } from '@/shared/providers/navigation-provider';
 import { usePageActive } from '@/shared/providers/page-activity-provider';
 import { useWindowStyle } from '@/shared/providers/window-style-provider';
 import { Button } from '@/shared/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/shared/ui/dropdown-menu';
 import { Input } from '@/shared/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/shared/ui/radio-group';
 import { ScrollArea } from '@/shared/ui/scroll-area';
@@ -81,6 +72,7 @@ import {
 import { Slider } from '@/shared/ui/slider';
 import { Switch } from '@/shared/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
+import { FontLibraryTab } from './font-tab';
 
 interface SettingsTab {
   id: string;
@@ -121,6 +113,7 @@ const TAB_GROUPS: SettingsTabGroup[] = [
       { id: 'collage-export', label: '导出' },
     ],
   },
+  { items: [{ id: 'fonts', label: '字体', icon: Type }] },
   { items: [{ id: 'export', label: '导出', icon: Download }] },
   { items: [{ id: 'cache', label: '缓存', icon: Database }] },
   { items: [{ id: 'about', label: '关于', icon: Info }] },
@@ -438,44 +431,21 @@ function GeneralTab({
 function TemplateDefaultsTab({
   font,
   onFontChange,
-  favoriteFonts,
-  onToggleFavoriteFont,
 }: {
   font: string;
   onFontChange: (font: string) => void;
-  favoriteFonts: string[];
-  onToggleFavoriteFont: (font: string) => void;
 }) {
-  const { fonts, loading, reload } = useSystemFonts();
-  const [fontQuery, setFontQuery] = useState('');
-  const [fontMenuOpen, setFontMenuOpen] = useState(false);
-  const searchRef = useRef<HTMLInputElement | null>(null);
+  const library = useFontLibrary();
 
-  /**
-   * 菜单打开后把焦点交给搜索框。
-   *
-   * 这个版本的 Radix 菜单内容没有 `onOpenAutoFocus`（只有关闭时的回调），
-   * 所以自己盯开合状态：内容挂到 portal 上之后再聚焦，关闭时顺手清掉关键词。
-   */
-  useEffect(() => {
-    if (!fontMenuOpen) {
-      setFontQuery('');
-      return;
-    }
-
-    const timer = window.setTimeout(() => searchRef.current?.focus(), 0);
-    return () => window.clearTimeout(timer);
-  }, [fontMenuOpen]);
-
-  // 系统字体动辄几百个，靠搜索收窄；只在已读到的清单里过滤，不做远程查询
-  const matchedFonts = useMemo(() => {
-    const keyword = fontQuery.trim().toLowerCase();
-    if (!keyword) {
-      return fonts;
-    }
-
-    return fonts.filter((item) => item.family.toLowerCase().includes(keyword));
-  }, [fonts, fontQuery]);
+  // 只列已引入的字体；重复族名去重
+  const options = useMemo(
+    () =>
+      [...new Set(library.entries.map((entry) => entry.family))].map((family) => ({
+        family,
+        postscript_name: null,
+      })),
+    [library.entries],
+  );
 
   return (
     <div className="space-y-4">
@@ -486,99 +456,20 @@ function TemplateDefaultsTab({
         <SettingField
           id="template-default-font"
           label="全局字体"
-          description="不指定时由模板自带的字体栈决定；模板预设可以给单张图片单独指定字体。"
+          description="只列出已引入的字体：在「字体」里从在线、本机或字体文件三种来源引入。"
         >
           <CoFontField
             value={font}
             onChange={onFontChange}
-            fonts={fonts}
-            loading={loading}
-            onRefresh={reload}
+            fonts={options}
+            loading={library.loading}
+            noteOf={(family) => library.notes[family]}
           />
-          {!loading && fonts.length === 0 ? (
+          {options.length === 0 ? (
             <p className="mt-2 text-xs leading-5 text-muted-foreground">
-              没有读到系统字体，可点右侧刷新重试；网页版没有系统字体来源。
+              还没有引入字体，去「字体」里引入后这里就能选了。
             </p>
           ) : null}
-        </SettingField>
-
-        <SettingField
-          id="template-font-favorites"
-          label="收藏字体"
-          description="模板页的字体下拉只列出收藏的字体；一条都没收藏时先显示全部系统字体，方便直接开用。"
-        >
-          <div className="space-y-3">
-            <DropdownMenu open={fontMenuOpen} onOpenChange={setFontMenuOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button type="button" variant="outline" className="w-full justify-between">
-                  {favoriteFonts.length > 0
-                    ? `已收藏 ${favoriteFonts.length} 个字体`
-                    : '选择要收藏的字体'}
-                  <ChevronDown data-icon="inline-end" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="max-h-80 w-80">
-                <div className="sticky top-0 z-10 -mx-1 bg-popover px-1 pb-1">
-                  <Input
-                    ref={searchRef}
-                    value={fontQuery}
-                    placeholder="搜索字体"
-                    aria-label="搜索字体"
-                    // 不让方向键与输入一起被菜单的键盘导航吃掉
-                    onKeyDown={(event) => event.stopPropagation()}
-                    onChange={(event) => setFontQuery(event.target.value)}
-                  />
-                </div>
-                <DropdownMenuSeparator />
-                {matchedFonts.length === 0 ? (
-                  <DropdownMenuItem disabled>
-                    {fonts.length === 0 ? '没有读到系统字体' : '没有匹配的字体'}
-                  </DropdownMenuItem>
-                ) : (
-                  matchedFonts.map((item) => (
-                    <DropdownMenuCheckboxItem
-                      key={item.family}
-                      checked={favoriteFonts.includes(item.family)}
-                      // 勾选后菜单默认会关掉，多选就没法连着点；这里拦住关闭，
-                      // onCheckedChange 不受影响（Radix 内部不检查默认行为）
-                      onSelect={(event) => event.preventDefault()}
-                      onCheckedChange={() => onToggleFavoriteFont(item.family)}
-                    >
-                      <span className="truncate">{item.family}</span>
-                    </DropdownMenuCheckboxItem>
-                  ))
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {favoriteFonts.length === 0 ? (
-              <p className="text-xs leading-5 text-muted-foreground">
-                还没有收藏字体，模板页的字体下拉会临时列出全部系统字体。
-              </p>
-            ) : (
-              // 一字体一枚标签、自动换行：收藏几十个也只是几行高，
-              // 不像逐行列表那样把整页撑长（顺序仍是收藏顺序）
-              <div className="flex flex-wrap gap-1.5">
-                {favoriteFonts.map((family) => (
-                  <span
-                    key={family}
-                    className="inline-flex max-w-full items-center gap-0.5 border border-border/70 bg-background/60 py-0.5 pr-0.5 pl-2"
-                  >
-                    <span className="min-w-0 truncate text-xs text-foreground">{family}</span>
-                    <Button
-                      type="button"
-                      variant="plain"
-                      size="icon-xs"
-                      aria-label={`取消收藏 ${family}`}
-                      onClick={() => onToggleFavoriteFont(family)}
-                    >
-                      <X />
-                    </Button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
         </SettingField>
       </FieldGroup>
     </div>
@@ -1043,14 +934,11 @@ export function SettingsPage() {
   const navigate = useAppNavigation();
   const setDefaultPresets = useTemplateStore((state) => state.setDefaultPresets);
   const setDefaultFont = useTemplateStore((state) => state.setDefaultFont);
-  const setFontFavorites = useTemplateStore((state) => state.setFontFavorites);
   const [tab, setTab] = useState('general');
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [overview, setOverview] = useState<CacheOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [cacheActionPending, setCacheActionPending] = useState(false);
-  /** 收藏字体的写盘队列：见 handleToggleFavoriteFont 的说明 */
-  const favoritesWriteRef = useRef<Promise<void>>(Promise.resolve());
 
   const loadConfig = useCallback(async () => {
     setLoading(true);
@@ -1273,39 +1161,6 @@ export function SettingsPage() {
     [config, setDefaultFont],
   );
 
-  /**
-   * 收藏 / 取消收藏一个字体。
-   *
-   * 只影响模板页下拉列出哪些选项，不改变任何照片的字体。多选下拉里可以连着点，
-   * 因此两件事要处理好：下一份清单基于最新值累加（不能各算各的覆盖掉前一次），
-   * 以及整段配置的写盘要排队（两次交错落盘会让后写的旧值盖掉新值）。
-   */
-  const handleToggleFavoriteFont = useCallback(
-    (font: string) => {
-      if (!config || !font) {
-        return;
-      }
-
-      const current = config.fonts.favorites ?? [];
-      const favorites = current.includes(font)
-        ? current.filter((item) => item !== font)
-        : [...current, font];
-      const nextConfig = { ...config, fonts: { ...config.fonts, favorites } };
-
-      setConfig(nextConfig);
-      // 模板页 keep-alive 挂着不会重挂载，同步更新会话内的清单
-      setFontFavorites(favorites);
-
-      favoritesWriteRef.current = favoritesWriteRef.current
-        .then(() => updateConfig(nextConfig))
-        .catch((error) => {
-          console.error('Save font favorites failed:', error);
-          toast.error('保存收藏字体失败');
-        });
-    },
-    [config, setFontFavorites],
-  );
-
   const handleOpenExportDirectory = useCallback(async () => {
     if (!config) {
       return;
@@ -1508,8 +1363,33 @@ export function SettingsPage() {
           })}
         </TabsList>
 
-        <ScrollArea className="min-h-0 flex-1">
-          <div className="mx-auto w-full max-w-5xl pl-4">
+        {/*
+          「字体」页自成一块：它内部有会滚动的列表，需要确定高度。若和别的 tab 一样放进
+          下面的滚动区，就会出现「页面滚动 + 列表滚动」两条滚动条，所以它在滚动区之外，
+          且滚动区在该 tab 下隐藏。
+        */}
+        <TabsContent
+          value="fonts"
+          className={cn(
+            'mt-0 min-h-0 min-w-0 flex-1',
+            tab === 'fonts' ? 'flex flex-col' : 'hidden',
+          )}
+        >
+          <div className="mx-auto flex h-full w-full max-w-5xl min-w-0 flex-col overflow-hidden px-4">
+            <FontLibraryTab />
+          </div>
+        </TabsContent>
+
+        {/*
+          viewportClassName 覆盖 Radix 给内容包的那层 `display: table`：table 盒会按内容
+         的 max-content 撑开，`w-full` 与 `truncate` 全部失效，窗口一窄内容就横着溢出。
+          改成 block 后内容才会真正受视口宽度约束。
+        */}
+        <ScrollArea
+          className={cn('min-h-0 min-w-0 flex-1', tab === 'fonts' && 'hidden')}
+          viewportClassName="[&>div]:!block"
+        >
+          <div className="mx-auto w-full max-w-5xl min-w-0 pl-4 pr-4">
             <TabsContent value="general" className="mt-0">
               <GeneralTab
                 config={config}
@@ -1521,8 +1401,6 @@ export function SettingsPage() {
               <TemplateDefaultsTab
                 font={config.fonts.default_font}
                 onFontChange={(next) => void handleGlobalFontChange(next)}
-                favoriteFonts={config.fonts.favorites}
-                onToggleFavoriteFont={handleToggleFavoriteFont}
               />
             </TabsContent>
             <TabsContent value="template-preset" className="mt-0">

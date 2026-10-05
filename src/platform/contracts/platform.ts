@@ -7,6 +7,7 @@ import type {
   CacheOverview,
   FontInfo,
   ImageFileMeta,
+  ImportedFont,
   InlineFont,
 } from './index';
 import type { ImportProgressSnapshot } from './services';
@@ -75,6 +76,18 @@ export interface StorageServiceContract {
    * `text` 是画布里的全部文字；返回 `null` 表示不内联，由调用方退回通用字体。
    */
   inlineSystemFont(family: string, text: string): Promise<InlineFont | null>;
+  /** 把一个已有字体文件收进工作区字体目录（自定义导入） */
+  importFontFile(workspace: string, sourcePath: string): Promise<ImportedFont>;
+  /** 把前端下载好的字体字节收进工作区字体目录（在线字体源） */
+  importFontBytes(
+    workspace: string,
+    fileName: string | null,
+    contents: number[],
+  ): Promise<ImportedFont>;
+  /** 从工作区字体目录删除一个字体文件 */
+  removeFontFile(workspace: string, fileName: string): Promise<void>;
+  /** 把导入字体按用到的字符子集化，供导出快照内联 */
+  inlineImportedFont(workspace: string, fileName: string, text: string): Promise<InlineFont | null>;
 }
 
 export interface StorageAdapter extends StorageServiceContract {}

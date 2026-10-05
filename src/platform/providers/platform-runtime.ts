@@ -53,6 +53,9 @@ const webRuntime = {
     webStorage.set('app-config', config),
   applyWindowFrameMode: async () => undefined,
   getAppInfo: async () => ({ name: 'Copicseal Web', version: '0.5.0' }),
+  openExternal: async (url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  },
   getCacheOverview: async () => ({
     directory: '',
     image_count: 0,

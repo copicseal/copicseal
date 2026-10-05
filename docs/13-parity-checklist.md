@@ -85,12 +85,16 @@
   旧：固定 13 项，含「软件」「曝光模式」（`uses/co-pic.ts:103-117`）
   新：9 行（相机合并厂商+型号、拍摄参数合并焦距·光圈·快门·ISO），新增 尺寸 / GPS，缺「软件」「曝光模式」；字段契约也没有 `software` / `exposure_mode`
 
-- [ ] **A19 意见反馈入口**｜缺口｜成本 极小
-  旧：菜单项直接打开 GitHub issues/new（`dropdowns/co-menu-dropdown.vue:53,67`）｜新：无
+- [~] **A19 意见反馈入口**｜部分完成｜成本 极小
+  旧：菜单项直接打开 GitHub issues/new（`dropdowns/co-menu-dropdown.vue:53,67`）
+  新：设置 → 关于 的「问题反馈」按钮已接到 `issues` 页（经 `openExternal` 交系统浏览器）；侧边栏菜单项仍未加
 
-- [ ] **A20 关于页内容**｜缺口｜成本 小
+- [x] **A20 关于页内容**｜已对齐｜成本 小
   旧：logo、运行版本号、GitHub / B站 / QQ群 / 微信群、免责声明（`dialogs/co-about-dialog.vue`）
-  新：只有产品信息 + 技术栈卡片与更新按钮，不显示版本；`getAppInfo()` 已实现但无消费方；未接线组件里还硬编码 `v0.2.0`（实际 0.5.0）
+  新：品牌区（软件图标 + 名称 + 运行版本，版本取自 `getAppInfo()`）、更新区、社区链接（开源仓库 /
+  问题反馈 / 作者主页，均经 `openExternal` 交给系统浏览器）、商标免责声明、开源许可清单
+  （`third-party-notices.ts`，只列随应用分发的运行时依赖与其 SPDX 许可）
+  差异：旧版的 QQ / 微信群用弹窗展示二维码图片（图挂在旧 CDN 上），这里不再提供；B 站入口也不再提供
 
 - [ ] **A21 旧 EXIF 变量名兼容**｜缺口｜成本 极小
   旧：`{ISOSpeedRatings}`、`{DateTimeOriginal}`，可替换任意 EXIF key，缺失时保留占位符（`utils/render.ts:126-134`）

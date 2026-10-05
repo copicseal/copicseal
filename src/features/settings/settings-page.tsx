@@ -4,12 +4,14 @@ import {
   Box,
   Check,
   ChevronRight,
+  Code2,
   Cog,
   Database,
   Download,
   Info,
   LayoutTemplate,
   type LucideIcon,
+  MessageSquare,
   Palette,
   Pencil,
   Plus,
@@ -17,10 +19,13 @@ import {
   Settings2,
   Trash2,
   Type,
+  User,
 } from 'lucide-react';
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import appLogoUrl from '@/assets/logo.svg';
 import { useFontLibrary } from '@/features/fonts/use-font-library';
+import { THIRD_PARTY_NOTICES } from '@/features/settings/third-party-notices';
 import { useTemplatePresets } from '@/features/template/hooks/use-template-presets';
 import { parseDefaultPresets } from '@/features/template/lib/export-preset';
 import {
@@ -31,6 +36,7 @@ import { useTemplateStore } from '@/features/template/store/use-template-store';
 import {
   type AppConfig,
   type AppUpdateInfo,
+  type AppVersion,
   type CacheOverview,
   clearAssetCaches,
   getInUseAssetPaths,
@@ -927,12 +933,43 @@ function CacheTab({
   );
 }
 
+/**
+ * 关于页。
+ *
+ * 结构参考旧版的「关于」弹窗：品牌与版本在最上面，然后是简介、更新入口、
+ * 社区链接与商标免责声明。链接一律交给系统浏览器打开（见 `openExternal`），
+ * 不在应用窗口里加载外部页面。
+ */
 function AboutTab() {
   const [checking, setChecking] = useState(false);
   const [installing, setInstalling] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [update, setUpdate] = useState<AppUpdateInfo | null>(null);
+  const [info, setInfo] = useState<AppVersion | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void platformRuntime
+      .getAppInfo()
+      .then((next) => {
+        if (!cancelled) {
+          setInfo(next);
+        }
+      })
+      .catch((error) => console.warn('读取应用信息失败:', error));
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const openLink = (url: string) => {
+    void platformRuntime.openExternal(url).catch((error) => {
+      console.error('打开链接失败:', error);
+      toast.error('打开链接失败，请手动访问');
+    });
+  };
 
   const handleCheckUpdate = async () => {
     setChecking(true);
@@ -940,9 +977,9 @@ function AboutTab() {
     setUpdate(null);
 
     try {
-      const info = await checkForUpdate();
-      setUpdate(info);
-      setStatus(info ? `发现新版本 ${info.version}` : '已是最新版本');
+      const next = await checkForUpdate();
+      setUpdate(next);
+      setStatus(next ? `发现新版本 ${next.version}` : '已是最新版本');
     } catch {
       setStatus('检查更新失败');
     } finally {
@@ -969,17 +1006,32 @@ function AboutTab() {
     }
   };
 
+  const version = info ? `v${info.version}` : '';
+
   return (
     <div className="space-y-4">
-      <FieldGroup title="关于" description="查看产品信息、技术栈与版本更新状态。">
-        <SettingField label="产品信息" description="当前产品定位与技术实现摘要。">
-          <div className="grid gap-3 md:grid-cols-2">
-            <OptionCard title="可图匠（Copicseal）">以图片处理为核心的桌面应用。</OptionCard>
-            <OptionCard title="技术栈">Tauri 2 + React 19 + Rust</OptionCard>
-          </div>
-        </SettingField>
+      <div className="flex items-center gap-4 border border-border/80 bg-card px-5 py-4 shadow-sm">
+        <img
+          src={appLogoUrl}
+          alt=""
+          className="size-12 shrink-0 rounded-2xl border border-border/80 bg-background shadow-sm"
+        />
+        <div className="min-w-0 flex-1">
+          <h3 className="flex items-baseline gap-2 text-sm font-semibold">
+            <span>可图匠 Copicseal</span>
+            {version ? (
+              <span className="text-[11px] font-normal text-muted-foreground">{version}</span>
+            ) : null}
+          </h3>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            图片加边框水印工具：读取 EXIF 信息，按模板为照片加上机型、光圈、快门等相机参数，
+            支持自定义字体、背景与导出档位，可批量导出。
+          </p>
+        </div>
+      </div>
 
-        <SettingField label="检查更新" description="检查并安装应用新版本。">
+      <FieldGroup title="版本" description="检查新版本，或在发现更新时直接下载安装。">
+        <SettingField label="版本更新" description="从发布渠道读取最新版本，安装后需重新启动应用。">
           {platformCapabilities.system.autoUpdate ? (
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-3">
@@ -994,7 +1046,7 @@ function AboutTab() {
                 {update ? (
                   <Button onClick={() => void handleInstallUpdate()} disabled={installing}>
                     <Download className="size-3.5" />
-                    {installing ? '安装中...' : '下载并安装'}
+                    {installing ? '安装中...' : `下载并安装 ${update.version}`}
                   </Button>
                 ) : null}
                 {status ? <p className="text-xs text-muted-foreground">{status}</p> : null}
@@ -1017,6 +1069,78 @@ function AboutTab() {
           ) : (
             <p className="text-xs text-muted-foreground">当前环境不支持应用内更新。</p>
           )}
+        </SettingField>
+      </FieldGroup>
+
+      <FieldGroup title="社区" description="问题反馈与更新动态都在这些地方。">
+        <SettingField label="相关链接" description="用系统默认浏览器打开。">
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => openLink('https://github.com/copicseal/copicseal')}
+            >
+              <Code2 data-icon="inline-start" />
+              开源仓库
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => openLink('https://github.com/copicseal/copicseal/issues')}
+            >
+              <MessageSquare data-icon="inline-start" />
+              问题反馈
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => openLink('https://github.com/kohaiy')}
+            >
+              <User data-icon="inline-start" />
+              作者主页
+            </Button>
+          </div>
+        </SettingField>
+
+        <div className="border border-border/80 bg-muted/40 px-4 py-3 text-[11px] leading-5 text-muted-foreground">
+          ⚠️ 本工具展示的相机 / 手机品牌商标版权归各自公司所有，仅用于展示 EXIF
+          信息，不构成商业关联或侵权。若您认为相关内容侵犯了您的合法权益，请通过上方「问题反馈」联系我们删除。
+        </div>
+      </FieldGroup>
+
+      <FieldGroup title="开源许可" description="本软件使用了下列开源项目，感谢它们的作者与社区。">
+        <SettingField
+          id="about-third-party"
+          label="第三方依赖"
+          description="只列随应用一起分发的运行时依赖；版本与完整依赖树见仓库的 Cargo.lock 与 pnpm-lock.yaml。"
+        >
+          <ScrollArea viewportClassName="max-h-56 [&>div]:!block">
+            <div className="space-y-3 pr-1">
+              {THIRD_PARTY_NOTICES.map((group) => (
+                <div key={group.title}>
+                  <p className="mb-1 text-[10px] font-medium text-muted-foreground">
+                    {group.title}
+                  </p>
+                  <ul className="grid gap-x-4 gap-y-0.5 md:grid-cols-2">
+                    {group.items.map((item) => (
+                      <li
+                        key={`${group.title}-${item.name}`}
+                        className="flex items-baseline justify-between gap-2 text-[11px]"
+                      >
+                        <span className="min-w-0 truncate text-foreground">{item.name}</span>
+                        <span className="shrink-0 text-[10px] text-muted-foreground">
+                          {item.license}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
         </SettingField>
       </FieldGroup>
     </div>

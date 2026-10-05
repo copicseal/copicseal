@@ -109,6 +109,11 @@ export function updateConfig(config: AppConfig): Promise<void> {
 export function applyWindowFrameMode(mode: WindowFrameMode): Promise<void> {
   return invoke('apply_window_frame_mode', { mode });
 }
+/** 用系统默认浏览器打开 http(s) 链接。 */
+export function openExternal(url: string): Promise<void> {
+  return invoke('open_external', { url });
+}
+
 export function getAppInfo(): Promise<AppVersion> {
   return invoke('get_app_info');
 }

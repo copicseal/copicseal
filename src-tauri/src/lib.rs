@@ -63,6 +63,7 @@ pub fn run() {
             font::remove_font_file,
             font::inline_imported_font,
             system::get_app_info,
+            system::open_external,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

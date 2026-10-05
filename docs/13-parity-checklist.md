@@ -167,8 +167,9 @@
 - [ ] **C3 拼图「批量导出」重复导出同一张**｜缺陷｜成本 小
   `items: photos` 但 runner 忽略 `item`，对同一张画布导出 N 次；且未传 context → `baseName` 固定 `copicseal-export`、无导出目录 → 连弹 N 次保存框写同名文件（`collage-page.tsx:261-278`）
 
-- [ ] **C4 前端入口仍是脚手架残留**｜缺陷｜成本 极小
-  `index.html` 的 `<title>Tauri + React + Typescript</title>` 与 favicon `/vite.svg`
+- [x] **C4 前端入口仍是脚手架残留**｜已修复｜成本 极小
+  `index.html` 换成产品标题「可图匠 Copicseal」与 `/logo.svg` 图标；`src-tauri/icons/` 的整
+  套应用图标也由旧版图标重新生成（macOS / Windows / Linux 各尺寸），不再是 Tauri 默认图标
 
 ---
 

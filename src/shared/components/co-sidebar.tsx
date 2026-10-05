@@ -1,5 +1,6 @@
-import { Grid3x3, LayoutTemplate, Settings2, Sparkles } from 'lucide-react';
+import { Grid3x3, LayoutTemplate, Settings2 } from 'lucide-react';
 import type { AppRoute } from '@/app/routes';
+import appLogoUrl from '@/assets/logo.svg';
 import { cn } from '@/shared/lib/utils';
 import { useWindowStyle } from '@/shared/providers/window-style-provider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui/tooltip';
@@ -40,7 +41,7 @@ export function CoSidebar({ route, onRouteChange }: CoSidebarProps) {
                 onClick={() => onRouteChange('/template')}
                 className="flex size-11 items-center justify-center rounded-2xl border border-border/80 bg-card text-primary shadow-sm transition-transform hover:-translate-y-0.5"
               >
-                <Sparkles className="size-5" />
+                <img src={appLogoUrl} alt="" className="size-6" />
               </button>
             </TooltipTrigger>
             <TooltipContent>可图匠</TooltipContent>

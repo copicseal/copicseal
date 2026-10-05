@@ -32,6 +32,27 @@ export function createExportPreset(): ExportPreset {
 }
 
 /**
+ * 按常用尺寸新建档位。
+ *
+ * 以已有的某个档位为模板，只换目标尺寸——用户在格式 / 质量 / 倍率上做过的选择
+ * 会延续到新档位，不用每次重调；文件名清空，让自动命名跟着新尺寸走。
+ */
+export function createExportPresetForSize(
+  size: { width: number; height: number },
+  like?: ExportPreset,
+): ExportPreset {
+  const base = like ?? createExportPreset();
+
+  return {
+    ...base,
+    id: nextPresetId(),
+    width: Math.round(size.width),
+    height: Math.round(size.height),
+    fileName: undefined,
+  };
+}
+
+/**
  * 设置里保存的默认档位（`config.output.presets`）→ 会话档位。
  *
  * 配置是过去某个版本写下的，不能假定它仍然合法：宽高必须是正整数

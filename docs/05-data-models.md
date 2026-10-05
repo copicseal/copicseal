@@ -283,6 +283,7 @@ Collage 页面的当前工作状态：
 |------|------|
 | defaultPath | 文件导出目录，边框水印与拼图共用 |
 | presets | 边框水印的默认档位（`ExportPreset[]`），由模板页「存为默认档位」写入 |
+| sizes | 导出面板「常用尺寸」下拉的快捷尺寸（`OutputSize[]`：name + width + height），在设置 → 边框水印 → 导出里增删；首次使用带一组内置尺寸，删空即没有快捷尺寸 |
 
 默认档位同时覆盖了格式、尺寸、倍率与质量，因此不再单独存 `defaultFormat` /
 `defaultScale` / `defaultQuality`：三者只是档位的字段，拆开存会出现互相矛盾的中间态。

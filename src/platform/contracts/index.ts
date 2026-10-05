@@ -104,8 +104,18 @@ export interface OutputPreset {
   is_original: boolean;
 }
 
+export interface OutputSize {
+  id?: string;
+  /** 下拉里显示的名字，如「4K」「小红书」 */
+  label: string;
+  width: number;
+  height: number;
+}
+
 export interface OutputConfig {
   presets: OutputPreset[];
+  /** 导出面板「常用尺寸」下拉的快捷尺寸，可在设置里增删 */
+  sizes: OutputSize[];
   default_path: string;
   retain_exif: boolean;
 }

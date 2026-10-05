@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { OutputSize } from '@/platform/contracts';
 import type { ExportPreset } from '@/shared/types/export';
 import { resolveTemplateBackground, type TemplateBackground } from '../background';
 import { createExportPreset } from '../lib/export-preset';
@@ -74,6 +75,9 @@ interface TemplateStoreState {
   setDefaultPresets: (presets: ExportPreset[]) => void;
   /** 换掉默认字体；同样只影响没有自己配置的照片。 */
   setDefaultFont: (font: string) => void;
+  /** 导出面板「常用尺寸」下拉的数据；打开下拉时会重新读一次设置 */
+  exportSizes: OutputSize[];
+  setExportSizes: (sizes: OutputSize[]) => void;
   /**
    * 把一条模板预设应用到若干张照片。
    *
@@ -171,6 +175,12 @@ export const useTemplateStore = create<TemplateStoreState>()((set) => ({
         },
       },
     }));
+  },
+
+  exportSizes: [],
+
+  setExportSizes: (sizes) => {
+    set({ exportSizes: structuredClone(sizes) });
   },
 
   setDefaultPresets: (presets) => {

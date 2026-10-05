@@ -1,7 +1,21 @@
-import { Plus, Save, Trash2 } from 'lucide-react';
-import { createExportPreset, resolvePresetFileName } from '@/features/template/lib/export-preset';
+import { ChevronDown, Plus, Save, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import {
+  createExportPreset,
+  createExportPresetForSize,
+  resolvePresetFileName,
+} from '@/features/template/lib/export-preset';
+import type { OutputSize } from '@/platform/contracts';
 import type { ExportFormat, ExportPreset } from '@/shared/types/export';
 import { Button } from '@/shared/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/shared/ui/dropdown-menu';
 import { Input } from '@/shared/ui/input';
 import { Slider } from '@/shared/ui/slider';
 
@@ -14,6 +28,17 @@ interface TemplateExportPanelProps {
   onPresetsChange: (next: ExportPreset[]) => void;
   /** 把当前这组档位存成设置里的「默认档位」；档位不齐时按钮禁用 */
   onSaveAsDefault: () => void;
+  /** 下拉里的常用尺寸；空数组表示用户把它们删光了 */
+  sizes: readonly OutputSize[];
+  /** 下拉打开时触发：让上层重新读一次设置，避免设置页刚改完这里还是旧清单 */
+  onSizesOpen?: () => void;
+  /**
+   * 读取当前照片的像素尺寸，给「原始尺寸」那一项用。
+   *
+   * 用回调而不是值：面板打开时才知道照片尺寸，且换图后不必重新挂载面板。
+   * 读不到（图片没加载完）时该项禁用。
+   */
+  resolvePhotoSize?: () => { width: number; height: number } | null;
 }
 
 interface ExportPresetCardProps {
@@ -144,9 +169,24 @@ export function TemplateExportPanel({
   presets,
   baseName,
   ready,
+  sizes,
+  onSizesOpen,
   onPresetsChange,
   onSaveAsDefault,
+  resolvePhotoSize,
 }: TemplateExportPanelProps) {
+  const [photoSize, setPhotoSize] = useState<{ width: number; height: number } | null>(null);
+
+  /** 新建档位：带上尺寸时按该尺寸，否则用内置默认尺寸。 */
+  const addPreset = (size?: { width: number; height: number }) => {
+    // 沿用最后一个档位的格式 / 质量 / 倍率，用户调过的参数不必重设
+    const like = presets[presets.length - 1];
+    onPresetsChange([
+      ...presets,
+      size ? createExportPresetForSize(size, like) : createExportPreset(),
+    ]);
+  };
+
   const updatePreset = (index: number, next: ExportPreset) => {
     onPresetsChange(presets.map((preset, i) => (i === index ? next : preset)));
   };
@@ -175,16 +215,70 @@ export function TemplateExportPanel({
 
       {/* 竖着排：属性面板会被拖窄，两个按钮并排时「存为默认档位」会被压出格 */}
       <div className="space-y-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="w-full"
-          onClick={() => onPresetsChange([...presets, createExportPreset()])}
-        >
-          <Plus data-icon="inline-start" />
-          添加档位
-        </Button>
+        {/* 添加档位做成组合按钮：右侧倒三角列出常用尺寸，点一下直接按该尺寸建档位 */}
+        <div className="flex items-stretch gap-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="min-w-0 flex-1"
+            onClick={() => addPreset()}
+          >
+            <Plus data-icon="inline-start" />
+            添加档位
+          </Button>
+          <DropdownMenu
+            onOpenChange={(open) => {
+              if (open) {
+                setPhotoSize(resolvePhotoSize?.() ?? null);
+                onSizesOpen?.();
+              }
+            }}
+          >
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                aria-label="按常用尺寸添加档位"
+              >
+                <ChevronDown />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuLabel>常用尺寸</DropdownMenuLabel>
+              <DropdownMenuItem
+                disabled={!photoSize}
+                onSelect={() => {
+                  if (photoSize) {
+                    addPreset(photoSize);
+                  }
+                }}
+              >
+                <span className="flex-1">原始尺寸</span>
+                <span className="text-[10px] text-muted-foreground">
+                  {photoSize ? `${photoSize.width}×${photoSize.height}` : '图片未就绪'}
+                </span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              {sizes.length === 0 ? (
+                <DropdownMenuItem disabled>还没有常用尺寸，可在设置里添加</DropdownMenuItem>
+              ) : (
+                sizes.map((size, index) => (
+                  <DropdownMenuItem
+                    key={size.id ?? `${size.label}-${index}`}
+                    onSelect={() => addPreset({ width: size.width, height: size.height })}
+                  >
+                    <span className="flex-1">{size.label}</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {size.width}×{size.height}
+                    </span>
+                  </DropdownMenuItem>
+                ))
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
         <Button
           type="button"
           variant="outline"

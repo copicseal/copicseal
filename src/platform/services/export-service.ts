@@ -1,6 +1,6 @@
 import { type LocalFont, snapdom } from '@zumer/snapdom';
 import { capEmbeddedImages } from '@/core/renderer';
-import type { OutputPreset } from '@/platform/contracts';
+import type { OutputPreset, OutputSize } from '@/platform/contracts';
 import type { ExportServiceContract } from '@/platform/contracts/platform';
 import { platformRuntime, writeExifSource } from '@/platform/providers/platform-runtime';
 import { webFiles } from '@/platform/providers/web/web-platform-provider';
@@ -270,6 +270,17 @@ export async function resolveDefaultOutputPresets(): Promise<OutputPreset[]> {
     return config.output.presets ?? [];
   } catch (error) {
     console.warn('读取默认档位失败:', error);
+    return [];
+  }
+}
+
+/** 读取设置里的常用尺寸（导出面板快捷尺寸下拉的数据源）。 */
+export async function resolveExportSizes(): Promise<OutputSize[]> {
+  try {
+    const config = await getConfig();
+    return config.output.sizes ?? [];
+  } catch (error) {
+    console.warn('读取常用尺寸失败:', error);
     return [];
   }
 }

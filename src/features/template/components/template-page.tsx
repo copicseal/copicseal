@@ -32,6 +32,7 @@ import {
   resolveDefaultFont,
   resolveDefaultOutputPresets,
   resolveExportDirectory,
+  resolveExportSizes,
   saveDefaultFont,
   saveDefaultOutputPresets,
 } from '@/platform';
@@ -461,6 +462,9 @@ function TemplatePropertiesPanel({
   otherPhotoCount,
   onApplyToOthers,
   palette,
+  sizes,
+  onSizesOpen,
+  resolvePhotoSize,
 }: {
   activeTemplateId: string;
   onTemplateChange: (templateId: string) => void;
@@ -474,6 +478,9 @@ function TemplatePropertiesPanel({
   presets: Parameters<typeof TemplateExportPanel>[0]['presets'];
   onPresetsChange: Parameters<typeof TemplateExportPanel>[0]['onPresetsChange'];
   onSaveAsDefault: Parameters<typeof TemplateExportPanel>[0]['onSaveAsDefault'];
+  sizes: Parameters<typeof TemplateExportPanel>[0]['sizes'];
+  /** 打开常用尺寸下拉时重新读一次设置，避免设置页改完这里还是旧清单 */
+  onSizesOpen: () => void;
   /** 档位是否齐备；导出按钮在顶栏，这里只用它决定要不要提示补目标宽高 */
   exportReady: boolean;
   hasPhoto: boolean;
@@ -482,6 +489,8 @@ function TemplatePropertiesPanel({
   otherPhotoCount: number;
   onApplyToOthers: (scope: TemplateApplyScope) => void;
   palette: PhotoPaletteState;
+  /** 读取当前照片像素尺寸（给档位的「原始尺寸」用）；由页面提供 */
+  resolvePhotoSize: () => { width: number; height: number } | null;
 }) {
   const templateSchema = getBuiltinTemplateSchema(activeTemplateId);
 
@@ -577,6 +586,9 @@ function TemplatePropertiesPanel({
                 ready={exportReady}
                 onPresetsChange={onPresetsChange}
                 onSaveAsDefault={onSaveAsDefault}
+                sizes={sizes}
+                onSizesOpen={onSizesOpen}
+                resolvePhotoSize={resolvePhotoSize}
               />
               {otherPhotoCount > 0 ? (
                 <ApplyToOthersButton
@@ -615,6 +627,8 @@ export function TemplatePage() {
   const setDefaultPresets = useTemplateStore((state) => state.setDefaultPresets);
   const setFont = useTemplateStore((state) => state.setFont);
   const setDefaultFont = useTemplateStore((state) => state.setDefaultFont);
+  const exportSizes = useTemplateStore((state) => state.exportSizes);
+  const setExportSizes = useTemplateStore((state) => state.setExportSizes);
   const defaultFont = useTemplateStore((state) => state.defaultConfig.font);
   const prune = useTemplateStore((state) => state.prune);
   // 导出期间挂起预览自适应，否则它会覆盖导出解算出的 --co-base
@@ -633,9 +647,10 @@ export function TemplatePage() {
     let cancelled = false;
 
     void (async () => {
-      const [presets, font] = await Promise.all([
+      const [presets, font, sizes] = await Promise.all([
         resolveDefaultOutputPresets(),
         resolveDefaultFont(),
+        resolveExportSizes(),
       ]);
       if (cancelled) {
         return;
@@ -648,12 +663,13 @@ export function TemplatePage() {
       if (font) {
         setDefaultFont(font);
       }
+      setExportSizes(sizes);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [setDefaultFont, setDefaultPresets]);
+  }, [setDefaultFont, setDefaultPresets, setExportSizes]);
 
   // 素材被移除后回收它的配置；prune 在无变化时返回原 state，不会引起额外渲染
   useEffect(() => {
@@ -928,6 +944,18 @@ export function TemplatePage() {
       assets={(assetsState) => <TemplateAssetsPanel {...assetsState} />}
       properties={() => (
         <TemplatePropertiesPanel
+          sizes={exportSizes}
+          onSizesOpen={() => {
+            void resolveExportSizes().then(setExportSizes);
+          }}
+          // 直接从预览里的图片取像素尺寸：与导入格式无关，也不必再读一次 EXIF
+          resolvePhotoSize={() => {
+            const img = previewRef.current?.querySelector<HTMLImageElement>('[data-co-photo]');
+            if (!img || img.naturalWidth <= 0 || img.naturalHeight <= 0) {
+              return null;
+            }
+            return { width: img.naturalWidth, height: img.naturalHeight };
+          }}
           activeTemplateId={config.templateId}
           onTemplateChange={(templateId) => {
             if (currentPhoto) {

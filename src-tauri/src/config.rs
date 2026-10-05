@@ -31,8 +31,55 @@ pub struct CacheConfig {
 #[serde(default)]
 pub struct OutputConfig {
     pub presets: Vec<OutputPreset>,
+    /// 导出面板「常用尺寸」下拉的快捷尺寸，可在设置 → 边框水印 → 导出里增删
+    pub sizes: Vec<OutputSize>,
     pub default_path: String,
     pub retain_exif: bool,
+}
+
+/// 一条常用尺寸：点一下即按该尺寸新建导出档位。
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(default)]
+pub struct OutputSize {
+    pub id: Option<String>,
+    pub label: String,
+    pub width: u32,
+    pub height: u32,
+}
+
+impl Default for OutputSize {
+    fn default() -> Self {
+        Self {
+            id: None,
+            label: "自定义".to_string(),
+            width: 1920,
+            height: 1080,
+        }
+    }
+}
+
+/// 内置常用尺寸：长边常见的成片规格 + 两个社交平台推荐像素。
+///
+/// 注意这是**初始值**：写进配置后由用户自己增删，删空即没有快捷尺寸。
+fn default_output_sizes() -> Vec<OutputSize> {
+    let preset = |label: &str, width: u32, height: u32| OutputSize {
+        id: None,
+        label: label.to_string(),
+        width,
+        height,
+    };
+
+    vec![
+        preset("1080P", 1920, 1080),
+        preset("2K", 2560, 1440),
+        preset("2K 竖屏", 1440, 2560),
+        preset("4K", 3840, 2160),
+        preset("4K 竖屏", 2160, 3840),
+        preset("方图 1080", 1080, 1080),
+        preset("方图 2048", 2048, 2048),
+        preset("朋友圈 2:1", 4524, 2262),
+        preset("小红书", 1280, 1706),
+    ]
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -171,6 +218,7 @@ impl Default for OutputConfig {
     fn default() -> Self {
         Self {
             presets: Vec::new(),
+            sizes: default_output_sizes(),
             default_path: default_export_directory(),
             retain_exif: true,
         }

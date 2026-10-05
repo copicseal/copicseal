@@ -12,6 +12,7 @@ import {
   type LucideIcon,
   Palette,
   Pencil,
+  Plus,
   RefreshCw,
   Settings2,
   Trash2,
@@ -34,6 +35,7 @@ import {
   clearAssetCaches,
   getInUseAssetPaths,
   type OutputPreset,
+  type OutputSize,
   platformCapabilities,
 } from '@/platform';
 import { platformRuntime } from '@/platform/providers/platform-runtime';
@@ -637,10 +639,14 @@ function TemplatePresetsTab({ onGoToTemplate }: { onGoToTemplate: () => void }) 
 function TemplateExportDefaultsTab({
   presets,
   onRemovePreset,
+  sizes,
+  onChangeSizes,
   onGoToTemplate,
 }: {
   presets: OutputPreset[];
   onRemovePreset: (index: number) => void;
+  sizes: OutputSize[];
+  onChangeSizes: (next: OutputSize[]) => void;
   onGoToTemplate: () => void;
 }) {
   return (
@@ -692,6 +698,94 @@ function TemplateExportDefaultsTab({
             <Button type="button" variant="outline" size="sm" onClick={onGoToTemplate}>
               <LayoutTemplate data-icon="inline-start" />
               去模板页设置档位
+            </Button>
+          </div>
+        </SettingField>
+      </FieldGroup>
+
+      <FieldGroup
+        title="常用尺寸"
+        description="模板页导出面板里「添加档位」右侧下拉显示的快捷尺寸，点一下即按该尺寸新建档位。"
+      >
+        <SettingField
+          id="template-export-sizes"
+          label="尺寸清单"
+          description="写成一组名字与像素尺寸即可；只影响这个下拉，不改变已有档位。"
+        >
+          {sizes.length === 0 ? (
+            <p className="text-xs leading-5 text-muted-foreground">
+              还没有常用尺寸，下拉里只会显示「原始尺寸」。
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {sizes.map((size, index) => (
+                <li key={size.id ?? `${size.label}-${index}`} className="flex items-center gap-2">
+                  <Input
+                    value={size.label}
+                    aria-label={`第 ${index + 1} 个常用尺寸的名称`}
+                    placeholder="名称"
+                    className="h-7 min-w-0 flex-1 text-xs"
+                    onChange={(event) =>
+                      onChangeSizes(
+                        sizes.map((item, i) =>
+                          i === index ? { ...item, label: event.target.value } : item,
+                        ),
+                      )
+                    }
+                  />
+                  <Input
+                    type="number"
+                    min={1}
+                    value={size.width}
+                    aria-label={`${size.label} 的宽度`}
+                    className="h-7 w-20 text-xs"
+                    onChange={(event) =>
+                      onChangeSizes(
+                        sizes.map((item, i) =>
+                          i === index ? { ...item, width: Number(event.target.value) } : item,
+                        ),
+                      )
+                    }
+                  />
+                  <span className="shrink-0 text-[10px] text-muted-foreground">×</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={size.height}
+                    aria-label={`${size.label} 的高度`}
+                    className="h-7 w-20 text-xs"
+                    onChange={(event) =>
+                      onChangeSizes(
+                        sizes.map((item, i) =>
+                          i === index ? { ...item, height: Number(event.target.value) } : item,
+                        ),
+                      )
+                    }
+                  />
+                  <Button
+                    type="button"
+                    variant="plain"
+                    size="icon-sm"
+                    aria-label={`删除常用尺寸 ${size.label}`}
+                    onClick={() => onChangeSizes(sizes.filter((_, i) => i !== index))}
+                  >
+                    <Trash2 />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="mt-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                onChangeSizes([...sizes, { label: '自定义', width: 1920, height: 1080 }])
+              }
+            >
+              <Plus data-icon="inline-start" />
+              添加尺寸
             </Button>
           </div>
         </SettingField>
@@ -1106,6 +1200,28 @@ export function SettingsPage() {
   }, [config, saveConfig]);
 
   /**
+   * 改写常用尺寸清单。
+   *
+   * 与默认档位一样只动设置，不影响任何照片已有的档位；导出面板在打开下拉时
+   * 会重新读一次，所以这里保存完立刻生效。
+   */
+  const handleChangeExportSizes = useCallback(
+    async (sizes: OutputSize[]) => {
+      if (!config) {
+        return;
+      }
+
+      try {
+        await saveConfig({ ...config, output: { ...config.output, sizes } });
+      } catch (error) {
+        console.error('Update export sizes failed:', error);
+        toast.error('更新常用尺寸失败');
+      }
+    },
+    [config, saveConfig],
+  );
+
+  /**
    * 删掉一个默认档位。
    *
    * 只改设置里的默认清单，不去动任何照片已有的档位；删到空就等于「没存过默认档位」，
@@ -1410,6 +1526,8 @@ export function SettingsPage() {
               <TemplateExportDefaultsTab
                 presets={config.output.presets}
                 onRemovePreset={(index) => void handleRemoveDefaultPreset(index)}
+                sizes={config.output.sizes ?? []}
+                onChangeSizes={(sizes) => void handleChangeExportSizes(sizes)}
                 onGoToTemplate={() => navigate('/template')}
               />
             </TabsContent>

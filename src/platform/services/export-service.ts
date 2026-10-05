@@ -103,13 +103,14 @@ function readCanvasFontFamilies(element: HTMLElement): string[] {
  * 多个能查到的族（比如等宽栈里的 Menlo、Monaco），全部内联：混排文本要靠后面的
  * 族兜底缺字。
  */
-async function resolveSnapshotFonts(element: HTMLElement): Promise<LocalFont[]> {
+async function resolveSnapshotFonts(element: HTMLElement, extraText = ''): Promise<LocalFont[]> {
   const families = readCanvasFontFamilies(element).slice(0, MAX_INLINE_FAMILIES);
   if (families.length === 0) {
     return [];
   }
 
-  const text = element.textContent ?? '';
+  // 额外字符并进同一份文本：批量导出时各张图文字不同，但并集一致 → 缓存命中同一个子集
+  const text = `${element.textContent ?? ''}${extraText}`;
   const cacheKey = `${families.join('|')}\u0000${text}`;
   const cached = snapshotFontCache.get(cacheKey);
   if (cached) {
@@ -210,7 +211,7 @@ async function captureElement(
   try {
     // 字体必须显式内联：snapdom 默认不嵌入字体，快照里的文字会退回到默认字体；
     // 还要先在主文档里预热，否则 WebKit 会按回退字体的宽度排版（见 primeSnapshotFonts）
-    const localFonts = await resolveSnapshotFonts(element);
+    const localFonts = await resolveSnapshotFonts(element, context?.extraFontText);
     primedFonts = await primeSnapshotFonts(localFonts);
 
     const blob = await snapdom.toBlob(element, {

@@ -56,6 +56,13 @@ export interface ExportRunContext {
   sizeAdapter?: ExportSizeAdapter;
   /** 多档输出目录；缺省时逐档弹出保存对话框（Web 端退化为逐张下载） */
   outputDir?: string | null;
+  /**
+   * 内联字体时要额外覆盖的字符。
+   *
+   * 批量导出时传「整批图片可能出现的文字」，各张图的内联字体就会命中同一个缓存，
+   * 每批每族只子集化一次；缺省时只按当前画布上的文字做子集。
+   */
+  extraFontText?: string;
 }
 
 export interface ExportOptions {

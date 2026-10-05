@@ -704,9 +704,11 @@ export function TemplatePage() {
     name: string | undefined,
     outputDir: string | null,
     photoBackground: TemplateBackground,
+    extraFontText?: string,
   ): ExportRunContext => ({
     baseName: name ? stripExtension(name) : undefined,
     outputDir,
+    extraFontText,
     sizeAdapter: {
       prepare: async (target) => {
         const element = previewRef.current;
@@ -790,6 +792,24 @@ export function TemplatePage() {
     try {
       // 直接写到配置里的「保存目录」，不再弹保存对话框
       const outputDir = await resolveExportDirectory();
+      // 各张图的 EXIF 与参数文案都不同，先取并集：这样每族每批只子集化一次，
+      // 后面几张图直接命中缓存（否则每张都要重新解析一遍字体文件）。
+      // EXIF 本来就要在循环里逐张读取，这里提前取齐不算额外开销
+      const batchFontText = (
+        await Promise.all(
+          photos.map(async (photo) => {
+            const exif = await ensurePhotoExif(photo);
+            const photoConfig = getTemplatePhotoConfig(photo.id);
+            const paramText = Object.values(photoConfig.params)
+              .filter((value) => typeof value === 'string')
+              .join(' ');
+            const exifText = Object.values(exif ?? {})
+              .filter((value) => typeof value === 'string' || typeof value === 'number')
+              .join(' ');
+            return `${paramText} ${exifText}`;
+          }),
+        )
+      ).join(' ');
       let skipped = 0;
       let exported = 0;
 
@@ -817,7 +837,7 @@ export function TemplatePage() {
             previewRef.current,
             { ...options, presets },
             photo.sourceFile ?? photo.path,
-            createRunContext(photo.name, outputDir, photoConfig.background),
+            createRunContext(photo.name, outputDir, photoConfig.background, batchFontText),
           );
           exported += 1;
         },

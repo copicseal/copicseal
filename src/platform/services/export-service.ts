@@ -141,6 +141,33 @@ async function resolveSnapshotFonts(element: HTMLElement): Promise<LocalFont[]> 
   return fonts;
 }
 
+/**
+ * 把要内联的字体预先注册进当前文档，并等待解码完成。
+ *
+ * 快照是在独立的 SVG 图片文档里排版的：WebKit 会先用回退字体算出折行位置，等字体
+ * 解码完成只重绘、不重排——于是出现「字形是对的、折行却按更宽的回退字体算」，
+ * 表现就是预览一行、导出掉成两行（snapdom 的 `safariWarmupAttempts` 预热解决不了，
+ * 实测无效）。先在主文档里把同一份字体数据加载一遍，引擎就带着解码好的字体去排版。
+ *
+ * 抓完必须卸载：留着会让预览用上「按当时文字生成的子集」，改文案或缺字时出问题。
+ */
+async function primeSnapshotFonts(fonts: readonly LocalFont[]): Promise<FontFace[]> {
+  const primed: FontFace[] = [];
+
+  for (const font of fonts) {
+    try {
+      const face = new FontFace(font.family, `url(${font.src})`);
+      await face.load();
+      document.fonts.add(face);
+      primed.push(face);
+    } catch (error) {
+      console.warn(`[snapshot] 字体预热失败（${font.family}），导出可能按回退字体排版:`, error);
+    }
+  }
+
+  return primed;
+}
+
 function toSnapdomFormat(f: ExportFormat): 'png' | 'jpeg' {
   return f === 'jpeg' ? 'jpeg' : 'png';
 }
@@ -172,9 +199,14 @@ async function captureElement(
   // 因此先压到本次导出实际需要的分辨率，抓完再还原
   const restoreImages = await capEmbeddedImages(element, { scale });
 
+  let primedFonts: FontFace[] = [];
+
   try {
-    // 字体必须显式内联：snapdom 默认不嵌入字体，快照里的文字会退回到默认字体
+    // 字体必须显式内联：snapdom 默认不嵌入字体，快照里的文字会退回到默认字体；
+    // 还要先在主文档里预热，否则 WebKit 会按回退字体的宽度排版（见 primeSnapshotFonts）
     const localFonts = await resolveSnapshotFonts(element);
+    primedFonts = await primeSnapshotFonts(localFonts);
+
     const blob = await snapdom.toBlob(element, {
       type: fmt,
       format: fmt,
@@ -190,6 +222,9 @@ async function captureElement(
 
     return blobToBytes(blob);
   } finally {
+    for (const face of primedFonts) {
+      document.fonts.delete(face);
+    }
     restoreImages();
   }
 }

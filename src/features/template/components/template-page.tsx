@@ -489,7 +489,7 @@ function TemplatePropertiesPanel({
   if (!hasPhoto) {
     return (
       <BusinessWorkbenchPropertiesPane>
-        <ScrollArea className="min-h-0 flex-1">
+        <ScrollArea className="min-h-0 min-w-0 flex-1" viewportClassName="[&>div]:!block">
           <div className="px-3 py-3">
             <section className="border border-border/80 bg-background/70 px-4 py-4 text-xs leading-6 text-muted-foreground shadow-sm">
               导入图片后即可调整这张照片的模板、参数、背景与导出档位。
@@ -502,7 +502,7 @@ function TemplatePropertiesPanel({
 
   return (
     <BusinessWorkbenchPropertiesPane>
-      <ScrollArea className="min-h-0 flex-1">
+      <ScrollArea className="min-h-0 min-w-0 flex-1" viewportClassName="[&>div]:!block">
         <div className="space-y-3 px-3 py-3">
           <TemplatePresetMenu
             content={{ templateId: activeTemplateId, params: templateParams, background, font }}

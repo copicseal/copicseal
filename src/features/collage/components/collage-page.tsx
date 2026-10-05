@@ -245,7 +245,7 @@ function CollagePropertiesPane({
 }) {
   return (
     <BusinessWorkbenchPropertiesPane>
-      <ScrollArea className="min-h-0 flex-1">
+      <ScrollArea className="min-h-0 min-w-0 flex-1" viewportClassName="[&>div]:!block">
         <div className="px-3 py-3">
           <CollagePropertiesPanel onExportCurrent={onExportCurrent} onExportBatch={onExportBatch} />
         </div>

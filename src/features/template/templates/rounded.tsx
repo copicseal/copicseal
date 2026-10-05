@@ -287,9 +287,19 @@ export const ROUNDED_TEMPLATE: RegisteredTemplate = defineTemplate({
     tags: ['无框', '圆角', '品牌'],
   },
   fields: roundedFields,
-  // 模板自身没有边框也没有底色，默认不再叠加背景
+  /**
+   * 默认给照片模糊背景（与旧版一致）。
+   *
+   * 旧版每张新图都以「照片模糊」起手：模糊 0.4rem、亮度 100%、内边距 0.2rem，
+   * 按本文件的换算系数折成画布比例。圆角样式没有自己的底色，配一层模糊背景才
+   * 撑得住留白；用户随时可以在属性面板改回无背景。
+   */
   backgroundDefaults: {
-    mode: 'none',
+    mode: 'image',
+    blur: fromRem(0.4),
+    brightness: 1,
+    paddingHorizontal: fromRem(0.2),
+    paddingVertical: fromRem(0.2),
   },
   component: Rounded,
 });

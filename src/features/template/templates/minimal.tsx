@@ -120,12 +120,9 @@ export const MINIMAL_TEMPLATE: RegisteredTemplate = defineTemplate({
     tags: ['极简', 'EXIF'],
   },
   fields: minimalFields,
-  // 极简排版配一圈纯色留白，导出时目标尺寸会被完整保留
+  // 极简排版不用背景层：留白由画布自身的 padding（0.05 基准）给，够用了
   backgroundDefaults: {
-    mode: 'color',
-    color: '#ffffff',
-    paddingHorizontal: 0.06,
-    paddingVertical: 0.06,
+    mode: 'none',
   },
   // 第二行 EXIF 是等宽字，同上：字体由模板声明，用户选了字体则以后者为准
   fontDefaults: MONO_FONT_STACK,

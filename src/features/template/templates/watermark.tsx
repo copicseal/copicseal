@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { defineTemplate } from './define-template';
 import { formatExifText } from './format-exif-text';
 import type {
@@ -79,97 +80,25 @@ const watermarkFields = [
 
 type WatermarkParams = TemplateParams<typeof watermarkFields>;
 
-/**
- * SVG 内部坐标系的边长。
- *
- * 瓦片的 SVG `width` / `height` / `viewBox` 与 CSS `background-size` 都由同一组
- * `tileWidth` / `tileHeight` 比例乘以这个常量得到，因此两者长宽比永远一致，瓦片不会变形。
- */
-const SVG_TILE_UNITS = 100;
-
 /** 参数兜底：即使被外部写成 0 或负值，也不会塌缩出零尺寸瓦片与零号字。 */
 const MIN_TILE_RATIO = 0.001;
 const MIN_FONT_RATIO = 0.001;
 
 /**
- * 水印字体栈的兜底值。
+ * 用户单位：画布宽度记为 1。
  *
- * 正常情况下字体由框架从画布根透传进来（用户能在属性面板里换）；这里只在
- * 没有拿到值时兜底，保证 SVG 里总有明确的 font-family 可用。
+ * 瓦片尺寸与字号都是「相对画布宽度」的比例，正好直接当 SVG 用户单位用；SVG 再靠
+ * `viewBox` 缩放到画布宽度，所以这里完全不需要知道画布有多少像素。
  */
-const WATERMARK_FONT_FAMILY = 'Inter, Helvetica Neue, Arial, sans-serif';
 
 /**
- * 瓦片 SVG 里的字体栈。
+ * 平铺水印模板：主图铺满画布，上面叠一层可调角度、字号与密度的重复水印。
  *
- * SVG 是独立文档、取不到系统字体表，因此补一个通用族收尾——否则字体没命中时会
- * 退到 SVG 的默认衬线字体。族名要转义：它会被写进 XML 属性里。
+ * 平铺用**内联 `<svg>` + `<pattern>`**，而不是把瓦片做成 data URL 当背景图：
+ * data URL 是独立文档，拿不到页面的字体（用户选的字体、导入的字体都吃不到），
+ * 内联 SVG 则属于文档本身，字体直接继承画布根——预览与导出因此都能用上同一个字体，
+ * 也不需要把字体字节塞进瓦片里。矢量绘制还顺带保证了导出时任意倍率都清晰。
  */
-function resolveTileFont(font: string): string {
-  return font ? `${escapeXml(font)}, sans-serif` : WATERMARK_FONT_FAMILY;
-}
-
-/** 转义 XML 特殊字符，避免用户文案里的 `&`、`<` 破坏 SVG 结构。 */
-function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-/** 收敛浮点误差，让 data URL 里的坐标保持短小可读。 */
-function round(value: number): number {
-  return Number(value.toFixed(3));
-}
-
-interface WatermarkTileOptions {
-  text: string;
-  color: string;
-  opacity: number;
-  rotate: number;
-  /** 相对瓦片宽度的字号比例 */
-  fontSize: number;
-  /** SVG 坐标系下的瓦片宽度 */
-  width: number;
-  /** SVG 坐标系下的瓦片高度 */
-  height: number;
-  /** 水印字体族；空串回落到模板自带的字体栈 */
-  font: string;
-}
-
-/**
- * 把一段文字渲染成单个平铺瓦片的 SVG data URL。
- *
- * 文字以瓦片中心为锚点旋转，`dominant-baseline` 与 `text-anchor` 保证垂直居中，
- * 因此旋转后仍落在瓦片正中，平铺时接缝均匀。
- */
-function buildWatermarkTile({
-  text,
-  color,
-  opacity,
-  rotate,
-  fontSize,
-  width,
-  height,
-  font,
-}: WatermarkTileOptions): string {
-  const centerX = round(width / 2);
-  const centerY = round(height / 2);
-  const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${round(width)}" height="${round(height)}"` +
-    ` viewBox="0 0 ${round(width)} ${round(height)}">` +
-    `<text x="${centerX}" y="${centerY}" fill="${color}" fill-opacity="${round(opacity)}"` +
-    ` font-size="${round(width * fontSize)}" font-family="${resolveTileFont(font)}"` +
-    ` text-anchor="middle" dominant-baseline="middle"` +
-    ` transform="rotate(${round(rotate)} ${centerX} ${centerY})">${escapeXml(text)}</text>` +
-    '</svg>';
-
-  // 用 percent-encoding 而不是 base64：无需 btoa，中文文案与 `#` 颜色都能安全入 URL
-  return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-}
-
-/** 平铺水印模板：主图铺满画布，上面叠一层可调角度、字号与密度的重复水印。 */
 function Watermark({
   photoUrl,
   exif,
@@ -177,12 +106,15 @@ function Watermark({
   textColor,
   textOpacity,
   rotate,
-  font,
   fontSize,
   tileWidth,
   tileHeight,
 }: TemplateInjectedProps & WatermarkParams) {
   const { aspect, handleLoad } = useImageAspect(photoUrl);
+  // 同一页面可能同时挂着多个实例（keep-alive 的多个页面），id 必须唯一
+  const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
+  const patternId = `co-watermark-pattern-${uid}`;
+  const clipId = `co-watermark-clip-${uid}`;
 
   // 水印文案同样支持 EXIF 变量，缺字段时会被替换为空串
   const watermarkText = formatExifText(text, exif);
@@ -190,23 +122,14 @@ function Watermark({
   const tileHeightRatio = Math.max(tileHeight, MIN_TILE_RATIO);
   const fontScale = Math.max(fontSize, MIN_FONT_RATIO);
 
-  const tileUrl = watermarkText
-    ? buildWatermarkTile({
-        text: watermarkText,
-        color: textColor,
-        opacity: textOpacity,
-        rotate,
-        fontSize: fontScale,
-        width: tileWidthRatio * SVG_TILE_UNITS,
-        height: tileHeightRatio * SVG_TILE_UNITS,
-        // SVG 是独立文档，继承不到画布根的字体，只能显式写进 data URL
-        font,
-      })
-    : null;
+  // 画布高度按照片比例：坐标系是「宽 1 × 高 1/aspect」。
+  // 注意 aspect 是**宽/高**（与 CSS aspect-ratio 同义），别写反——写反后
+  // preserveAspectRatio="none" 会把文字整体压扁
+  const canvasHeight = Number.isFinite(aspect) && aspect > 0 ? 1 / aspect : 1;
+  const centerX = tileWidthRatio / 2;
+  const centerY = tileHeightRatio / 2;
 
   const canvasStyle: TemplateStyle = {
-    '--co-tile-width': tileWidthRatio,
-    '--co-tile-height': tileHeightRatio,
     position: 'relative',
     width: 'calc(var(--co-base) * 1)',
     overflow: 'hidden',
@@ -226,18 +149,42 @@ function Watermark({
         onLoad={handleLoad}
       />
 
-      {tileUrl ? (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: `url("${tileUrl}")`,
-            backgroundRepeat: 'repeat',
-            backgroundSize:
-              'calc(var(--co-base) * var(--co-tile-width)) ' +
-              'calc(var(--co-base) * var(--co-tile-height))',
-          }}
-        />
+      {watermarkText ? (
+        <svg
+          aria-hidden="true"
+          viewBox={`0 0 1 ${canvasHeight}`}
+          // 画布宽高比与 viewBox 一致，none 只是为了避免亚像素误差带来的缝隙
+          preserveAspectRatio="none"
+          style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+        >
+          <defs>
+            {/* 内容按瓦片自身坐标裁剪，旋转后的文字不会溢出到相邻瓦片上 */}
+            <clipPath id={clipId}>
+              <rect width={tileWidthRatio} height={tileHeightRatio} />
+            </clipPath>
+            <pattern
+              id={patternId}
+              width={tileWidthRatio}
+              height={tileHeightRatio}
+              patternUnits="userSpaceOnUse"
+            >
+              <text
+                x={centerX}
+                y={centerY}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fontSize={tileWidthRatio * fontScale}
+                fill={textColor}
+                fillOpacity={textOpacity}
+                clipPath={`url(#${clipId})`}
+                transform={`rotate(${rotate} ${centerX} ${centerY})`}
+              >
+                {watermarkText}
+              </text>
+            </pattern>
+          </defs>
+          <rect width={1} height={canvasHeight} fill={`url(#${patternId})`} />
+        </svg>
       ) : null}
     </div>
   );

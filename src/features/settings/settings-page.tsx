@@ -852,7 +852,11 @@ function CollageDefaultsTab({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__default__">跟随布局库</SelectItem>
+              {/* 下拉项的 4px 内边距来自 SelectGroup（SelectContent 自身没有 p-1），
+                  裸 item 的高亮会铺满整个弹层 */}
+              <SelectGroup>
+                <SelectItem value="__default__">跟随布局库</SelectItem>
+              </SelectGroup>
               {COLLAGE_LAYOUT_GROUPS.map((group) => (
                 <SelectGroup key={group.group}>
                   <SelectLabel>{group.group}</SelectLabel>

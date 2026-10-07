@@ -7,7 +7,14 @@ import { usePhotos } from '@/shared/hooks/use-photos';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { ScrollArea } from '@/shared/ui/scroll-area';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/shared/ui/select';
 import { Slider } from '@/shared/ui/slider';
 import type { CollageLayout, CollageLayoutMode, CollageLongAlign } from '../types';
 
@@ -239,11 +246,14 @@ export function CollageLayoutLibrary() {
                 <SelectValue placeholder="跳转到…" />
               </SelectTrigger>
               <SelectContent>
-                {COLLAGE_LAYOUT_GROUPS.map((group) => (
-                  <SelectItem key={group.group} value={group.group}>
-                    {group.group}（{group.layouts.length}）
-                  </SelectItem>
-                ))}
+                {/* 与设置页同理：内边距来自 SelectGroup，裸 item 的高亮会铺满弹层 */}
+                <SelectGroup>
+                  {COLLAGE_LAYOUT_GROUPS.map((group) => (
+                    <SelectItem key={group.group} value={group.group}>
+                      {group.group}（{group.layouts.length}）
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
           </div>

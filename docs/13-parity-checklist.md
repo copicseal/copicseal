@@ -113,8 +113,8 @@
 - [ ] **A25 保存目录的恢复默认 / 打开 / 迁移**｜缺口｜成本 小
   旧：可恢复默认、点击打开，更换时迁移旧目录内容（`dialogs/components/setting-general.vue:33-69`）｜新：只能「选择」并写配置
 
-- [ ] **A26 拼图页没有粘贴导入**｜缺口｜成本 小
-  旧：无粘贴（两页都没有）｜新：模板页有 `window paste` 监听，拼图页没有（`collage-page.tsx` 全文无 paste）
+- [x] **A26 拼图页没有粘贴导入**｜已修复｜成本 小
+  已按模板页的做法补上 `window paste` 监听（沿用 `usePageActive`，页面不可见时不响应）
 
 - [ ] **A27 导入格式白名单变窄**｜缺口｜成本 小
   旧：`<input accept="image/*">` 通吃浏览器可解码的图片（`components/co-file-input/index.vue:9`）
@@ -123,8 +123,8 @@
 - [ ] **A28 旧配置迁移**｜缺口｜成本 中
   旧：electron-store JSON（`name=config` / `config.dev`）｜新：SQLite `config_entries` 键值表；`src-tauri/src` 内没有读取旧 config 的迁移代码 → 升级后设置全丢（待确认是否有安装器侧迁移）
 
-- [ ] **A29 拼图页三处半成品**｜缺口｜成本 中
-  新：60 步 undo/redo（`store/use-collage-store.ts:95-145`）、标注 text/arrow/rect/circle（`store:242-282`）、`layouts.ts` 数十种布局——全部无 UI 入口；工具栏只暴露 2/3/4/6 宫格 + 自动排版 + 自由布局，`COLLAGE_LAYOUT_GROUPS` 无人引用
+- [~] **A29 拼图页半成品**｜部分完成｜成本 中
+  新：60 步 undo/redo 与布局库已接上 UI（工具栏撤销/重做、左侧布局库按张数分组到 20 张）；标注 text/arrow/rect/circle 仍无 UI 与渲染
   旧：无拼图功能，属新版新增能力的未完成部分
 
 - [ ] **A30 收藏 / 最近使用不持久化**｜缺口｜成本 小
@@ -161,15 +161,17 @@
 - [ ] **C1 模板页头部「导出」是死按钮**｜缺陷｜成本 极小
   有图标与文字、没有 `onClick`（`src/features/template/components/template-page.tsx:92-97`）；真正的导出入口在右侧属性面板底部
 
-- [ ] **C2 拼图素材拖入画布无效**｜缺陷｜成本 极小
-  素材卡标了 `draggable` 但没有任何 `onDragStart` / `setData`，画布却在读 `text/copicseal-photo-id`；UI 文案「拖到上方画布即可放入拼图」实际不生效，只能点空槽填充（`collage-page.tsx:145,192-194`、`collage-canvas.tsx:245-256`）
+- [x] **C2 拼图素材拖入画布无效**｜已修复｜成本 极小
+  先补了 `onDragStart` + `setData`，但桌面端仍拖不动：Tauri 为接收系统文件拖入开启的原生拖放会截走 webview 内的 HTML5 拖放事件。最终改成指针事件自绘拖拽（`use-asset-drag-store` + `lib/dom.ts` 的命中测试），并补上画布内拖动换位、单击空格填入当前素材
 
-- [ ] **C3 拼图「批量导出」重复导出同一张**｜缺陷｜成本 小
-  `items: photos` 但 runner 忽略 `item`，对同一张画布导出 N 次；且未传 context → `baseName` 固定 `copicseal-export`、无导出目录 → 连弹 N 次保存框写同名文件（`collage-page.tsx:261-278`）
+- [x] **C3 拼图「批量导出」重复导出同一张**｜已修复｜成本 小
+  已删除「批量导出」按钮与该分支：拼图是整块画布，只保留单次导出，并补上 `baseName` 与导出目录；同时用尺寸适配器让面板宽高真正决定输出像素
 
 - [x] **C4 前端入口仍是脚手架残留**｜已修复｜成本 极小
   `index.html` 换成产品标题「可图匠 Copicseal」与 `/logo.svg` 图标；`src-tauri/icons/` 的整
-  套应用图标也由旧版图标重新生成（macOS / Windows / Linux 各尺寸），不再是 Tauri 默认图标
+  套应用图标也由旧版图标重新生成（macOS / Windows / Linux 各尺寸），不再是 Tauri 默认图标；macOS 侧按 Apple 图标网格重做 `icon.icns`（内容占 80.5%、四周透明边距）。
+  注意：图标是**编译期**嵌进二进制的，而 cargo 不监听 `icons/`，所以改完 `src-tauri/icons/*`
+  必须 `touch src-tauri/build.rs` 再编译（开发模式下 Dock 图标用的就是这份嵌入字节），只重启不重编译会一直显示旧图标
 
 ---
 

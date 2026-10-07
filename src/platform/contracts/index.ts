@@ -120,6 +120,36 @@ export interface OutputConfig {
   retain_exif: boolean;
 }
 
+/**
+ * 拼图默认值：设置 → 拼图 →「默认项 / 导出」两页写的就是这里。
+ *
+ * 只在「新建 / 恢复默认」时被读，已经摆在画布上的拼图不受影响。
+ */
+export interface CollageConfig {
+  layout_mode: CollageLayoutModeName;
+  /** 默认网格布局 id；空字符串表示用布局库的第一个 */
+  layout_id: string;
+  aspect_preset: string;
+  custom_ratio_width: number;
+  custom_ratio_height: number;
+  background_color: string;
+  gap: number;
+  padding: number;
+  border_radius: number;
+  shadow: number;
+  long_direction: 'vertical' | 'horizontal';
+  long_align: 'start' | 'center' | 'end';
+  long_size: number;
+  export_format: 'png' | 'jpeg';
+  export_quality: 'standard' | 'high' | 'ultra';
+  export_scale: number;
+  export_width: number;
+  export_height: number;
+  export_lock_ratio: boolean;
+}
+
+export type CollageLayoutModeName = 'grid' | 'long' | 'free';
+
 export interface FontConfig {
   /** 引入的本机字体族名（只记引用，不复制系统字体文件） */
   favorites: string[];
@@ -176,6 +206,8 @@ export interface AppConfig {
   fonts: FontConfig;
   template_presets: TemplatePreset[];
   template_list: TemplateListConfig;
+  /** 拼图模块的默认值 */
+  collage: CollageConfig;
   user_devices: UserDevice[];
   device_id: string;
 }

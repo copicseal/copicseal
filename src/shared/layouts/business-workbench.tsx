@@ -18,9 +18,16 @@ export interface BusinessWorkbenchAssetsRenderProps {
 
 interface BusinessWorkbenchProps {
   header: ReactNode;
+  /** 头部下方的整宽工具条；需要一排画布操作时用它 */
+  toolbar?: ReactNode;
   workspace: ReactNode;
   assets: (props: BusinessWorkbenchAssetsRenderProps) => ReactNode;
   properties: () => ReactNode;
+  /** 最左侧的功能面板（如拼图的布局库）；给定时工作区会变成中间那一栏 */
+  library?: ReactNode;
+  libraryDefaultSize?: number;
+  libraryMinSize?: number;
+  libraryMaxSize?: number;
   assetsMinSize?: number;
   assetsResizable?: boolean;
   /** 右侧属性面板的最小宽度（像素）；各页按自己面板里最宽的内容给 */
@@ -29,9 +36,14 @@ interface BusinessWorkbenchProps {
 
 export function BusinessWorkbench({
   header,
+  toolbar,
   workspace,
   assets,
   properties,
+  library,
+  libraryDefaultSize = 248,
+  libraryMinSize = 180,
+  libraryMaxSize = 420,
   assetsMinSize = 100,
   assetsResizable = true,
   propertiesMinSize = 200,
@@ -41,7 +53,22 @@ export function BusinessWorkbench({
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
       {header}
+      {toolbar}
       <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
+        {library ? (
+          <>
+            <ResizablePanel
+              defaultSize={libraryDefaultSize}
+              minSize={libraryMinSize}
+              maxSize={libraryMaxSize}
+              className="min-h-0 min-w-0"
+              style={PANEL_STYLE}
+            >
+              {library}
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+          </>
+        ) : null}
         <ResizablePanel minSize={64} className="min-h-0 min-w-0" style={PANEL_STYLE}>
           {assetsResizable ? (
             <ResizablePanelGroup orientation="vertical" className="h-full min-h-0 min-w-0">

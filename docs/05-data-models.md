@@ -270,12 +270,29 @@ Collage 页面的当前工作状态：
 
 ### Collage
 
-| 字段 | 说明 |
-|------|------|
-| defaultLayout | 默认布局 |
-| defaultGap | 默认间距 |
-| defaultBackgroundColor | 默认背景色 |
-| defaultRadius | 默认圆角 |
+设置 → 拼图（「默认项 / 导出」两页）写的就是这里；Rust 侧 `CollageConfig`，缺字段按 `Default` 补齐。
+
+| 字段 | 默认 | 说明 |
+|------|------|------|
+| layout_mode | `grid` | 默认布局模式：grid / long / free |
+| layout_id | 空 | 默认网格布局 id；空表示用布局库第一个 |
+| aspect_preset | `1:1` | 画布比例（预设或 `custom`） |
+| custom_ratio_width / custom_ratio_height | 4 / 5 | 自定义比例 |
+| background_color | `#ffffff` | 画布底色 |
+| gap / padding | 12 / 20 | 间距 / 边距（设计基准像素） |
+| border_radius / shadow | 18 / 18 | 圆角 / 阴影强度 |
+| long_direction | `vertical` | 长图方向 |
+| long_align | `center` | 长图对齐 |
+| long_size | 720 | 长图横轴尺寸 |
+| export_format | `png` | 默认导出格式：png / jpeg |
+| export_quality | `high` | 默认 JPG 质量：standard / high / ultra |
+| export_scale | 1 | 默认倍率 |
+| export_width / export_height | 2048 / 2048 | 默认目标尺寸 |
+| export_lock_ratio | true | 默认锁定画布比例 |
+
+读取时机只有两个：**新建拼图**（本地还没有拼图状态时）与拼图页的**「恢复默认」**。
+已经摆好的拼图不会被它改掉；逐块判断（画布 / 导出 / 布局各自看是否仍是出厂默认），
+所以用户在拼图页调过的部分会保留。
 
 ### Export
 

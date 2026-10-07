@@ -7,6 +7,7 @@ export { tauriCapabilities, tauriProvider } from './providers/tauri/tauri-platfo
 export { webFiles, webProvider } from './providers/web/web-platform-provider';
 export * from './services/asset-service';
 export * from './services/cache-service';
+export * from './services/collage-defaults-service';
 export * from './services/export-service';
 export * from './services/file-service';
 export * from './services/storage-service';

@@ -1,94 +1,381 @@
-import { ImagePlus } from 'lucide-react';
-import { useEffect, useMemo, useRef } from 'react';
-import { COLLAGE_LAYOUTS } from '@/features/collage/layouts';
+import { ImagePlus, Loader2, Plus } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { findCollageLayout } from '@/features/collage/layouts';
 import {
+  clamp,
   createEmptySlotState,
   getAspectRatioText,
   getAspectRatioValue,
+  getCanvasDesignWidth,
+  getFreeSlotRect,
+  getObjectPosition,
+  getPaddedSlotRect,
+  getSlotTransform,
 } from '@/features/collage/lib';
+import { findSlotIndexAtPoint } from '@/features/collage/lib/dom';
+import { useCollageAssetDrag } from '@/features/collage/store/use-asset-drag-store';
+import type { CollageZoom } from '@/features/collage/store/use-collage-store';
 import { useCollageStore } from '@/features/collage/store/use-collage-store';
 import { useElementSize } from '@/shared/hooks/use-element-size';
 import { usePhotos } from '@/shared/hooks/use-photos';
 import { cn } from '@/shared/lib/utils';
+import { Button } from '@/shared/ui/button';
+import { ScrollArea } from '@/shared/ui/scroll-area';
+import type { CollageSlotState } from '../types';
+
+const SCALE_VAR = '--co-collage-scale';
+
+/** 拖拽判定阈值：小于它只算点击，避免手抖把点击变成换位。 */
+const DRAG_THRESHOLD = 4;
+
+/** 预览缩放档位，与「边框水印」模块的预览档位保持一致。 */
+const ZOOM_OPTIONS: CollageZoom[] = ['fit', 0.5, 1, 2];
+
+type DragKind = 'reorder' | 'pan' | 'move';
+
+interface DragState {
+  kind: DragKind;
+  index: number;
+  startX: number;
+  startY: number;
+  /** 拖拽开始时的整个 present 快照，松手后据此提交一次历史 */
+  snapshotSlot: CollageSlotState;
+  box: { width: number; height: number };
+  /**
+   * 每个轴可平移的像素范围（图片按 cover 溢出格子的部分 × 缩放）。
+   *
+   * 取景写的是 `object-position` 百分比，1% 对应的位移是「溢出量」而不是格子宽度；
+   * 拿格子宽度换算会让图片只走指针的一半，必须按溢出量算才能 1:1 跟手。
+   */
+  panRangeX: number;
+  panRangeY: number;
+  moved: boolean;
+  hoverIndex: number | null;
+}
+
+/** 设计基准下的像素值 → 当前渲染尺寸下的 CSS 值。 */
+function scaled(value: number): string {
+  return `calc(${value}px * var(${SCALE_VAR}, 1))`;
+}
 
 export function CollageCanvas({
   previewRef,
+  exporting = false,
 }: {
-  previewRef?: React.RefObject<HTMLDivElement | null>;
+  previewRef: React.RefObject<HTMLDivElement | null>;
+  /** 导出期间画布会被临时放大到输出尺寸，需要盖一层遮罩挡住尺寸跳变 */
+  exporting?: boolean;
 }) {
   const { photos, currentPhoto } = usePhotos();
-  const { present, selectedSlotIndex, selectSlot, assignPhotoToSlot, commit } = useCollageStore();
+  const {
+    present,
+    selectedSlotIndex,
+    tool,
+    zoom,
+    selectSlot,
+    assignPhotoToSlot,
+    moveSlot,
+    updateSlot,
+    resetSlot,
+    previewSlot,
+    applySlotDrag,
+    setZoom,
+  } = useCollageStore();
+
+  // 素材区拖进来的悬停高亮（原生拖放被桌面端截走，所以拖拽会话在素材区那一侧）
+  const assetDragActive = useCollageAssetDrag((state) => state.payload !== null);
+  const assetDragOverIndex = useCollageAssetDrag((state) => state.overSlotIndex);
+
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const viewportSize = useElementSize(viewportRef);
+  const canvasSize = useElementSize(previewRef);
+  const [dragging, setDragging] = useState<{ from: number; over: number | null } | null>(null);
+  const dragRef = useRef<DragState | null>(null);
+  /** 这一次按下的格子：空格子上松手时用来把当前素材填进去 */
+  const pressIndexRef = useRef<number | null>(null);
 
-  const layout = useMemo(
-    () => COLLAGE_LAYOUTS.find((item) => item.id === present.layoutId) ?? COLLAGE_LAYOUTS[0],
-    [present.layoutId],
-  );
+  const layout = useMemo(() => findCollageLayout(present.layoutId), [present.layoutId]);
+  const mode = present.canvas.layoutMode;
   const ratioValue = getAspectRatioValue(present.canvas);
-  const frameWidth = useMemo(() => {
-    const availableWidth = Math.max(viewportSize.width - 48, 280);
-    const availableHeight = Math.max(viewportSize.height - 48, 280);
-    const widthFromHeight = availableHeight * ratioValue;
-    return Math.max(280, Math.min(availableWidth, widthFromHeight));
-  }, [ratioValue, viewportSize.height, viewportSize.width]);
+  /** 长图的横轴设计尺寸（竖向导的是宽，横向导的是高）；网格/自由用统一基准宽度。 */
+  const crossDesign = getCanvasDesignWidth(present.canvas);
+  const horizontalLong = mode === 'long' && present.canvas.longDirection === 'horizontal';
 
-  useEffect(() => {
-    if (present.canvas.layoutMode === 'free') {
-      commit((draft) => {
-        draft.slotItems = photos.map((photo, index) => ({
-          ...createEmptySlotState(),
-          ...(draft.slotItems[index] ?? {}),
-          photoId: photo.id,
-        }));
+  const photoMap = useMemo(() => new Map(photos.map((photo) => [photo.id, photo])), [photos]);
+
+  /**
+   * 画布在设计基准下的尺寸。
+   *
+   * 网格 / 自由：宽高都由比例决定。
+   * 长图：横轴是已知的 `crossDesign`，主轴由内容决定——主轴那一侧只能从**实测宽高比**反推
+   * （`实测尺寸 × 已知横轴 ÷ 另一侧实测值`）。不能拿假定倍率去除：那得到的是放大后的长度，
+   * fit 会在「撑满宽」与「撑满高」之间来回跳，整条长图永远塞不进视口。
+   */
+  const designSize = useMemo(() => {
+    if (mode !== 'long') {
+      return { width: crossDesign, height: crossDesign / ratioValue };
+    }
+
+    if (canvasSize.width <= 0 || canvasSize.height <= 0) {
+      return { width: crossDesign, height: crossDesign };
+    }
+
+    return horizontalLong
+      ? { width: (canvasSize.width * crossDesign) / canvasSize.height, height: crossDesign }
+      : { width: crossDesign, height: (canvasSize.height * crossDesign) / canvasSize.width };
+  }, [canvasSize.height, canvasSize.width, crossDesign, horizontalLong, mode, ratioValue]);
+
+  /** fit 倍率：让设计尺寸正好放进视口。 */
+  const fitScale = useMemo(() => {
+    const availableWidth = Math.max(viewportSize.width - 64, 120);
+    const availableHeight = Math.max(viewportSize.height - 64, 120);
+    return clamp(
+      Math.min(availableWidth / designSize.width, availableHeight / designSize.height),
+      0.05,
+      2,
+    );
+  }, [designSize.height, designSize.width, viewportSize.height, viewportSize.width]);
+
+  const factor = zoom === 'fit' ? fitScale : zoom;
+
+  /**
+   * 导出期间冻结预览尺寸。
+   *
+   * 导出把画布改成目标像素后，元素尺寸变化会触发 `useElementSize` 重新测量 → `fitScale`
+   * 重算（长图模式的 fit 依赖实测宽高比）→ React 把宽度改回预览值，导出的那一帧就白改了。
+   * 冻结成「开始导出前的值」：React 的 style diff 看到 props 没变，就不会去覆写适配器写进去的尺寸。
+   */
+  const frozenPreviewRef = useRef({ factor, size: designSize });
+  if (!exporting) {
+    frozenPreviewRef.current = { factor, size: designSize };
+  }
+  const appliedFactor = exporting ? frozenPreviewRef.current.factor : factor;
+  const appliedSize = exporting ? frozenPreviewRef.current.size : designSize;
+  const appliedWidth = appliedSize.width * appliedFactor;
+  const appliedHeight = appliedSize.height * appliedFactor;
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLElement>, index: number) => {
+    const slot = present.slotItems[index];
+    if (!slot) {
+      return;
+    }
+
+    selectSlot(index);
+    pressIndexRef.current = index;
+
+    // 事件挂在 window 上：光标移出这一格（甚至移出画布）时事件目标会变成别的元素，
+    // 只靠 setPointerCapture 的重定向一旦不生效，拖动就会断在半路。
+    // 空槽位不进入拖拽会话，但同样要等 pointerup 才能判断这是不是一次「点击填充」。
+    window.addEventListener('pointerup', handlePointerUp);
+    window.addEventListener('pointercancel', handlePointerUp);
+
+    // 长图里每行是等比缩放的整张图，没有「取景」可调，拖动一律当换位
+    const kind: DragKind =
+      mode === 'free' ? 'move' : mode === 'long' ? 'reorder' : tool === 'pan' ? 'pan' : 'reorder';
+    // 空格子只能被放入，不能拖走：否则会把空洞推给别的槽位
+    if (!slot.photoId) {
+      return;
+    }
+
+    window.addEventListener('pointermove', handlePointerMove);
+    const box = event.currentTarget.getBoundingClientRect();
+    const image = event.currentTarget.querySelector('img');
+    const natural =
+      image && image.naturalWidth > 0
+        ? { width: image.naturalWidth, height: image.naturalHeight }
+        : null;
+    const coverScale = natural
+      ? Math.max(box.width / natural.width, box.height / natural.height)
+      : 0;
+
+    dragRef.current = {
+      kind,
+      index,
+      startX: event.clientX,
+      startY: event.clientY,
+      snapshotSlot: { ...slot },
+      box,
+      panRangeX: natural ? Math.max(slot.scale * (natural.width * coverScale - box.width), 0) : 0,
+      panRangeY: natural ? Math.max(slot.scale * (natural.height * coverScale - box.height), 0) : 0,
+      moved: false,
+      hoverIndex: null,
+    };
+    setDragging({ from: index, over: null });
+  };
+
+  const handlePointerMove = (event: PointerEvent) => {
+    const drag = dragRef.current;
+    if (!drag) {
+      return;
+    }
+
+    const deltaX = event.clientX - drag.startX;
+    const deltaY = event.clientY - drag.startY;
+    if (!drag.moved && Math.hypot(deltaX, deltaY) < DRAG_THRESHOLD) {
+      return;
+    }
+
+    drag.moved = true;
+
+    if (drag.kind === 'pan') {
+      // 1:1 跟手：像素位移 ÷ 该轴溢出量 = 百分比增量；本来就没溢出的轴不动，免得存下无意义的值
+      previewSlot(drag.index, {
+        offsetX:
+          drag.panRangeX > 1
+            ? clamp(drag.snapshotSlot.offsetX + (deltaX / drag.panRangeX) * 100, -50, 50)
+            : drag.snapshotSlot.offsetX,
+        offsetY:
+          drag.panRangeY > 1
+            ? clamp(drag.snapshotSlot.offsetY + (deltaY / drag.panRangeY) * 100, -50, 50)
+            : drag.snapshotSlot.offsetY,
       });
       return;
     }
 
-    const validPhotoIds = new Set(photos.map((photo) => photo.id));
-
-    commit((draft) => {
-      const usedPhotoIds = new Set<string>();
-
-      draft.slotItems = draft.slotItems.map((slot) => {
-        if (slot.photoId && validPhotoIds.has(slot.photoId) && !usedPhotoIds.has(slot.photoId)) {
-          usedPhotoIds.add(slot.photoId);
-          return slot;
-        }
-
-        return {
-          ...slot,
-          photoId: null,
-        };
+    if (drag.kind === 'move') {
+      const canvasBox = previewRef.current?.getBoundingClientRect();
+      previewSlot(drag.index, {
+        freeX: clamp(
+          drag.snapshotSlot.freeX + (deltaX / Math.max(canvasBox?.width ?? 1, 1)) * 100,
+          -10,
+          95,
+        ),
+        freeY: clamp(
+          drag.snapshotSlot.freeY + (deltaY / Math.max(canvasBox?.height ?? 1, 1)) * 100,
+          -10,
+          95,
+        ),
       });
+      return;
+    }
 
-      const availablePhotoIds = photos
-        .map((photo) => photo.id)
-        .filter((photoId) => !usedPhotoIds.has(photoId));
+    const hoverIndex = findSlotIndexAtPoint(event.clientX, event.clientY);
+    drag.hoverIndex = hoverIndex;
+    setDragging({ from: drag.index, over: hoverIndex });
+  };
 
-      draft.slotItems = draft.slotItems.map((slot) => {
-        if (slot.photoId || availablePhotoIds.length === 0) {
-          return slot;
-        }
+  const handlePointerUp = (event: PointerEvent) => {
+    const drag = dragRef.current;
+    const pressedIndex = pressIndexRef.current;
+    dragRef.current = null;
+    pressIndexRef.current = null;
+    setDragging(null);
+    window.removeEventListener('pointermove', handlePointerMove);
+    window.removeEventListener('pointerup', handlePointerUp);
+    window.removeEventListener('pointercancel', handlePointerUp);
 
-        const nextPhotoId = availablePhotoIds.shift() ?? null;
-        return {
-          ...slot,
-          photoId: nextPhotoId,
-        };
-      });
+    if (!drag) {
+      // 空格子上的单击：把当前选中的素材填进去（和「点击填充」的提示一致）
+      if (
+        pressedIndex !== null &&
+        !present.slotItems[pressedIndex]?.photoId &&
+        currentPhoto &&
+        event.type !== 'pointercancel'
+      ) {
+        assignPhotoToSlot(pressedIndex, currentPhoto.id);
+      }
+      return;
+    }
+
+    if (!drag.moved) {
+      return;
+    }
+
+    if (drag.kind === 'reorder') {
+      if (drag.hoverIndex === null || drag.hoverIndex === drag.index) {
+        return;
+      }
+
+      moveSlot(drag.index, drag.hoverIndex);
+      selectSlot(drag.hoverIndex);
+      return;
+    }
+
+    // 平移/移动：拖拽过程只改 present，松手时回到起点再提交一次，撤销栈里只留一条
+    const current = useCollageStore.getState().present.slotItems[drag.index];
+    applySlotDrag(drag.index, drag.snapshotSlot, {
+      offsetX: current?.offsetX ?? 0,
+      offsetY: current?.offsetY ?? 0,
+      freeX: current?.freeX ?? 0,
+      freeY: current?.freeY ?? 0,
     });
-  }, [commit, photos, present.canvas.layoutMode]);
+  };
 
-  const freeLayoutItems = useMemo(
-    () =>
-      photos.map((photo, index) => ({
-        photo,
-        slot: present.slotItems[index] ?? createEmptySlotState(),
-        index,
-      })),
-    [photos, present.slotItems],
-  );
+  const handleDoubleClick = (index: number) => {
+    if (mode === 'free') {
+      const empty = createEmptySlotState(index);
+      updateSlot(index, { freeX: empty.freeX, freeY: empty.freeY, freeW: empty.freeW });
+      return;
+    }
+
+    resetSlot(index);
+  };
+
+  // 缩放只作用于单格：用原生监听才能阻止画布滚动；
+  // 连续滚轮只在停下来之后提交一条历史，避免撤销栈被每一格滚动塞满。
+  //
+  // 监听挂在 window 上而不是视口元素上：没有素材时画布走的是空状态分支，
+  // 视口元素根本不存在，effect 里取 ref 会是 null 且之后再也不会重跑——
+  // 挂 window、在处理器里判断事件是否落在视口内，才不受挂载时序影响。
+  useEffect(() => {
+    let gesture: { index: number; slot: CollageSlotState } | null = null;
+    let timer: number | undefined;
+
+    const flush = () => {
+      if (!gesture) {
+        return;
+      }
+
+      const { index, slot } = gesture;
+      gesture = null;
+      const current = useCollageStore.getState().present.slotItems[index];
+      if (current) {
+        applySlotDrag(index, slot, { scale: current.scale });
+      }
+    };
+
+    const handleWheel = (event: WheelEvent) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement) || !viewportRef.current?.contains(target)) {
+        return;
+      }
+
+      const slotElement = target.closest<HTMLElement>('[data-collage-slot]');
+      if (!slotElement) {
+        return;
+      }
+
+      const index = Number(slotElement.dataset.collageSlot);
+      const slot = useCollageStore.getState().present.slotItems[index];
+      if (!slot?.photoId || useCollageStore.getState().tool !== 'pan') {
+        return;
+      }
+
+      event.preventDefault();
+      if (gesture?.index !== index) {
+        flush();
+        gesture = { index, slot: { ...slot } };
+      }
+
+      const step = event.deltaY > 0 ? -0.06 : 0.06;
+      previewSlot(index, { scale: clamp(Number((slot.scale + step).toFixed(2)), 0.2, 4) });
+      selectSlot(index);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(flush, 420);
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      window.clearTimeout(timer);
+      flush();
+      window.removeEventListener('wheel', handleWheel);
+    };
+  }, [applySlotDrag, previewSlot, selectSlot]);
+
+  const unusedCount = useMemo(() => {
+    const used = new Set(present.slotItems.map((slot) => slot.photoId).filter(Boolean));
+    return photos.filter((photo) => !used.has(photo.id)).length;
+  }, [photos, present.slotItems]);
 
   if (photos.length === 0) {
     return (
@@ -102,187 +389,321 @@ export function CollageCanvas({
     );
   }
 
-  return (
-    <div className="flex h-full w-full flex-col">
-      <div className="flex items-center justify-between border-b border-border/80 px-4 py-3 text-xs text-muted-foreground">
-        <span>
-          当前布局 {present.canvas.layoutMode === 'free' ? '自由布局' : layout.name} ·{' '}
-          {present.canvas.layoutMode === 'free' ? `${photos.length} 张图` : `${layout.count} 格`}
-        </span>
-        <span>画布比例 {getAspectRatioText(present.canvas)}</span>
-      </div>
+  const renderPhoto = (slot: CollageSlotState, extraClassName: string) => {
+    const photo = slot.photoId ? photoMap.get(slot.photoId) : null;
+    if (!photo) {
+      return null;
+    }
 
-      <div ref={viewportRef} className="flex min-h-0 flex-1 items-center justify-center p-4">
-        <div
-          className="border border-border/80 bg-white/80 p-4 shadow-[0_24px_80px_-36px_rgba(15,23,42,0.32)]"
-          style={{
-            width: `${frameWidth + 32}px`,
-            maxWidth: '100%',
-          }}
+    return (
+      <img
+        src={photo.previewUrl}
+        alt={photo.name}
+        draggable={false}
+        className={cn(
+          'pointer-events-none select-none',
+          // 单格可以选「填满」（裁掉超出部分）或「完整显示」（留出背景）
+          slot.fit === 'contain' ? 'object-contain' : 'object-cover',
+          extraClassName,
+        )}
+        style={{
+          objectPosition: getObjectPosition(slot),
+          transform: getSlotTransform(slot),
+        }}
+      />
+    );
+  };
+
+  const slotBorderRadius = (slot: CollageSlotState) =>
+    scaled(slot.borderRadius ?? present.canvas.borderRadius);
+
+  const slotShadow = () =>
+    present.canvas.shadow > 0
+      ? `0 ${scaled(14)} ${scaled(28)} ${scaled(-18)} rgba(15, 23, 42, ${Math.min(
+          present.canvas.shadow / 100,
+          0.35,
+        )})`
+      : 'none';
+
+  return (
+    <div className="flex h-full min-h-0 w-full flex-col">
+      <div
+        className={cn(
+          'relative flex min-h-0 min-w-0 flex-1',
+          tool === 'pan' ? 'cursor-grab' : 'cursor-default',
+        )}
+      >
+        <ScrollArea
+          viewportRef={viewportRef}
+          // 导出期间画布会被临时放大到目标像素，此时不显示滚动条，避免预览抖动
+          scrollbarOrientation={exporting ? 'none' : 'both'}
+          className="min-h-0 min-w-0 flex-1"
         >
           <div
-            ref={previewRef}
-            className="relative w-full overflow-hidden"
+            className="box-border flex items-center justify-center p-8"
             style={{
-              aspectRatio: ratioValue,
-              backgroundColor: present.canvas.backgroundColor,
-              backgroundImage: present.canvas.backgroundImage
-                ? `linear-gradient(rgba(255,255,255,0.16), rgba(255,255,255,0.16)), url(${present.canvas.backgroundImage})`
-                : undefined,
-              backgroundPosition: 'center',
-              backgroundSize: 'cover',
+              // 最小尺寸等于视口：装得下时居中，装不下时随内容一起增长而不是被裁掉。
+              // 向下取整，避免亚像素让滚动区凭空多出 1px 而冒出滚动条
+              minWidth: Math.floor(viewportSize.width),
+              minHeight: Math.floor(viewportSize.height),
             }}
           >
-            {present.canvas.layoutMode === 'free' ? (
-              <div
-                className="absolute inset-0 overflow-hidden"
-                style={{ padding: present.canvas.padding }}
-              >
-                {freeLayoutItems.map(({ photo, slot, index }) => {
-                  const baseLeft = 6 + (index % 3) * 26;
-                  const baseTop = 8 + Math.floor(index / 3) * 26;
+            <div
+              ref={previewRef}
+              data-co-collage-canvas
+              className={cn(
+                'relative shrink-0 overflow-hidden ring-1 ring-border/70',
+                mode === 'long' && 'flex',
+              )}
+              style={
+                {
+                  // 长图里主轴必须由内容撑开（竖向=高、横向=宽），把它写死会把内容裁掉；
+                  // 网格/自由把宽高都写成**显式像素**：只靠 aspect-ratio 时 WebKit 不把派生高度当成
+                  // 「确定高度」，格子里 `img` 的 `height:100%` 会失效、图片按原始尺寸渲染
+                  //（预览里只看到图片中间一小条，导出却正常——导出适配器本来就会写成显式像素）
+                  width: horizontalLong ? undefined : `${appliedWidth}px`,
+                  height: mode === 'long' && !horizontalLong ? undefined : `${appliedHeight}px`,
+                  backgroundColor: present.canvas.backgroundColor,
+                  backgroundImage: present.canvas.backgroundImage
+                    ? `linear-gradient(rgba(255,255,255,0.16), rgba(255,255,255,0.16)), url(${present.canvas.backgroundImage})`
+                    : undefined,
+                  backgroundPosition: 'center',
+                  backgroundSize: 'cover',
+                  boxShadow: `0 ${scaled(18)} ${scaled(48)} ${scaled(-28)} rgba(15, 23, 42, 0.45)`,
+                  ...(mode === 'long'
+                    ? {
+                        flexDirection:
+                          present.canvas.longDirection === 'vertical' ? 'column' : 'row',
+                        alignItems:
+                          present.canvas.longAlign === 'start'
+                            ? 'flex-start'
+                            : present.canvas.longAlign === 'center'
+                              ? 'center'
+                              : 'flex-end',
+                        gap: scaled(present.canvas.gap),
+                        padding: scaled(present.canvas.padding),
+                      }
+                    : {}),
+                  [SCALE_VAR]: String(appliedFactor),
+                } as React.CSSProperties
+              }
+            >
+              {mode === 'grid' ? (
+                <div className="absolute inset-0">
+                  {present.slotItems.map((slot, index) => {
+                    const layoutSlot = layout.slots[index];
+                    if (!layoutSlot) {
+                      return null;
+                    }
 
-                  return (
-                    <button
-                      key={`free-${photo.id}`}
-                      type="button"
-                      className={cn(
-                        'group absolute aspect-[4/3] w-[30%] overflow-hidden bg-muted/35 text-left transition-colors',
-                        selectedSlotIndex === index
-                          ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
-                          : 'hover:bg-muted/50',
-                      )}
-                      style={{
-                        left: `${baseLeft}%`,
-                        top: `${baseTop}%`,
-                        borderRadius: slot.borderRadius ?? present.canvas.borderRadius,
-                        boxShadow:
-                          present.canvas.shadow > 0
-                            ? `0 14px 28px -18px rgba(15, 23, 42, ${Math.min(
-                                present.canvas.shadow / 100,
-                                0.35,
-                              )})`
-                            : 'none',
-                        transform: `translate(${slot.offsetX}px, ${slot.offsetY}px) scale(${slot.scale}) rotate(${slot.rotation}deg)`,
-                      }}
-                      onClick={() => selectSlot(index)}
-                      onMouseDown={(event) => {
-                        event.preventDefault();
-                        selectSlot(index);
-                        const startX = event.clientX;
-                        const startY = event.clientY;
-                        const startOffsetX = slot.offsetX;
-                        const startOffsetY = slot.offsetY;
+                    const photo = slot.photoId ? photoMap.get(slot.photoId) : null;
 
-                        const handleMove = (moveEvent: MouseEvent) => {
-                          commit((draft) => {
-                            const currentSlot = draft.slotItems[index] ?? createEmptySlotState();
-                            draft.slotItems[index] = {
-                              ...currentSlot,
-                              offsetX: startOffsetX + (moveEvent.clientX - startX),
-                              offsetY: startOffsetY + (moveEvent.clientY - startY),
-                              photoId: photo.id,
-                            };
-                          });
-                        };
+                    const rect = getPaddedSlotRect(layoutSlot, present.canvas, {
+                      width: crossDesign,
+                      height: crossDesign / ratioValue,
+                    });
+                    const active = selectedSlotIndex === index;
+                    const dragOver = dragging?.over === index && dragging.from !== index;
 
-                        const handleUp = () => {
-                          window.removeEventListener('mousemove', handleMove);
-                          window.removeEventListener('mouseup', handleUp);
-                        };
-
-                        window.addEventListener('mousemove', handleMove);
-                        window.addEventListener('mouseup', handleUp);
-                      }}
-                    >
-                      <img
-                        src={photo.previewUrl}
-                        alt={photo.name}
-                        className="h-full w-full object-cover"
-                        draggable={false}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div
-                className="absolute inset-0 grid"
-                style={{
-                  gridTemplateColumns: 'repeat(12, minmax(0, 1fr))',
-                  gridTemplateRows: 'repeat(12, minmax(0, 1fr))',
-                  gap: present.canvas.gap,
-                  padding: present.canvas.padding,
-                }}
-              >
-                {present.slotItems.map((slotItem, index) => {
-                  const photo = slotItem.photoId
-                    ? (photos.find((item) => item.id === slotItem.photoId) ?? null)
-                    : null;
-
-                  return (
-                    <button
-                      key={`${layout.id}-${slotItem.photoId ?? `empty-${layout.slots[index].x}-${layout.slots[index].y}`}`}
-                      type="button"
-                      className={cn(
-                        'group relative overflow-hidden bg-muted/35 text-left transition-colors',
-                        selectedSlotIndex === index
-                          ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
-                          : 'hover:bg-muted/50',
-                      )}
-                      style={{
-                        gridColumn: `${layout.slots[index].x + 1} / span ${layout.slots[index].w}`,
-                        gridRow: `${layout.slots[index].y + 1} / span ${layout.slots[index].h}`,
-                        borderRadius: slotItem.borderRadius ?? present.canvas.borderRadius,
-                        boxShadow:
-                          present.canvas.shadow > 0
-                            ? `0 14px 28px -18px rgba(15, 23, 42, ${Math.min(
-                                present.canvas.shadow / 100,
-                                0.35,
-                              )})`
-                            : 'none',
-                      }}
-                      onClick={() => {
-                        if (!photo && currentPhoto) {
-                          assignPhotoToSlot(index, currentPhoto.id);
-                        }
-                        selectSlot(index);
-                      }}
-                      onDragOver={(event) => {
-                        event.preventDefault();
-                      }}
-                      onDrop={(event) => {
-                        event.preventDefault();
-                        const photoId = event.dataTransfer.getData('text/copicseal-photo-id');
-                        if (photoId) {
-                          assignPhotoToSlot(index, photoId);
-                        }
-                        selectSlot(index);
-                      }}
-                    >
-                      {photo ? (
-                        <img
-                          src={photo.previewUrl}
-                          alt={photo.name}
-                          className="h-full w-full object-cover"
+                    return (
+                      <div
+                        key={slot.id}
+                        data-collage-slot={index}
+                        className="absolute"
+                        style={{
+                          left: `${rect.left}%`,
+                          top: `${rect.top}%`,
+                          width: `${rect.width}%`,
+                          height: `${rect.height}%`,
+                          padding: scaled(present.canvas.gap / 2),
+                          boxSizing: 'border-box',
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onPointerDown={(event) => handlePointerDown(event, index)}
+                          onDoubleClick={() => handleDoubleClick(index)}
+                          className={cn(
+                            'group relative flex h-full w-full cursor-pointer items-center justify-center overflow-hidden outline-none',
+                            // 空格子只是编辑期的提示：导出时留白，不把 + 和格子编号印进图里
+                            photo ? 'bg-muted/30' : exporting ? '' : 'bg-muted/30',
+                            active
+                              ? 'ring-2 ring-primary'
+                              : dragOver || (assetDragActive && assetDragOverIndex === index)
+                                ? 'ring-2 ring-primary/60'
+                                : 'hover:bg-muted/50',
+                            dragging?.from === index && 'opacity-60',
+                          )}
                           style={{
-                            transform: `translate(${slotItem.offsetX}px, ${slotItem.offsetY}px) scale(${slotItem.scale}) rotate(${slotItem.rotation}deg)`,
+                            borderRadius: slotBorderRadius(slot),
+                            boxShadow: slotShadow(),
                           }}
-                          draggable={false}
-                        />
-                      ) : (
-                        <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
-                          <ImagePlus className="size-5" />
-                          <span className="text-xs">点击填充当前图片</span>
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                        >
+                          {photo ? (
+                            renderPhoto(slot, 'h-full w-full')
+                          ) : exporting ? null : (
+                            <div className="pointer-events-none flex flex-col items-center gap-1.5 text-muted-foreground">
+                              <Plus className="size-5" />
+                              <span className="text-[10px]">第 {index + 1} 格</span>
+                              <span className="text-[10px] opacity-0 transition-opacity group-hover:opacity-100">
+                                点击填充 / 从素材区拖入
+                              </span>
+                            </div>
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+
+              {mode === 'long'
+                ? present.slotItems.map((slot, index) => {
+                    const active = selectedSlotIndex === index;
+                    const cross = present.canvas.longSize * clamp(slot.scale, 0.2, 4);
+                    const vertical = present.canvas.longDirection === 'vertical';
+                    const photo = slot.photoId ? photoMap.get(slot.photoId) : null;
+
+                    return (
+                      <button
+                        type="button"
+                        key={slot.id}
+                        data-collage-slot={index}
+                        onPointerDown={(event) => handlePointerDown(event, index)}
+                        onDoubleClick={() => handleDoubleClick(index)}
+                        className={cn(
+                          'relative shrink-0 overflow-hidden outline-none',
+                          photo || !exporting ? 'bg-muted/30' : '',
+                          active && 'ring-2 ring-primary',
+                          assetDragActive &&
+                            assetDragOverIndex === index &&
+                            'ring-2 ring-primary/60',
+                          dragging?.from === index && 'opacity-60',
+                        )}
+                        style={{
+                          borderRadius: slotBorderRadius(slot),
+                          width: vertical ? scaled(cross) : undefined,
+                          height: vertical ? undefined : scaled(cross),
+                          aspectRatio: slot.photoId ? undefined : '1',
+                          boxShadow: slotShadow(),
+                        }}
+                      >
+                        {photo ? (
+                          renderPhoto(slot, vertical ? 'h-auto w-full' : 'h-full w-auto')
+                        ) : exporting ? null : (
+                          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                            <Plus className="size-5" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })
+                : null}
+
+              {mode === 'free'
+                ? present.slotItems.map((slot, index) => {
+                    const active = selectedSlotIndex === index;
+                    const photo = slot.photoId ? photoMap.get(slot.photoId) : null;
+                    const rect = getFreeSlotRect(slot, present.canvas, {
+                      width: crossDesign,
+                      height: crossDesign / ratioValue,
+                    });
+
+                    return (
+                      <button
+                        type="button"
+                        key={slot.id}
+                        data-collage-slot={index}
+                        onPointerDown={(event) => handlePointerDown(event, index)}
+                        onDoubleClick={() => handleDoubleClick(index)}
+                        className={cn(
+                          'absolute cursor-move overflow-hidden outline-none',
+                          photo || !exporting ? 'bg-muted/30' : '',
+                          active && 'ring-2 ring-primary',
+                          assetDragActive &&
+                            assetDragOverIndex === index &&
+                            'ring-2 ring-primary/60',
+                        )}
+                        style={{
+                          left: `${rect.left}%`,
+                          top: `${rect.top}%`,
+                          width: `${rect.width}%`,
+                          borderRadius: slotBorderRadius(slot),
+                          boxShadow: slotShadow(),
+                        }}
+                      >
+                        {photo ? (
+                          <img
+                            src={photo.previewUrl}
+                            alt={photo.name}
+                            draggable={false}
+                            className="pointer-events-none block h-auto w-full select-none"
+                            style={{
+                              objectPosition: getObjectPosition(slot),
+                              transform: getSlotTransform(slot),
+                            }}
+                          />
+                        ) : exporting ? null : (
+                          <div className="flex aspect-4/3 items-center justify-center text-muted-foreground">
+                            <Plus className="size-5" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })
+                : null}
+            </div>
           </div>
+        </ScrollArea>
+
+        {exporting ? (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-background/85 text-xs text-muted-foreground backdrop-blur-[1px]">
+            <Loader2 className="size-4 animate-spin text-primary" />
+            正在导出…
+          </div>
+        ) : null}
+      </div>
+
+      <div className="flex w-full items-center justify-between gap-4 border-t border-border/80 px-4 py-2 text-xs text-muted-foreground">
+        <div className="min-w-0">
+          <p className="truncate font-medium text-foreground">
+            {mode === 'grid'
+              ? `布局 ${layout.name} · ${layout.count} 格`
+              : mode === 'long'
+                ? `${present.canvas.longDirection === 'vertical' ? '竖向' : '横向'}长图 · ${present.slotItems.length} 张`
+                : `自由摆放 · ${present.slotItems.length} 张`}
+          </p>
+          <p className="truncate">
+            {unusedCount > 0 ? `还有 ${unusedCount} 张素材未放入` : '素材都已放入画布'}
+          </p>
         </div>
+
+        <div className="flex shrink-0 items-center gap-2">
+          {ZOOM_OPTIONS.map((option) => {
+            const active =
+              option === 'fit'
+                ? zoom === 'fit'
+                : typeof zoom === 'number' && Math.abs(zoom - option) < 0.001;
+
+            return (
+              <Button
+                key={option.toString()}
+                type="button"
+                variant={active ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setZoom(option)}
+              >
+                {option === 'fit' ? '适应' : `${option * 100}%`}
+              </Button>
+            );
+          })}
+        </div>
+
+        <span className="hidden shrink-0 sm:inline">
+          {mode === 'long'
+            ? `画布宽度 ${present.canvas.longSize}px`
+            : `画布比例 ${getAspectRatioText(present.canvas)}`}
+        </span>
       </div>
     </div>
   );

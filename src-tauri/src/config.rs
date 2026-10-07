@@ -15,6 +15,8 @@ pub struct AppConfig {
     pub fonts: FontConfig,
     pub template_presets: Vec<TemplatePreset>,
     pub template_list: TemplateListConfig,
+    /// 拼图模块的默认值：新建拼图用哪套画布样式与导出参数
+    pub collage: CollageConfig,
     pub user_devices: Vec<UserDevice>,
     pub device_id: String,
 }
@@ -35,6 +37,61 @@ pub struct OutputConfig {
     pub sizes: Vec<OutputSize>,
     pub default_path: String,
     pub retain_exif: bool,
+}
+
+/// 拼图默认值：设置 → 拼图 →「默认项 / 导出」两页写的就是这里。
+///
+/// 只在「新建/恢复默认」时被读：已经摆在画布上的拼图不会被它改掉。
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(default)]
+pub struct CollageConfig {
+    /// 默认布局模式：grid / long / free
+    pub layout_mode: String,
+    /// 默认网格布局 id；空字符串表示用布局库的第一个
+    pub layout_id: String,
+    pub aspect_preset: String,
+    pub custom_ratio_width: u32,
+    pub custom_ratio_height: u32,
+    pub background_color: String,
+    pub gap: u32,
+    pub padding: u32,
+    pub border_radius: u32,
+    pub shadow: u32,
+    pub long_direction: String,
+    pub long_align: String,
+    pub long_size: u32,
+    pub export_format: String,
+    pub export_quality: String,
+    pub export_scale: f64,
+    pub export_width: u32,
+    pub export_height: u32,
+    pub export_lock_ratio: bool,
+}
+
+impl Default for CollageConfig {
+    fn default() -> Self {
+        Self {
+            layout_mode: "grid".to_string(),
+            layout_id: String::new(),
+            aspect_preset: "1:1".to_string(),
+            custom_ratio_width: 4,
+            custom_ratio_height: 5,
+            background_color: "#ffffff".to_string(),
+            gap: 12,
+            padding: 20,
+            border_radius: 18,
+            shadow: 18,
+            long_direction: "vertical".to_string(),
+            long_align: "center".to_string(),
+            long_size: 720,
+            export_format: "png".to_string(),
+            export_quality: "high".to_string(),
+            export_scale: 1.0,
+            export_width: 2048,
+            export_height: 2048,
+            export_lock_ratio: true,
+        }
+    }
 }
 
 /// 一条常用尺寸：点一下即按该尺寸新建导出档位。
@@ -192,6 +249,7 @@ impl Default for AppConfig {
             fonts: FontConfig::default(),
             template_presets: Vec::new(),
             template_list: TemplateListConfig::default(),
+            collage: CollageConfig::default(),
             user_devices: Vec::new(),
             device_id: String::new(),
         }
@@ -371,6 +429,7 @@ fn load_from_db(app: &tauri::AppHandle) -> Result<AppConfig, String> {
         template_presets: read_json_value(&conn, "template_presets")?
             .unwrap_or(defaults.template_presets),
         template_list: read_json_value(&conn, "template_list")?.unwrap_or(defaults.template_list),
+        collage: read_json_value(&conn, "collage")?.unwrap_or(defaults.collage),
         user_devices: read_json_value(&conn, "user_devices")?.unwrap_or(defaults.user_devices),
         device_id: read_json_value(&conn, "device_id")?.unwrap_or_default(),
     };
@@ -417,6 +476,7 @@ fn save_to_db(app: &tauri::AppHandle, config: &AppConfig) -> Result<(), String> 
     write_json_value(&tx, "fonts", &config.fonts)?;
     write_json_value(&tx, "template_presets", &config.template_presets)?;
     write_json_value(&tx, "template_list", &config.template_list)?;
+    write_json_value(&tx, "collage", &config.collage)?;
     write_json_value(&tx, "user_devices", &config.user_devices)?;
     write_json_value(&tx, "device_id", &config.device_id)?;
 

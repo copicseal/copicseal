@@ -18,7 +18,8 @@ function gridSlots(cols: number, rows: number): CollageLayoutSlot[] {
   return slots;
 }
 
-export const COLLAGE_LAYOUTS: CollageLayout[] = [
+/** 手工挑选的布局；7 张以上由 `buildAutoLayouts` 生成后合并。 */
+const CURATED_LAYOUTS: CollageLayout[] = [
   { id: 'solo-full', name: '单图铺满', count: 1, group: '1 张图', slots: [slot(0, 0, 12, 12)] },
 
   {
@@ -99,14 +100,14 @@ export const COLLAGE_LAYOUTS: CollageLayout[] = [
     name: '阶梯拼接',
     count: 3,
     group: '3 张图',
-    slots: [slot(0, 0, 8, 7), slot(8, 0, 4, 6), slot(0, 7, 12, 5)],
+    slots: [slot(0, 0, 8, 7), slot(8, 0, 4, 7), slot(0, 7, 12, 5)],
   },
   {
     id: 'three-window',
     name: '橱窗拼接',
     count: 3,
     group: '3 张图',
-    slots: [slot(0, 0, 4, 12), slot(4, 0, 4, 6), slot(8, 0, 4, 12)],
+    slots: [slot(0, 0, 8, 7), slot(8, 0, 4, 12), slot(0, 7, 8, 5)],
   },
 
   { id: 'four-grid', name: '2x2 网格', count: 4, group: '4 张图', slots: gridSlots(2, 2) },
@@ -145,7 +146,7 @@ export const COLLAGE_LAYOUTS: CollageLayout[] = [
     name: '中心海报',
     count: 4,
     group: '4 张图',
-    slots: [slot(0, 0, 4, 6), slot(4, 0, 4, 12), slot(8, 0, 4, 6), slot(0, 6, 4, 6)],
+    slots: [slot(0, 0, 4, 12), slot(4, 0, 8, 6), slot(4, 6, 4, 6), slot(8, 6, 4, 6)],
   },
   {
     id: 'four-strip-top',
@@ -350,14 +351,175 @@ export const COLLAGE_LAYOUTS: CollageLayout[] = [
   { id: 'sixteen-grid', name: '4x4 网格', count: 16, group: '16 张图', slots: gridSlots(4, 4) },
   { id: 'sixteen-wide', name: '8x2 网格', count: 16, group: '16 张图', slots: gridSlots(8, 2) },
   { id: 'sixteen-tall', name: '2x8 网格', count: 16, group: '16 张图', slots: gridSlots(2, 8) },
-  { id: 'sixteen-banner', name: '横向照片墙', count: 16, group: '16 张图', slots: gridSlots(8, 2) },
+
+  ...buildAutoLayouts(),
 ];
+
+/**
+ * 把若干张图分成几行。
+ *
+ * 每行 2–4 张、行数取 1/2/3/4/6（都能整除 12，槽位坐标才是整数），
+ * 同时避免出现只放一张图的尾行——那种布局在缩略图里很难看。
+ */
+/** 穷举出「和为 count、最均匀」的一组分行方案。 */
+function findRows(count: number, rowCount: number): number[] | null {
+  // 每行允许的张数：都能整除 12，槽位坐标才是整数
+  const rowSizes = [2, 3, 4, 6];
+  let best: number[] | null = null;
+  let bestScore = Number.POSITIVE_INFINITY;
+
+  const walk = (sizes: number[]) => {
+    if (sizes.length === rowCount) {
+      const total = sizes.reduce((sum, size) => sum + size, 0);
+      if (total !== count) {
+        return;
+      }
+
+      const average = count / rowCount;
+      const variance = sizes.reduce((sum, size) => sum + (size - average) ** 2, 0);
+      // 先看均匀程度，同样均匀时偏好大小行差别更小的那种
+      const score = variance * 100 + (Math.max(...sizes) - Math.min(...sizes));
+      if (score < bestScore) {
+        bestScore = score;
+        best = sizes;
+      }
+      return;
+    }
+
+    for (const size of rowSizes) {
+      walk([...sizes, size]);
+    }
+  };
+
+  walk([]);
+  return best;
+}
+
+/**
+ * 在若干种分行方案里挑最优的一种。
+ *
+ * 判据是「格子长宽比有多接近照片」：行数为 R、某行放 N 张时，格子宽高比是 R / N，
+ * 越接近 1 越不容易出现又扁又长的格子。同样接近时行数少的优先。
+ */
+function splitRows(count: number): number[] {
+  let best: number[] | null = null;
+  let bestScore = Number.POSITIVE_INFINITY;
+
+  for (const rowCount of [1, 2, 3, 4, 6]) {
+    if (rowCount > count || 12 % rowCount !== 0) {
+      continue;
+    }
+
+    const rows = findRows(count, rowCount);
+    if (!rows) {
+      continue;
+    }
+
+    const score =
+      rows.reduce((sum, size) => sum + Math.abs(Math.log(rowCount / size)), 0) + rowCount * 0.001;
+    if (score < bestScore) {
+      bestScore = score;
+      best = rows;
+    }
+  }
+
+  return best ?? [count];
+}
+
+/** 首行通栏时的行高分配：返回 null 表示这一行数没法用整数格子表达通栏。 */
+function heroWeights(rowCount: number): number[] | null {
+  if (rowCount < 2) {
+    return null;
+  }
+
+  for (const hero of [6, 5, 4, 3, 2]) {
+    const rest = 12 - hero;
+    if (rest % (rowCount - 1) !== 0) {
+      continue;
+    }
+
+    const restHeight = rest / (rowCount - 1);
+    if (restHeight >= 1) {
+      return [hero, ...Array.from({ length: rowCount - 1 }, () => restHeight)];
+    }
+  }
+
+  return null;
+}
+
+function rowsToSlots(sizes: number[], weights?: number[]): CollageLayoutSlot[] {
+  const height = 12 / sizes.length;
+  const rowHeights = weights ?? sizes.map(() => height);
+  const slots: CollageLayoutSlot[] = [];
+  let y = 0;
+
+  sizes.forEach((size, rowIndex) => {
+    const width = 12 / size;
+    for (let col = 0; col < size; col += 1) {
+      slots.push(slot(col * width, y, width, rowHeights[rowIndex]));
+    }
+    y += rowHeights[rowIndex];
+  });
+
+  return slots;
+}
+
+/**
+ * 7–20 张的布局：每个张数补「均分网格」与「主图 + 副图」两种。
+ *
+ * 手工枚举到这个量级不现实，这里按张数生成，槽位落在同一套 12×12 单位网格上。
+ */
+function buildAutoLayouts(): CollageLayout[] {
+  const layouts: CollageLayout[] = [];
+
+  for (let count = 7; count <= 20; count += 1) {
+    const group = `${count} 张图`;
+    const rows = splitRows(count);
+
+    layouts.push({
+      id: `auto-${count}-even`,
+      name: `${count} 图均分`,
+      count,
+      group,
+      slots: rowsToSlots(rows),
+    });
+
+    const heroRows = [1, ...splitRows(count - 1)];
+    const weights = heroWeights(heroRows.length);
+    if (weights) {
+      layouts.push({
+        id: `auto-${count}-hero`,
+        name: '主图 + 副图',
+        count,
+        group,
+        slots: rowsToSlots(heroRows, weights),
+      });
+    }
+  }
+
+  return layouts;
+}
+
+/** 按张数升序的布局库；同张数内保持手工布局在前。 */
+export const COLLAGE_LAYOUTS = [...CURATED_LAYOUTS].sort((left, right) => left.count - right.count);
 
 export const COLLAGE_LAYOUT_GROUPS = Array.from(
   COLLAGE_LAYOUTS.reduce(
     (map, layout) => map.set(layout.group, [...(map.get(layout.group) ?? []), layout]),
     new Map<string, CollageLayout[]>(),
   ),
-).map(([group, layouts]) => ({ group, layouts }));
+)
+  .map(([group, layouts]) => ({
+    group,
+    count: layouts[0]?.count ?? 0,
+    layouts,
+  }))
+  .sort((left, right) => left.count - right.count);
 
-export const COLLAGE_LAYOUT_COUNT = COLLAGE_LAYOUTS.length;
+export function findCollageLayout(layoutId: string): CollageLayout {
+  return (
+    COLLAGE_LAYOUTS.find((layout) => layout.id === layoutId) ??
+    COLLAGE_LAYOUTS.find((layout) => layout.count >= 1) ??
+    COLLAGE_LAYOUTS[0]
+  );
+}

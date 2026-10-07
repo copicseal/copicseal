@@ -1,327 +1,302 @@
-import { Grid3x3, ImageIcon } from 'lucide-react';
-import { useRef } from 'react';
-import { prepareElementForSnapshot } from '@/core/renderer';
-import { runScheduledExports } from '@/core/scheduler';
+import { Grid3x3 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { prepareElementForSnapshot, waitForImages } from '@/core/renderer';
+import {
+  COLLAGE_QUALITY_VALUES,
+  getAspectRatioValue,
+  getCanvasDesignWidth,
+} from '@/features/collage/lib';
+import { applyCollageRenderSize } from '@/features/collage/lib/render-size';
 import { useCollageStore } from '@/features/collage/store/use-collage-store';
-import { exportSingle, resolveExportDirectory } from '@/platform';
-import { CoDropZone } from '@/shared/components/co-drop-zone';
+import {
+  exportSingle,
+  resolveCollageDefaults,
+  resolveExportDirectory,
+  resolveExportSizes,
+} from '@/platform';
+import type { OutputSize } from '@/platform/contracts';
 import {
   notifyExportedDirectory,
   notifyExportFailed,
 } from '@/shared/components/co-open-directory-link';
 import { CoWindowHeader } from '@/shared/components/co-window-header';
+import { useElementSize } from '@/shared/hooks/use-element-size';
 import { usePhotos } from '@/shared/hooks/use-photos';
 import {
   BusinessWorkbench,
-  BusinessWorkbenchAssetsPane,
   BusinessWorkbenchPropertiesPane,
   BusinessWorkbenchWorkspace,
 } from '@/shared/layouts/business-workbench';
-import { selectPhotosViaDialog } from '@/shared/lib/import-photo';
-import { cn } from '@/shared/lib/utils';
-import { Button } from '@/shared/ui/button';
+import { usePageActive } from '@/shared/providers/page-activity-provider';
+import { setImportSelectionSuspended } from '@/shared/providers/photo-provider';
+import type { ExportOptions } from '@/shared/types/export';
 import { ScrollArea } from '@/shared/ui/scroll-area';
-import { CollageCanvas, CollagePropertiesPanel, CollageToolbar } from '../exports';
+import { CollageAssetsPanel } from './collage-assets-panel';
+import { CollageCanvas } from './collage-canvas';
+import { CollageLayoutLibrary } from './collage-layout-library';
+import { CollagePropertiesPanel } from './collage-properties-panel';
+import { CollageToolbar } from './collage-toolbar';
 
 /** 拼图导出文件名的自动命名主干：拼图是整块画布，没有单张原图名可沿用。 */
 const COLLAGE_BASE_NAME = '拼图';
 
-function ImportProgressPanel({
-  current,
-  total,
-  currentName,
-}: {
-  current: number;
-  total: number;
-  currentName: string | null;
-}) {
-  const progress = total > 0 ? Math.min((current / total) * 100, 100) : 0;
-
-  return (
-    <div className="mt-4 border border-border/80 bg-muted/30 px-4 py-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-foreground">正在导入图片</p>
-          <p className="mt-1 truncate text-xs text-muted-foreground">
-            {total > 0 ? `已导入 ${current} / ${total}` : '正在准备导入...'}
-            {currentName ? ` · ${currentName}` : ''}
-          </p>
-        </div>
-        <p className="shrink-0 text-xs font-medium text-muted-foreground">
-          {Math.round(progress)}%
-        </p>
-      </div>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-border/60">
-        <div
-          className="h-full rounded-full bg-primary transition-[width] duration-200 ease-out"
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function CollageHeader() {
-  return (
-    <CoWindowHeader
-      icon={Grid3x3}
-      title="拼图"
-      description="布局编辑与导出"
-      actions={<CollageToolbar />}
-    />
-  );
-}
-
-function CollageAssetsPanel() {
+export function CollagePage() {
+  const previewRef = useRef<HTMLDivElement | null>(null);
+  const pageActive = usePageActive();
+  const { photos, importViaDrop } = usePhotos();
   const {
-    photos,
-    currentIndex,
-    setCurrentIndex,
-    replacePhoto,
-    removePhoto,
-    importViaDialog,
-    importViaDrop,
-    importState,
-  } = usePhotos();
-  const { removePhotoReferences } = useCollageStore();
+    present,
+    syncPhotos,
+    selectedSlotIndex,
+    undo,
+    redo,
+    clearSlot,
+    selectSlot,
+    setConfigDefaults,
+  } = useCollageStore();
+  const [exporting, setExporting] = useState(false);
+  const [exportSizes, setExportSizes] = useState<readonly OutputSize[]>([]);
+  const restoreRef = useRef<(() => void) | null>(null);
+  const canvasSize = useElementSize(previewRef);
 
-  const handleCollageReplace = async (photoId: string) => {
-    const selected = await selectPhotosViaDialog();
-    if (!selected[0]) {
+  const mode = present.canvas.layoutMode;
+  const canvas = present.canvas;
+  const designWidth = getCanvasDesignWidth(canvas);
+  const photoIds = useMemo(() => photos.map((photo) => photo.id), [photos]);
+
+  /**
+   * 编辑器快捷键：撤销 / 重做、删除选中格、Esc 取消选中。
+   *
+   * 只在本页可见时挂监听，并且在输入框里打字时不抢键（属性面板里全是输入框）。
+   */
+  useEffect(() => {
+    if (!pageActive) {
       return;
     }
 
-    replacePhoto(photoId, selected[0]);
-  };
-
-  return (
-    <BusinessWorkbenchAssetsPane>
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-semibold">拼图素材</h2>
-          <p className="mt-1 text-xs text-muted-foreground">
-            当前拼图会话的局部素材区，支持导入、替换和拖入画布。
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => void importViaDialog()}>
-            <ImageIcon data-icon="inline-start" />
-            导入图片
-          </Button>
-        </div>
-      </div>
-
-      {importState.active ? (
-        <ImportProgressPanel
-          current={importState.current}
-          total={importState.total}
-          currentName={importState.currentName}
-        />
-      ) : null}
-
-      <div
-        className={cn('mt-4', importState.active ? 'h-[calc(100%-152px)]' : 'h-[calc(100%-64px)]')}
-      >
-        {photos.length === 0 ? (
-          <CoDropZone
-            onFilesDrop={importViaDrop}
-            className="h-full rounded-none border-border/60 bg-muted/20"
-          >
-            <div className="flex flex-col items-center justify-center gap-3 text-center text-muted-foreground">
-              <ImageIcon className="size-6" />
-              <div>
-                <p className="text-sm font-medium">
-                  {importState.active ? '图片正在导入中…' : '拖入图片开始拼图'}
-                </p>
-                <p className="text-xs">
-                  {importState.active
-                    ? '导入过程中会逐步生成缩略图并加入当前素材区'
-                    : '或点击右上角“导入图片”从本地选择'}
-                </p>
-              </div>
-            </div>
-          </CoDropZone>
-        ) : (
-          <div className="h-full overflow-x-auto overflow-y-hidden">
-            <div className="flex h-full gap-3 pb-3">
-              {photos.map((photo, index) => {
-                const active = index === currentIndex;
-
-                return (
-                  <div
-                    key={photo.id}
-                    draggable
-                    className={cn(
-                      'group shrink-0 border bg-card transition-colors',
-                      active
-                        ? 'border-primary ring-1 ring-primary/20'
-                        : 'border-border hover:border-primary/40',
-                    )}
-                    style={{ width: 160 }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setCurrentIndex(index)}
-                      className="flex h-full w-full flex-col text-left"
-                    >
-                      <div
-                        className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-background/80"
-                        style={{ aspectRatio: '4 / 3' }}
-                      >
-                        {photo.thumbnailReady ? (
-                          <img
-                            src={photo.thumbnailUrl}
-                            alt={photo.name}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-muted/40 px-4 text-center">
-                            <span className="line-clamp-3 text-xs font-medium text-foreground">
-                              {photo.name}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">
-                              正在生成缩略图
-                            </span>
-                          </div>
-                        )}
-                        {active ? (
-                          <div className="pointer-events-none absolute inset-0 ring-2 ring-primary/60" />
-                        ) : null}
-                      </div>
-                      <div className="border-t border-border/80 px-3 py-2">
-                        <div className="min-w-0">
-                          <p className="truncate text-[11px] font-medium text-foreground">
-                            {photo.name}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground">
-                            {(photo.size / 1024 / 1024).toFixed(1)} MB
-                          </p>
-                        </div>
-                        <div className="mt-2 text-[10px] text-muted-foreground">
-                          拖到上方画布即可放入拼图
-                        </div>
-                      </div>
-                    </button>
-                    <div className="border-t border-border/80 px-3 pb-2">
-                      <div className="flex items-center justify-between gap-2 text-[10px]">
-                        <button
-                          type="button"
-                          className="text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-foreground"
-                          onClick={() => {
-                            removePhotoReferences(photo.id);
-                            removePhoto(photo.id);
-                          }}
-                        >
-                          删除
-                        </button>
-                        <button
-                          type="button"
-                          className="text-muted-foreground hover:text-foreground"
-                          onClick={() => {
-                            void handleCollageReplace(photo.id);
-                          }}
-                        >
-                          替换
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-    </BusinessWorkbenchAssetsPane>
-  );
-}
-
-function CollagePropertiesPane({
-  onExportCurrent,
-  onExportBatch,
-}: {
-  onExportCurrent: Parameters<typeof CollagePropertiesPanel>[0]['onExportCurrent'];
-  onExportBatch: Parameters<typeof CollagePropertiesPanel>[0]['onExportBatch'];
-}) {
-  return (
-    <BusinessWorkbenchPropertiesPane>
-      <ScrollArea className="min-h-0 min-w-0 flex-1" viewportClassName="[&>div]:!block">
-        <div className="px-3 py-3">
-          <CollagePropertiesPanel onExportCurrent={onExportCurrent} onExportBatch={onExportBatch} />
-        </div>
-      </ScrollArea>
-    </BusinessWorkbenchPropertiesPane>
-  );
-}
-
-export function CollagePage() {
-  const previewRef = useRef<HTMLDivElement | null>(null);
-  const { photos } = usePhotos();
-
-  const handleExportCurrent: Parameters<typeof CollagePropertiesPanel>[0]['onExportCurrent'] =
-    async (options) => {
-      if (!previewRef.current) {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // target 可能是 window / document（没有任何元素获得焦点时），别直接点 HTML 属性
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.isContentEditable ||
+          target.closest('[role="textbox"]'))
+      ) {
         return;
       }
 
-      try {
-        // 直接写到配置里的「保存目录」，不再弹保存对话框
-        const outputDir = await resolveExportDirectory();
-        await prepareElementForSnapshot(previewRef.current);
-        await exportSingle(previewRef.current, options, undefined, {
-          baseName: COLLAGE_BASE_NAME,
-          outputDir,
-        });
-        notifyExportedDirectory(outputDir);
-      } catch (error) {
-        notifyExportFailed(error);
+      const modifier = event.metaKey || event.ctrlKey;
+      const key = event.key.toLowerCase();
+
+      if (modifier && key === 'z') {
+        event.preventDefault();
+        if (event.shiftKey) {
+          redo();
+        } else {
+          undo();
+        }
+        return;
+      }
+
+      if (modifier && key === 'y') {
+        event.preventDefault();
+        redo();
+        return;
+      }
+
+      if ((event.key === 'Delete' || event.key === 'Backspace') && selectedSlotIndex !== null) {
+        event.preventDefault();
+        clearSlot(selectedSlotIndex);
+        return;
+      }
+
+      if (event.key === 'Escape') {
+        selectSlot(null);
       }
     };
 
-  const handleExportBatch: Parameters<typeof CollagePropertiesPanel>[0]['onExportBatch'] = async (
-    options,
-  ) => {
-    if (!previewRef.current || photos.length === 0) {
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [clearSlot, pageActive, redo, selectSlot, selectedSlotIndex, undo]);
+
+  // 导出用的常用尺寸与「边框水印」共用同一个来源（设置 → 导出 → 常用尺寸）
+  useEffect(() => {
+    void resolveExportSizes().then(setExportSizes);
+  }, []);
+
+  // 设置 → 拼图里的默认值：新建拼图与「恢复默认」都按它来（用户已经摆好的拼图不会被改）
+  useEffect(() => {
+    void resolveCollageDefaults().then(setConfigDefaults);
+  }, [setConfigDefaults]);
+
+  // 粘贴导入：素材直接从剪贴板进来，和模板页保持一致
+  useEffect(() => {
+    if (!pageActive) {
       return;
     }
 
+    const handlePaste = async (event: ClipboardEvent) => {
+      const files = event.clipboardData?.files;
+      if (files && files.length > 0) {
+        event.preventDefault();
+        await importViaDrop(files);
+      }
+    };
+
+    window.addEventListener('paste', handlePaste);
+
+    return () => {
+      window.removeEventListener('paste', handlePaste);
+    };
+  }, [importViaDrop, pageActive]);
+
+  // 素材与布局模式变化时对齐槽位：删掉的补洞、新导入的填空位。
+  // 只依赖这两者，用户手动清空的格子不会被立刻填回去。
+  useEffect(() => {
+    syncPhotos(photoIds, mode);
+  }, [photoIds, mode, syncPhotos]);
+
+  const canvasRatio = useMemo(() => {
+    if (mode === 'long' && canvasSize.height > 0 && canvasSize.width > 0) {
+      return canvasSize.width / canvasSize.height;
+    }
+
+    return getAspectRatioValue(canvas);
+  }, [canvas, canvasSize.height, canvasSize.width, mode]);
+
+  const buildOptions = (): ExportOptions => {
+    const { format, quality, scale, width, height } = present.exportSettings;
+
+    return {
+      presets: [
+        {
+          id: 'collage',
+          format,
+          // 目标框就是面板里的宽高；长图的高度由内容决定，这里给的值只在长图模式下被忽略
+          width,
+          height,
+          scale,
+          quality: COLLAGE_QUALITY_VALUES[quality],
+        },
+      ],
+      dpi: 72,
+      preserveExif: false,
+    };
+  };
+
+  const handleExport = async () => {
+    const element = previewRef.current;
+    if (!element) {
+      return;
+    }
+
+    setExporting(true);
+    // 导出期间别让导入把选中素材切走：拼图虽然只截一次，但画布内容是跟着素材走的
+    setImportSelectionSuspended(true);
     try {
       const outputDir = await resolveExportDirectory();
+      await waitForImages(element);
+      await prepareElementForSnapshot(element);
+      console.log(
+        '[collage] 开始导出',
+        present.exportSettings.width,
+        'x',
+        present.exportSettings.height,
+        '倍率',
+        present.exportSettings.scale,
+        '画布基准',
+        designWidth,
+      );
 
-      await runScheduledExports({
-        items: photos,
-        runner: async () => {
-          if (!previewRef.current) {
-            return;
-          }
-          await prepareElementForSnapshot(previewRef.current);
-          await exportSingle(previewRef.current, options, undefined, {
-            baseName: COLLAGE_BASE_NAME,
-            outputDir,
-          });
+      // 先建好 options：尺寸适配器要在截图前改写 preset 的宽高（导出流程先截图后命名）
+      const options = buildOptions();
+
+      await exportSingle(element, options, undefined, {
+        baseName: COLLAGE_BASE_NAME,
+        outputDir,
+        sizeAdapter: {
+          prepare: async (target) => {
+            const restore = applyCollageRenderSize(element, {
+              width: target.width,
+              height: target.height,
+              crossDesign: designWidth,
+              cross:
+                mode === 'long'
+                  ? present.canvas.longDirection === 'horizontal'
+                    ? 'height'
+                    : 'width'
+                  : undefined,
+            });
+            restoreRef.current = restore;
+            await prepareElementForSnapshot(element);
+
+            // 尺寸已经落定，这里才知道真实的输出像素（长图高度由内容决定、倍率还要乘上去）。
+            // 导出流程是「先截图、后用 preset 的宽高命名」，所以此刻改写宽高就能让文件名与落盘内容一致。
+            const [preset] = options.presets;
+            if (preset) {
+              preset.width = Math.round(element.offsetWidth * preset.scale);
+              preset.height = Math.round(element.offsetHeight * preset.scale);
+            }
+
+            console.log(
+              '[collage] 画布已切到导出尺寸',
+              element.offsetWidth,
+              'x',
+              element.offsetHeight,
+              '→ 落盘',
+              preset?.width,
+              'x',
+              preset?.height,
+            );
+          },
         },
       });
 
       notifyExportedDirectory(outputDir);
     } catch (error) {
       notifyExportFailed(error);
+    } finally {
+      restoreRef.current?.();
+      restoreRef.current = null;
+      setExporting(false);
+      setImportSelectionSuspended(false);
     }
   };
 
   return (
     <BusinessWorkbench
-      header={<CollageHeader />}
+      header={<CoWindowHeader icon={Grid3x3} title="拼图" description="多图拼接、单格取景与导出" />}
+      toolbar={<CollageToolbar onExport={() => void handleExport()} exporting={exporting} />}
+      library={<CollageLayoutLibrary />}
+      // 素材区与「边框水印」一致：固定高度、可折叠，不做可拖拽分隔
+      assetsResizable={false}
+      // 属性面板里有宽高输入与档位按钮，再窄就会被挤到换行
+      propertiesMinSize={260}
       workspace={
         <BusinessWorkbenchWorkspace>
-          <CollageCanvas previewRef={previewRef} />
+          <CollageCanvas previewRef={previewRef} exporting={exporting} />
         </BusinessWorkbenchWorkspace>
       }
-      assets={() => <CollageAssetsPanel />}
+      assets={(assetsState) => <CollageAssetsPanel {...assetsState} />}
       properties={() => (
-        <CollagePropertiesPane
-          onExportCurrent={handleExportCurrent}
-          onExportBatch={handleExportBatch}
-        />
+        <BusinessWorkbenchPropertiesPane>
+          <ScrollArea className="min-h-0 min-w-0 flex-1" viewportClassName="[&>div]:!block">
+            <div className="px-3 py-3">
+              <CollagePropertiesPanel
+                onExport={() => void handleExport()}
+                exporting={exporting}
+                canvasRatio={canvasRatio}
+                sizes={exportSizes}
+                onSizesOpen={() => void resolveExportSizes().then(setExportSizes)}
+              />
+            </div>
+          </ScrollArea>
+        </BusinessWorkbenchPropertiesPane>
       )}
     />
   );

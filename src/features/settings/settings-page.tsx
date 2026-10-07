@@ -2,7 +2,6 @@ import {
   ArrowDown,
   ArrowUp,
   Box,
-  Check,
   ChevronRight,
   Code2,
   Cog,
@@ -21,9 +20,11 @@ import {
   Type,
   User,
 } from 'lucide-react';
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import appLogoUrl from '@/assets/logo.svg';
+import { COLLAGE_LAYOUT_GROUPS } from '@/features/collage/layouts';
+import { COLLAGE_RATIO_OPTIONS } from '@/features/collage/lib';
 import { useFontLibrary } from '@/features/fonts/use-font-library';
 import { THIRD_PARTY_NOTICES } from '@/features/settings/third-party-notices';
 import { useTemplatePresets } from '@/features/template/hooks/use-template-presets';
@@ -38,7 +39,9 @@ import {
   type AppUpdateInfo,
   type AppVersion,
   type CacheOverview,
+  type CollageConfig,
   clearAssetCaches,
+  DEFAULT_COLLAGE_CONFIG,
   getInUseAssetPaths,
   type OutputPreset,
   type OutputSize,
@@ -74,6 +77,7 @@ import {
   SelectContent,
   SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/select';
@@ -209,31 +213,6 @@ function SettingField({
   );
 }
 
-function OptionCard({
-  title,
-  active = false,
-  children,
-}: {
-  title: string;
-  active?: boolean;
-  children?: React.ReactNode;
-}) {
-  return (
-    <div
-      className={cn(
-        'border px-4 py-3 transition-colors',
-        active ? 'border-primary bg-primary/5' : 'border-border bg-background',
-      )}
-    >
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium">{title}</p>
-        {active ? <Check className="size-4 text-primary" /> : null}
-      </div>
-      {children ? <div className="mt-1 text-xs text-muted-foreground">{children}</div> : null}
-    </div>
-  );
-}
-
 function StorageSummary({ overview }: { overview: CacheOverview | null }) {
   const total = overview?.total_bytes ?? 0;
   const segments = [
@@ -329,30 +308,6 @@ function describeOutputPreset(preset: OutputPreset): string {
   }
 
   return parts.join(' · ');
-}
-
-function PlaceholderTab({
-  title,
-  description,
-  cards,
-}: {
-  title: string;
-  description: string;
-  cards: Array<{ title: string; description: string; active?: boolean }>;
-}) {
-  return (
-    <div className="space-y-4">
-      <FieldGroup title={title} description={description}>
-        <div className="grid gap-3 md:grid-cols-2">
-          {cards.map((card) => (
-            <OptionCard key={card.title} title={card.title} active={card.active}>
-              {card.description}
-            </OptionCard>
-          ))}
-        </div>
-      </FieldGroup>
-    </div>
-  );
 }
 
 function GeneralTab({
@@ -800,6 +755,396 @@ function TemplateExportDefaultsTab({
   );
 }
 
+/** 设置里的小档位按钮：与拼图面板同款选中态。 */
+function ChoiceChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'border px-3 py-1.5 text-xs transition-colors',
+        active
+          ? 'border-primary bg-primary/5 text-foreground'
+          : 'border-border text-muted-foreground hover:text-foreground',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+const COLLAGE_MODE_OPTIONS = [
+  { id: 'grid' as const, label: '网格' },
+  { id: 'long' as const, label: '长图' },
+  { id: 'free' as const, label: '自由' },
+];
+
+const COLLAGE_LONG_ALIGN: Record<
+  'vertical' | 'horizontal',
+  Array<{ id: 'start' | 'center' | 'end'; label: string }>
+> = {
+  vertical: [
+    { id: 'start', label: '左对齐' },
+    { id: 'center', label: '居中' },
+    { id: 'end', label: '右对齐' },
+  ],
+  horizontal: [
+    { id: 'start', label: '上对齐' },
+    { id: 'center', label: '居中' },
+    { id: 'end', label: '下对齐' },
+  ],
+};
+
+/** 拼图默认项：新建拼图用什么布局与画布样式。 */
+function CollageDefaultsTab({
+  config,
+  onChange,
+  onGoToCollage,
+}: {
+  config: CollageConfig;
+  onChange: (patch: Partial<CollageConfig>) => void;
+  onGoToCollage: () => void;
+}) {
+  const isVertical = config.long_direction !== 'horizontal';
+
+  return (
+    <div className="space-y-4">
+      <FieldGroup
+        title="拼图默认项"
+        description="新建拼图时使用的布局与画布样式。已经摆在画布上的拼图不受影响——在拼图页对应分区点「恢复默认」即可套用这里的值。"
+      >
+        <SettingField
+          id="collage-default-mode"
+          label="默认布局模式"
+          description="打开拼图页时默认停在哪个模式。"
+        >
+          <div className="flex flex-wrap gap-1.5">
+            {COLLAGE_MODE_OPTIONS.map((option) => (
+              <ChoiceChip
+                key={option.id}
+                active={config.layout_mode === option.id}
+                onClick={() => onChange({ layout_mode: option.id })}
+              >
+                {option.label}
+              </ChoiceChip>
+            ))}
+          </div>
+        </SettingField>
+
+        <SettingField
+          id="collage-default-layout"
+          label="默认网格布局"
+          description="网格模式下默认选中的布局；选「跟随布局库」则用布局库里的第一个。"
+        >
+          <Select
+            value={config.layout_id || '__default__'}
+            onValueChange={(value) => onChange({ layout_id: value === '__default__' ? '' : value })}
+          >
+            <SelectTrigger className="w-full max-w-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__default__">跟随布局库</SelectItem>
+              {COLLAGE_LAYOUT_GROUPS.map((group) => (
+                <SelectGroup key={group.group}>
+                  <SelectLabel>{group.group}</SelectLabel>
+                  {group.layouts.map((layout) => (
+                    <SelectItem key={layout.id} value={layout.id}>
+                      {layout.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              ))}
+            </SelectContent>
+          </Select>
+        </SettingField>
+
+        <SettingField
+          id="collage-default-ratio"
+          label="画布比例"
+          description="网格与自由模式的画布比例，也可以留「自定义」。"
+        >
+          <div className="flex flex-wrap gap-1.5">
+            {COLLAGE_RATIO_OPTIONS.map((option) => (
+              <ChoiceChip
+                key={option.label}
+                active={config.aspect_preset === option.label}
+                onClick={() => onChange({ aspect_preset: option.label })}
+              >
+                {option.label}
+              </ChoiceChip>
+            ))}
+            <ChoiceChip
+              active={config.aspect_preset === 'custom'}
+              onClick={() => onChange({ aspect_preset: 'custom' })}
+            >
+              自定义
+            </ChoiceChip>
+          </div>
+          {config.aspect_preset === 'custom' ? (
+            <div className="mt-2 flex items-center gap-2">
+              <Input
+                className="h-8 w-20"
+                inputMode="numeric"
+                value={String(config.custom_ratio_width)}
+                onChange={(event) =>
+                  onChange({ custom_ratio_width: Number(event.target.value) || 1 })
+                }
+              />
+              <span className="text-xs text-muted-foreground">:</span>
+              <Input
+                className="h-8 w-20"
+                inputMode="numeric"
+                value={String(config.custom_ratio_height)}
+                onChange={(event) =>
+                  onChange({ custom_ratio_height: Number(event.target.value) || 1 })
+                }
+              />
+            </div>
+          ) : null}
+        </SettingField>
+
+        <SettingField
+          id="collage-default-canvas"
+          label="画布样式"
+          description="间距、边距、圆角与阴影，按设计基准像素计。"
+        >
+          <div className="grid max-w-2xl gap-4 md:grid-cols-2">
+            {(
+              [
+                { key: 'gap', label: '间距', min: 0, max: 120 },
+                { key: 'padding', label: '边距', min: 0, max: 160 },
+                { key: 'border_radius', label: '圆角', min: 0, max: 96 },
+                { key: 'shadow', label: '阴影', min: 0, max: 40 },
+              ] as const
+            ).map((item) => (
+              <div key={item.key}>
+                <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{item.label}</span>
+                  <span className="tabular-nums">{config[item.key]}px</span>
+                </div>
+                <Slider
+                  value={[config[item.key]]}
+                  min={item.min}
+                  max={item.max}
+                  step={1}
+                  onValueChange={([value]) => onChange({ [item.key]: value })}
+                />
+              </div>
+            ))}
+          </div>
+        </SettingField>
+
+        <SettingField
+          id="collage-default-background"
+          label="背景色"
+          description="画布底色，透明区域会露出它。"
+        >
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={config.background_color}
+              onChange={(event) => onChange({ background_color: event.target.value })}
+              className="h-9 w-12 border border-border bg-background p-1"
+            />
+            <Input
+              className="max-w-40"
+              value={config.background_color}
+              onChange={(event) => onChange({ background_color: event.target.value })}
+            />
+          </div>
+        </SettingField>
+
+        <SettingField
+          id="collage-default-long"
+          label="长图默认值"
+          description="切到长图模式时的拼接方向、对齐方式与横轴尺寸。"
+        >
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-1.5">
+              <ChoiceChip
+                active={isVertical}
+                onClick={() => onChange({ long_direction: 'vertical' })}
+              >
+                竖向拼接
+              </ChoiceChip>
+              <ChoiceChip
+                active={!isVertical}
+                onClick={() => onChange({ long_direction: 'horizontal' })}
+              >
+                横向拼接
+              </ChoiceChip>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {COLLAGE_LONG_ALIGN[isVertical ? 'vertical' : 'horizontal'].map((option) => (
+                <ChoiceChip
+                  key={option.id}
+                  active={config.long_align === option.id}
+                  onClick={() => onChange({ long_align: option.id })}
+                >
+                  {option.label}
+                </ChoiceChip>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <Input
+                className="h-8 w-24"
+                inputMode="numeric"
+                value={String(config.long_size)}
+                onChange={(event) => onChange({ long_size: Number(event.target.value) || 720 })}
+              />
+              <span className="text-xs text-muted-foreground">
+                {isVertical ? '画布宽度' : '画布高度'}（px）
+              </span>
+            </div>
+          </div>
+        </SettingField>
+      </FieldGroup>
+
+      <div className="flex items-center gap-3">
+        <Button type="button" variant="outline" size="sm" onClick={onGoToCollage}>
+          到拼图页看看
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          已保存的拼图不会自动跟随，可在拼图页点「恢复默认」。
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** 拼图导出默认值：新建拼图时导出面板的初始参数。 */
+function CollageExportDefaultsTab({
+  config,
+  onChange,
+  onGoToCollage,
+}: {
+  config: CollageConfig;
+  onChange: (patch: Partial<CollageConfig>) => void;
+  onGoToCollage: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <FieldGroup
+        title="拼图导出"
+        description="新建拼图时导出面板的初始参数。已经摆在画布上的拼图不受影响——在拼图页「导出」分区点「恢复默认」即可套用这里的值。"
+      >
+        <SettingField
+          id="collage-export-format"
+          label="默认格式"
+          description="JPG 体积更小，PNG 无损。"
+        >
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { id: 'png' as const, label: 'PNG' },
+              { id: 'jpeg' as const, label: 'JPG' },
+            ].map((option) => (
+              <ChoiceChip
+                key={option.id}
+                active={config.export_format === option.id}
+                onClick={() => onChange({ export_format: option.id })}
+              >
+                {option.label}
+              </ChoiceChip>
+            ))}
+          </div>
+        </SettingField>
+
+        <SettingField id="collage-export-quality" label="默认质量" description="只有 JPG 会用到。">
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { id: 'standard' as const, label: '标准' },
+              { id: 'high' as const, label: '高清' },
+              { id: 'ultra' as const, label: '超清' },
+            ].map((option) => (
+              <ChoiceChip
+                key={option.id}
+                active={config.export_quality === option.id}
+                onClick={() => onChange({ export_quality: option.id })}
+              >
+                {option.label}
+              </ChoiceChip>
+            ))}
+          </div>
+        </SettingField>
+
+        <SettingField
+          id="collage-export-scale"
+          label="默认倍率"
+          description="在目标尺寸之上做位图超采样，2x 就是长宽各翻一倍。"
+        >
+          <div className="flex flex-wrap gap-1.5">
+            {[1, 2, 3].map((value) => (
+              <ChoiceChip
+                key={value}
+                active={config.export_scale === value}
+                onClick={() => onChange({ export_scale: value })}
+              >
+                {value}x
+              </ChoiceChip>
+            ))}
+          </div>
+        </SettingField>
+
+        <SettingField
+          id="collage-export-size"
+          label="默认尺寸"
+          description="导出面板里的目标宽高；锁定比例时改宽度会自动推高度。"
+        >
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground">宽度</span>
+              <Input
+                aria-label="默认导出宽度"
+                className="h-8 w-28"
+                inputMode="numeric"
+                value={String(config.export_width)}
+                onChange={(event) => onChange({ export_width: Number(event.target.value) || 2048 })}
+              />
+            </div>
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground">高度</span>
+              <Input
+                aria-label="默认导出高度"
+                className="h-8 w-28"
+                inputMode="numeric"
+                value={String(config.export_height)}
+                onChange={(event) =>
+                  onChange({ export_height: Number(event.target.value) || 2048 })
+                }
+              />
+            </div>
+            <div className="flex items-center gap-2 pb-1">
+              <Switch
+                checked={config.export_lock_ratio}
+                onCheckedChange={(checked) => onChange({ export_lock_ratio: checked })}
+              />
+              <span className="text-xs text-muted-foreground">锁定画布比例</span>
+            </div>
+          </div>
+        </SettingField>
+      </FieldGroup>
+
+      <div className="flex items-center gap-3">
+        <Button type="button" variant="outline" size="sm" onClick={onGoToCollage}>
+          到拼图页看看
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          「常用尺寸」在「导出」页维护，拼图导出面板与边框水印共用同一份。
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function ExportTab({
   config,
   onSelectExportDirectory,
@@ -1213,6 +1558,32 @@ export function SettingsPage() {
     setOverview(nextOverview);
   }, []);
 
+  /**
+   * 最近一次写入的配置。
+   *
+   * 连点档位、拖滑杆时回调闭包里的 `config` 还是旧值，逐次保存会互相覆盖
+   * （后一次把前一次的改动写回旧值）。所有「改一块」的操作都以这份最新值为基准。
+   */
+  const configRef = useRef<AppConfig | null>(null);
+  useEffect(() => {
+    configRef.current = config;
+  }, [config]);
+
+  const patchConfig = useCallback(
+    async (patch: (current: AppConfig) => AppConfig) => {
+      const current = configRef.current;
+      if (!current) {
+        return;
+      }
+
+      const next = patch(current);
+      // 先更新 ref：连续调用时下一次就能看到这一次的结果
+      configRef.current = next;
+      await saveConfig(next);
+    },
+    [saveConfig],
+  );
+
   const withCacheAction = useCallback(async (runner: () => Promise<void>) => {
     setCacheActionPending(true);
     try {
@@ -1329,6 +1700,22 @@ export function SettingsPage() {
    * 与默认档位一样只动设置，不影响任何照片已有的档位；导出面板在打开下拉时
    * 会重新读一次，所以这里保存完立刻生效。
    */
+  /** 拼图默认值：配置里读不到时用出厂默认兜底（Web 端） */
+  const collageConfig = useMemo<CollageConfig>(
+    () => ({ ...DEFAULT_COLLAGE_CONFIG, ...(config?.collage ?? {}) }),
+    [config?.collage],
+  );
+
+  const handleChangeCollage = useCallback(
+    (patch: Partial<CollageConfig>) => {
+      void patchConfig((current) => ({
+        ...current,
+        collage: { ...DEFAULT_COLLAGE_CONFIG, ...current.collage, ...patch },
+      }));
+    },
+    [patchConfig],
+  );
+
   const handleChangeExportSizes = useCallback(
     async (sizes: OutputSize[]) => {
       if (!config) {
@@ -1656,23 +2043,17 @@ export function SettingsPage() {
               />
             </TabsContent>
             <TabsContent value="collage" className="mt-0">
-              <PlaceholderTab
-                title="拼图默认项"
-                description="拼图默认项仍保持占位状态，本次优先落地素材缓存链路。"
-                cards={[
-                  { title: '默认布局', description: '后续与拼图布局预设联动。' },
-                  { title: '默认画布样式', description: '后续与拼图渲染设置联动。' },
-                ]}
+              <CollageDefaultsTab
+                config={collageConfig}
+                onChange={handleChangeCollage}
+                onGoToCollage={() => navigate('/collage')}
               />
             </TabsContent>
             <TabsContent value="collage-export" className="mt-0">
-              <PlaceholderTab
-                title="拼图导出"
-                description="只对拼图生效的导出默认值仍保持占位状态，目前这些参数在拼图页的导出面板里按次设置。"
-                cards={[
-                  { title: '默认导出格式', description: '后续与拼图导出管线联动。' },
-                  { title: '默认倍率与质量', description: '后续与拼图导出面板联动。' },
-                ]}
+              <CollageExportDefaultsTab
+                config={collageConfig}
+                onChange={handleChangeCollage}
+                onGoToCollage={() => navigate('/collage')}
               />
             </TabsContent>
             <TabsContent value="export" className="mt-0">

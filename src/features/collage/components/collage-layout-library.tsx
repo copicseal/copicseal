@@ -76,7 +76,7 @@ function SegmentedControl<T extends string>({
   const t = useTranslate();
 
   return (
-    <div className={cn('flex min-w-0 items-center gap-1 bg-muted/50 p-1', className)}>
+    <div className={cn('flex min-w-0 items-center gap-1 rounded-lg bg-muted/50 p-1', className)}>
       {options.map((option) => {
         const Icon = option.icon;
         const active = option.id === value;
@@ -87,7 +87,7 @@ function SegmentedControl<T extends string>({
             type="button"
             onClick={() => onChange(option.id)}
             className={cn(
-              'flex min-w-0 flex-1 items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-medium transition-colors',
+              'flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
               active
                 ? 'bg-background text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',

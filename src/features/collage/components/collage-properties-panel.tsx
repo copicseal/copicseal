@@ -164,14 +164,14 @@ export function CollagePropertiesPanel({
         <span className="text-xs font-medium text-foreground">
           {t('collage.properties.target')}
         </span>
-        <div className="flex items-center gap-1 bg-muted/50 p-1">
+        <div className="flex items-center gap-1 rounded-lg bg-muted/50 p-1">
           {TARGET_TABS.map((item) => (
             <button
               key={item.id}
               type="button"
               onClick={() => setTab(item.id)}
               className={cn(
-                'flex-1 px-2 py-1.5 text-xs font-medium transition-colors',
+                'flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
                 tab === item.id
                   ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground',

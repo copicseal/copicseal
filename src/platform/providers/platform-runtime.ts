@@ -1,3 +1,4 @@
+import { translate } from '@/shared/i18n';
 import * as tauriApi from './tauri/api';
 import { webExifAdapter } from './web/web-exif-adapter';
 import { WebStorageAdapter } from './web/web-storage-adapter';
@@ -39,13 +40,13 @@ const webRuntime = {
   listSystemFonts: async () => [],
   inlineSystemFont: async () => null,
   importFontFile: async () => {
-    throw new Error('网页端没有工作区目录，无法导入字体文件');
+    throw new Error(translate('common.error.webNoWorkspace.importFonts'));
   },
   importFontBytes: async () => {
-    throw new Error('网页端没有工作区目录，无法导入字体文件');
+    throw new Error(translate('common.error.webNoWorkspace.importFonts'));
   },
   removeFontFile: async () => {
-    throw new Error('网页端没有工作区目录，无法删除字体文件');
+    throw new Error(translate('common.error.webNoWorkspace.deleteFonts'));
   },
   inlineImportedFont: async () => null,
   getConfig: async () => (await webStorage.get('app-config')) ?? defaultConfig,

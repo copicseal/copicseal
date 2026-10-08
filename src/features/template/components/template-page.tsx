@@ -44,6 +44,7 @@ import {
 import { CoPanelSection } from '@/shared/components/co-panel-section';
 import { CoWindowHeader } from '@/shared/components/co-window-header';
 import { usePhotos } from '@/shared/hooks/use-photos';
+import { type MessageKey, useTranslate } from '@/shared/i18n';
 import {
   BusinessWorkbench,
   BusinessWorkbenchAssetsPane,
@@ -83,14 +84,23 @@ function ImportProgressPanel({
   total: number;
   currentName: string | null;
 }) {
+  const t = useTranslate();
   const progress = total > 0 ? Math.min((current / total) * 100, 100) : 0;
+  // 有文件名时把「当前在导哪一张」一并写进去：用户数据只作插值参数，不参与拼接
+  let label: string;
+  if (total > 0) {
+    label = currentName
+      ? t('template.assets.importingWithName', { current, total, name: currentName })
+      : t('template.assets.importing', { current, total });
+  } else {
+    label = currentName
+      ? t('template.assets.preparingImportWithName', { name: currentName })
+      : t('template.assets.preparingImport');
+  }
 
   return (
     <div className="flex h-6 shrink-0 items-center gap-3 rounded-full border border-border/80 bg-muted/30 px-2">
-      <p className="min-w-0 flex-1 truncate text-[10px] text-muted-foreground">
-        {total > 0 ? `正在导入 ${current} / ${total}` : '正在准备导入...'}
-        {currentName ? ` · ${currentName}` : ''}
-      </p>
+      <p className="min-w-0 flex-1 truncate text-[10px] text-muted-foreground">{label}</p>
       <div className="h-1 w-24 shrink-0 overflow-hidden rounded-full bg-border/60">
         <div
           className="h-full rounded-full bg-primary transition-[width] duration-200 ease-out"
@@ -116,6 +126,7 @@ interface TemplateExportActionsProps {
 }
 
 function TemplateExportActions({ exporting, ready, onExport }: TemplateExportActionsProps) {
+  const t = useTranslate();
   const busy = exporting !== null || !ready;
 
   return (
@@ -124,24 +135,26 @@ function TemplateExportActions({ exporting, ready, onExport }: TemplateExportAct
         {exporting === 'single' ? (
           <Loader2 data-icon="inline-start" className="animate-spin" />
         ) : null}
-        导出当前
+        {t('template.actions.exportCurrent')}
       </Button>
       <Button size="sm" disabled={busy} onClick={() => onExport('batch')}>
         {exporting === 'batch' ? (
           <Loader2 data-icon="inline-start" className="animate-spin" />
         ) : null}
-        批量导出
+        {t('template.actions.exportBatch')}
       </Button>
     </div>
   );
 }
 
 function TemplateHeader({ exporting, ready, onExport }: TemplateExportActionsProps) {
+  const t = useTranslate();
+
   return (
     <CoWindowHeader
       icon={LayoutTemplate}
-      title="边框水印"
-      description="模板渲染与导出"
+      title={t('template.header.title')}
+      description={t('template.header.description')}
       actions={<TemplateExportActions exporting={exporting} ready={ready} onExport={onExport} />}
     />
   );
@@ -164,6 +177,7 @@ function TemplateAssetsPanel({
     importViaDrop,
     importState,
   } = usePhotos();
+  const t = useTranslate();
   const pageActive = usePageActive();
   const currentPhoto = photos[currentIndex];
 
@@ -200,14 +214,14 @@ function TemplateAssetsPanel({
                 size="icon"
                 aria-expanded={!collapsed}
                 aria-controls="template-assets-content"
-                aria-label={collapsed ? '展开素材面板' : '收起素材面板'}
+                aria-label={collapsed ? t('template.assets.expand') : t('template.assets.collapse')}
                 onClick={toggleCollapsed}
               >
                 {collapsed ? <ChevronUp /> : <ChevronDown />}
               </Button>
             </TooltipTrigger>
             <TooltipContent side="top" sideOffset={6}>
-              {collapsed ? '展开素材面板' : '收起素材面板'}
+              {collapsed ? t('template.assets.expand') : t('template.assets.collapse')}
             </TooltipContent>
           </Tooltip>
         </div>
@@ -230,7 +244,7 @@ function TemplateAssetsPanel({
                         <TooltipTrigger asChild>
                           <button
                             type="button"
-                            aria-label={`切换到 ${photo.name}`}
+                            aria-label={t('template.assets.switchTo', { name: photo.name })}
                             aria-current={active ? 'true' : undefined}
                             className={cn(
                               'relative flex size-6 shrink-0 items-center justify-center overflow-hidden border bg-background/80 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
@@ -276,7 +290,9 @@ function TemplateAssetsPanel({
                   ) : (
                     <div className="flex h-6 min-w-0 flex-col justify-center">
                       <div className="flex min-w-0 items-center gap-2">
-                        <h2 className="shrink-0 text-xs/3 font-semibold">素材库</h2>
+                        <h2 className="shrink-0 text-xs/3 font-semibold">
+                          {t('template.assets.title')}
+                        </h2>
                         {currentPhoto ? (
                           <span className="shrink-0 text-[10px]/3 font-medium text-muted-foreground tabular-nums">
                             {currentIndex + 1} / {photos.length}
@@ -298,11 +314,11 @@ function TemplateAssetsPanel({
                   <div className="flex items-center gap-2">
                     <Button variant="outline" size="sm" onClick={() => void importViaDirectory()}>
                       <FolderOpen data-icon="inline-start" />
-                      导入文件夹
+                      {t('template.assets.importFolder')}
                     </Button>
                     <Button variant="outline" size="sm" onClick={() => void importViaDialog()}>
                       <ImageIcon data-icon="inline-start" />
-                      导入图片
+                      {t('template.assets.importPhoto')}
                     </Button>
                   </div>
                 ) : null}
@@ -320,12 +336,14 @@ function TemplateAssetsPanel({
                           <ImageIcon className="size-5" />
                           <div>
                             <p className="text-xs font-medium">
-                              {importState.active ? '图片正在导入中…' : '拖入图片开始边框水印'}
+                              {importState.active
+                                ? t('template.empty.importing')
+                                : t('template.empty.dropHint')}
                             </p>
                             <p className="text-[10px]">
                               {importState.active
-                                ? '素材会逐步加入当前列表'
-                                : '或点击右上角导入本地图片'}
+                                ? t('template.empty.importingHint')
+                                : t('template.empty.importHint')}
                             </p>
                           </div>
                         </div>
@@ -367,7 +385,7 @@ function TemplateAssetsPanel({
                                   ) : (
                                     <div className="flex h-full w-full items-center justify-center bg-muted/40 px-2 text-center">
                                       <span className="text-[9px] text-muted-foreground">
-                                        生成缩略图中
+                                        {t('template.assets.generatingThumbnail')}
                                       </span>
                                     </div>
                                   )}
@@ -388,14 +406,16 @@ function TemplateAssetsPanel({
                                     variant="default"
                                     size="icon-sm"
                                     className="absolute top-1.5 right-1.5 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"
-                                    aria-label={`删除 ${photo.name}`}
+                                    aria-label={t('template.assets.removeAria', {
+                                      name: photo.name,
+                                    })}
                                     onClick={() => removePhoto(photo.id)}
                                   >
                                     <Trash2 />
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent side="top" sideOffset={6}>
-                                  删除素材
+                                  {t('template.assets.remove')}
                                 </TooltipContent>
                               </Tooltip>
                             </div>
@@ -415,10 +435,10 @@ function TemplateAssetsPanel({
 }
 
 /** 一键应用提示里的范围名，与按钮文案保持一致。 */
-const APPLY_SCOPE_LABELS: Record<TemplateApplyScope, string> = {
-  template: '模板与参数',
-  background: '背景',
-  presets: '导出档位',
+const APPLY_SCOPE_LABEL_KEYS: Record<TemplateApplyScope, MessageKey> = {
+  template: 'template.applyScope.template',
+  background: 'template.applyScope.background',
+  presets: 'template.applyScope.presets',
 };
 
 /**
@@ -436,10 +456,12 @@ function ApplyToOthersButton({
   count: number;
   onClick: () => void;
 }) {
+  const t = useTranslate();
+
   return (
     <Button type="button" variant="outline" size="sm" className="w-full" onClick={onClick}>
       <Copy data-icon="inline-start" />
-      {label}（{count} 张）
+      {t('template.applyToOthers.label', { label, count })}
     </Button>
   );
 }
@@ -492,6 +514,7 @@ function TemplatePropertiesPanel({
   /** 读取当前照片像素尺寸（给档位的「原始尺寸」用）；由页面提供 */
   resolvePhotoSize: () => { width: number; height: number } | null;
 }) {
+  const t = useTranslate();
   const templateSchema = getBuiltinTemplateSchema(activeTemplateId);
 
   if (!hasPhoto) {
@@ -500,7 +523,7 @@ function TemplatePropertiesPanel({
         <ScrollArea className="min-h-0 min-w-0 flex-1" viewportClassName="[&>div]:!block">
           <div className="px-3 py-3">
             <section className="border border-border/80 bg-background/70 px-4 py-4 text-xs leading-6 text-muted-foreground shadow-sm">
-              导入图片后即可调整这张照片的模板、参数、背景与导出档位。
+              {t('template.empty.properties')}
             </section>
           </div>
         </ScrollArea>
@@ -523,8 +546,8 @@ function TemplatePropertiesPanel({
           />
           {templateSchema ? (
             <CoPanelSection
-              title="模板参数"
-              description="每个模板有自己的可调项，换了模板就会回到新模板的默认值。"
+              title={t('template.panel.templateParams.title')}
+              description={t('template.panel.templateParams.description')}
               defaultOpen={false}
             >
               <div className="space-y-3">
@@ -535,7 +558,7 @@ function TemplatePropertiesPanel({
                 />
                 {otherPhotoCount > 0 ? (
                   <ApplyToOthersButton
-                    label="模板与参数应用到其他"
+                    label={t('template.applyToOthers.template')}
                     count={otherPhotoCount}
                     onClick={() => onApplyToOthers('template')}
                   />
@@ -544,8 +567,8 @@ function TemplatePropertiesPanel({
             </CoPanelSection>
           ) : null}
           <CoPanelSection
-            title="背景"
-            description="起始值随模板变化，可按当前照片单独调整。"
+            title={t('template.panel.background.title')}
+            description={t('template.panel.background.description')}
             defaultOpen={false}
           >
             <div className="space-y-3">
@@ -568,7 +591,7 @@ function TemplatePropertiesPanel({
               />
               {otherPhotoCount > 0 ? (
                 <ApplyToOthersButton
-                  label="背景应用到其他"
+                  label={t('template.applyToOthers.background')}
                   count={otherPhotoCount}
                   onClick={() => onApplyToOthers('background')}
                 />
@@ -576,8 +599,8 @@ function TemplatePropertiesPanel({
             </div>
           </CoPanelSection>
           <CoPanelSection
-            title="导出"
-            description="每个档位保存一组尺寸和画质设置。没有背景时按比例套用目标尺寸，正方形画面配 1280×720 会导出 720×720；有背景时成片尺寸就是设定的宽高。存为默认档位后，之后导入的图片会自动套用这组档位。"
+            title={t('template.panel.export.title')}
+            description={t('template.panel.export.description')}
           >
             <div className="space-y-3">
               <TemplateExportPanel
@@ -592,14 +615,14 @@ function TemplatePropertiesPanel({
               />
               {otherPhotoCount > 0 ? (
                 <ApplyToOthersButton
-                  label="导出档位应用到其他"
+                  label={t('template.applyToOthers.presets')}
                   count={otherPhotoCount}
                   onClick={() => onApplyToOthers('presets')}
                 />
               ) : null}
             </div>
           </CoPanelSection>
-          <CoPanelSection title="EXIF 信息" defaultOpen={false}>
+          <CoPanelSection title={t('template.panel.exif.title')} defaultOpen={false}>
             <TemplateExifCard />
           </CoPanelSection>
         </div>
@@ -615,6 +638,7 @@ function stripExtension(name: string): string {
 }
 
 export function TemplatePage() {
+  const t = useTranslate();
   const previewRef = useRef<HTMLDivElement | null>(null);
   const { photos, currentIndex, setCurrentIndex, currentPhoto } = usePhotos();
   // 模板、参数、背景与档位都取自当前照片自己的配置
@@ -752,7 +776,7 @@ export function TemplatePage() {
     setDefaultFont(next);
     void saveDefaultFont(next).catch((error) => {
       console.error('保存默认字体失败:', error);
-      toast.error('保存默认字体失败');
+      toast.error(t('template.toast.saveDefaultFontFailed'));
     });
   };
 
@@ -766,7 +790,12 @@ export function TemplatePage() {
       currentPhoto.id,
       scope,
     );
-    toast.success(`已把${APPLY_SCOPE_LABELS[scope]}应用到其余 ${otherPhotoCount} 张照片`);
+    toast.success(
+      t('template.toast.appliedToOthers', {
+        scope: t(APPLY_SCOPE_LABEL_KEYS[scope]),
+        count: otherPhotoCount,
+      }),
+    );
   };
 
   const handleExportCurrent = async (options: ExportOptions) => {
@@ -860,7 +889,7 @@ export function TemplatePage() {
       });
 
       if (skipped > 0) {
-        toast.warning(`${skipped} 张照片的档位不完整，已跳过`);
+        toast.warning(t('template.toast.skippedIncomplete', { count: skipped }));
       }
       if (exported > 0) {
         notifyExportedDirectory(outputDir);
@@ -914,10 +943,10 @@ export function TemplatePage() {
       const presets = toDefaultPresets(config.presets);
       await saveDefaultOutputPresets(presets);
       setDefaultPresets(parseDefaultPresets(presets));
-      toast.success('已存为默认档位，之后导入的图片会自动套用');
+      toast.success(t('template.toast.savedAsDefault'));
     } catch (error) {
       console.error('Save default export presets failed:', error);
-      toast.error('保存默认档位失败');
+      toast.error(t('template.toast.saveDefaultFailed'));
     }
   };
 

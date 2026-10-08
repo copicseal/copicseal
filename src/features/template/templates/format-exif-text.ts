@@ -1,15 +1,21 @@
 import type { ExifData } from '@/platform';
+import type { MessageKey } from '@/shared/i18n';
 
 /** 模板文案中支持的内置 EXIF 变量，同时用于属性面板提示。 */
-export const EXIF_TEXT_VARIABLES: readonly { token: string; label: string }[] = [
-  { token: '{Make}', label: '相机品牌' },
-  { token: '{Model}', label: '相机型号' },
-  { token: '{LensModel}', label: '镜头型号' },
-  { token: '{FocalLength}', label: '焦距' },
-  { token: '{FNumber}', label: '光圈' },
-  { token: '{ExposureTime}', label: '快门' },
-  { token: '{ISO}', label: '感光度' },
-  { token: '{DateTaken}', label: '拍摄时间' },
+export const EXIF_TEXT_VARIABLES: readonly {
+  token: string;
+  label: string;
+  /** 变量名的文案 key；界面优先用它，缺省回落到 `label` 字面量 */
+  labelKey?: MessageKey;
+}[] = [
+  { token: '{Make}', label: '相机品牌', labelKey: 'template.meta.exifVariable.make' },
+  { token: '{Model}', label: '相机型号', labelKey: 'template.meta.exifVariable.model' },
+  { token: '{LensModel}', label: '镜头型号', labelKey: 'template.meta.exifVariable.lensModel' },
+  { token: '{FocalLength}', label: '焦距', labelKey: 'template.meta.exifVariable.focalLength' },
+  { token: '{FNumber}', label: '光圈', labelKey: 'template.meta.exifVariable.fNumber' },
+  { token: '{ExposureTime}', label: '快门', labelKey: 'template.meta.exifVariable.exposureTime' },
+  { token: '{ISO}', label: '感光度', labelKey: 'template.meta.exifVariable.iso' },
+  { token: '{DateTaken}', label: '拍摄时间', labelKey: 'template.meta.exifVariable.dateTaken' },
 ];
 
 const TOKEN_PATTERN = /\{([A-Za-z]+)\}/g;

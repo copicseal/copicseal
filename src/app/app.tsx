@@ -7,6 +7,7 @@ import TemplatePage from '@/features/template';
 import { platformCapabilities } from '@/platform';
 import { platformRuntime } from '@/platform/providers/platform-runtime';
 import { CoSidebar } from '@/shared/components/co-sidebar';
+import { I18nProvider, translate } from '@/shared/i18n';
 import { cn } from '@/shared/lib/utils';
 import { NavigationProvider } from '@/shared/providers/navigation-provider';
 import { PageActivityProvider } from '@/shared/providers/page-activity-provider';
@@ -63,8 +64,10 @@ function AppContent() {
       try {
         const update = await platformRuntime.checkForUpdate();
         if (!cancelled && update) {
-          toast.info(`发现新版本 ${update.version}`, {
-            description: '可在「设置 → 关于」中下载并安装',
+          // 这条提示在启动时只弹一次、不属于任何一次渲染的派生结果，所以走
+          // `translate()` 取当前语言，而不是把 `t` 塞进 effect 依赖里反复触发更新检查。
+          toast.info(translate('app.update.available', { version: update.version }), {
+            description: translate('app.update.availableHint'),
           });
         }
       } catch {
@@ -131,9 +134,12 @@ function AppContent() {
 
 function App() {
   return (
-    <WindowStyleProvider>
-      <AppContent />
-    </WindowStyleProvider>
+    // I18nProvider 放最外层：toast、侧栏、窗口外壳里的文案都要能取到当前语言
+    <I18nProvider>
+      <WindowStyleProvider>
+        <AppContent />
+      </WindowStyleProvider>
+    </I18nProvider>
   );
 }
 

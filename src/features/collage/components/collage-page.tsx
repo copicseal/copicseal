@@ -22,6 +22,7 @@ import {
 import { CoWindowHeader } from '@/shared/components/co-window-header';
 import { useElementSize } from '@/shared/hooks/use-element-size';
 import { usePhotos } from '@/shared/hooks/use-photos';
+import { useTranslate } from '@/shared/i18n';
 import {
   BusinessWorkbench,
   BusinessWorkbenchPropertiesPane,
@@ -37,10 +38,8 @@ import { CollageLayoutLibrary } from './collage-layout-library';
 import { CollagePropertiesPanel } from './collage-properties-panel';
 import { CollageToolbar } from './collage-toolbar';
 
-/** 拼图导出文件名的自动命名主干：拼图是整块画布，没有单张原图名可沿用。 */
-const COLLAGE_BASE_NAME = '拼图';
-
 export function CollagePage() {
+  const t = useTranslate();
   const previewRef = useRef<HTMLDivElement | null>(null);
   const pageActive = usePageActive();
   const { photos, importViaDrop } = usePhotos();
@@ -217,7 +216,8 @@ export function CollagePage() {
       const options = buildOptions();
 
       await exportSingle(element, options, undefined, {
-        baseName: COLLAGE_BASE_NAME,
+        // 拼图是整块画布，没有单张原图名可沿用，命名主干由文案给出
+        baseName: t('collage.export.baseName'),
         outputDir,
         sizeAdapter: {
           prepare: async (target) => {
@@ -270,7 +270,13 @@ export function CollagePage() {
 
   return (
     <BusinessWorkbench
-      header={<CoWindowHeader icon={Grid3x3} title="拼图" description="多图拼接、单格取景与导出" />}
+      header={
+        <CoWindowHeader
+          icon={Grid3x3}
+          title={t('collage.page.title')}
+          description={t('collage.page.description')}
+        />
+      }
       toolbar={<CollageToolbar onExport={() => void handleExport()} exporting={exporting} />}
       library={<CollageLayoutLibrary />}
       // 素材区与「边框水印」一致：固定高度、可折叠，不做可拖拽分隔

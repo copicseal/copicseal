@@ -1,4 +1,5 @@
 import { Check } from 'lucide-react';
+import { useTranslate } from '@/shared/i18n';
 import { cn } from '@/shared/lib/utils';
 
 interface PhotoPalettePickerProps {
@@ -36,11 +37,11 @@ export function PhotoPalettePicker({
   failed,
   onPick,
 }: PhotoPalettePickerProps) {
+  const t = useTranslate();
+
   if (failed) {
     return (
-      <p className="text-[10px] leading-4 text-muted-foreground">
-        未能提取照片主题色，可直接手动选择颜色。
-      </p>
+      <p className="text-[10px] leading-4 text-muted-foreground">{t('template.palette.failed')}</p>
     );
   }
 
@@ -49,8 +50,8 @@ export function PhotoPalettePicker({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-2 text-[10px] text-muted-foreground">
-        <span>照片主题色</span>
-        <span>{loading ? '提取中…' : '点击直接应用'}</span>
+        <span>{t('template.palette.title')}</span>
+        <span>{loading ? t('template.palette.extracting') : t('template.palette.hint')}</span>
       </div>
       <div className="flex flex-wrap items-center gap-1">
         {loading
@@ -65,7 +66,7 @@ export function PhotoPalettePicker({
                   key={color}
                   type="button"
                   title={color}
-                  aria-label={`应用主题色 ${color}`}
+                  aria-label={t('template.palette.applyAria', { color })}
                   aria-pressed={isActive}
                   onClick={() => onPick(color)}
                   className={cn(

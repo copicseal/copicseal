@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react';
 import type { ExifData } from '@/platform';
+import type { MessageKey } from '@/shared/i18n';
 import type { TemplateBackground } from '../background';
 
 /**
@@ -23,14 +24,22 @@ export interface TemplateInjectedProps {
 export interface TemplateMeta {
   id: string;
   name: string;
+  /** 显示名的文案 key；界面优先用它，缺省回落到 `name` 字面量 */
+  nameKey?: MessageKey;
   description: string;
+  /** 说明文字的文案 key；界面优先用它，缺省回落到 `description` 字面量 */
+  descriptionKey?: MessageKey;
   tags?: string[];
+  /** 标签的文案 key，与 `tags` 一一对应；缺省时回落字面量 */
+  tagKeys?: MessageKey[];
 }
 
 export type TemplateFieldType = 'number' | 'color' | 'select' | 'text' | 'boolean';
 
 export interface TemplateFieldOption {
   label: string;
+  /** 选项名的文案 key；界面优先用它，缺省回落到 `label` 字面量 */
+  labelKey?: MessageKey;
   value: string;
 }
 
@@ -39,8 +48,12 @@ interface TemplateFieldBase<TKey extends string> {
   key: TKey;
   /** 属性面板中展示的标签 */
   label: string;
+  /** 标签的文案 key；界面优先用它，缺省回落到 `label` 字面量 */
+  labelKey?: MessageKey;
   /** 可选补充说明，用于解释该参数的作用 */
   description?: string;
+  /** 补充说明的文案 key；界面优先用它，缺省回落到 `description` 字面量 */
+  descriptionKey?: MessageKey;
   /** 仅当同一表单内另一字段取到给定值之一时才显示 */
   visibleWhen?: { key: TKey; equals: readonly (string | number | boolean)[] };
 }

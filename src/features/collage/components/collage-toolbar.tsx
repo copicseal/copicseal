@@ -2,6 +2,7 @@ import { Download, Eraser, Hand, Loader2, MousePointer2, Redo2, Undo2, Wand2 } f
 import { useMemo } from 'react';
 import { useCollageStore } from '@/features/collage/store/use-collage-store';
 import { usePhotos } from '@/shared/hooks/use-photos';
+import { useTranslate } from '@/shared/i18n';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 
@@ -15,6 +16,7 @@ function Divider() {
 }
 
 export function CollageToolbar({ onExport, exporting }: CollageToolbarProps) {
+  const t = useTranslate();
   const { photos } = usePhotos();
   const { past, future, tool, setTool, undo, redo, fillEmptySlots, resetSlots, present } =
     useCollageStore();
@@ -27,7 +29,7 @@ export function CollageToolbar({ onExport, exporting }: CollageToolbarProps) {
       <Button
         variant="ghost"
         size="icon-sm"
-        aria-label="撤销"
+        aria-label={t('collage.toolbar.undo')}
         disabled={past.length === 0}
         onClick={undo}
       >
@@ -36,7 +38,7 @@ export function CollageToolbar({ onExport, exporting }: CollageToolbarProps) {
       <Button
         variant="ghost"
         size="icon-sm"
-        aria-label="重做"
+        aria-label={t('collage.toolbar.redo')}
         disabled={future.length === 0}
         onClick={redo}
       >
@@ -48,7 +50,7 @@ export function CollageToolbar({ onExport, exporting }: CollageToolbarProps) {
       <div className="flex items-center gap-1 bg-muted/50 p-0.5">
         <button
           type="button"
-          title="选择：拖动画面换位"
+          title={t('collage.toolbar.selectTooltip')}
           onClick={() => setTool('select')}
           className={cn(
             'flex items-center gap-1 px-2 py-1 text-xs',
@@ -58,11 +60,11 @@ export function CollageToolbar({ onExport, exporting }: CollageToolbarProps) {
           )}
         >
           <MousePointer2 className="size-3.5" />
-          选择
+          {t('collage.toolbar.select')}
         </button>
         <button
           type="button"
-          title="平移：拖动画面调整单格取景，滚轮缩放，双击复位"
+          title={t('collage.toolbar.panTooltip')}
           onClick={() => setTool('pan')}
           className={cn(
             'flex items-center gap-1 px-2 py-1 text-xs',
@@ -72,7 +74,7 @@ export function CollageToolbar({ onExport, exporting }: CollageToolbarProps) {
           )}
         >
           <Hand className="size-3.5" />
-          平移
+          {t('collage.toolbar.pan')}
         </button>
       </div>
 
@@ -82,20 +84,20 @@ export function CollageToolbar({ onExport, exporting }: CollageToolbarProps) {
         variant="ghost"
         size="sm"
         disabled={!hasPhotos}
-        title="只把还没放进去的素材补进空位，已有格子的取景与缩放保持不动"
+        title={t('collage.toolbar.fillEmptyTooltip')}
         onClick={() => fillEmptySlots(photoIds)}
       >
         <Wand2 data-icon="inline-start" />
-        补齐空位
+        {t('collage.toolbar.fillEmpty')}
       </Button>
       <Button variant="ghost" size="sm" disabled={!hasSlots} onClick={resetSlots}>
         <Eraser data-icon="inline-start" />
-        复位画面
+        {t('collage.toolbar.resetSlots')}
       </Button>
 
       <div className="ml-auto flex items-center gap-2">
         <span className="hidden text-[11px] text-muted-foreground md:inline">
-          {tool === 'pan' ? '拖动调整取景 · 滚轮缩放 · 双击复位' : '拖动画面换位 · 双击复位'}
+          {tool === 'pan' ? t('collage.toolbar.panHint') : t('collage.toolbar.selectHint')}
         </span>
         <Button size="sm" disabled={exporting || !hasSlots} onClick={onExport}>
           {exporting ? (
@@ -103,7 +105,7 @@ export function CollageToolbar({ onExport, exporting }: CollageToolbarProps) {
           ) : (
             <Download data-icon="inline-start" />
           )}
-          导出
+          {t('collage.toolbar.export')}
         </Button>
       </div>
     </div>

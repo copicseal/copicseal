@@ -1,4 +1,5 @@
 import { type DragEvent, type FC, type ReactNode, useRef, useState } from 'react';
+import { useTranslate } from '@/shared/i18n';
 import { cn } from '@/shared/lib/utils';
 
 interface CoDropZoneProps {
@@ -8,6 +9,7 @@ interface CoDropZoneProps {
 }
 
 export const CoDropZone: FC<CoDropZoneProps> = ({ onFilesDrop, className, children }) => {
+  const t = useTranslate();
   const [isDragging, setIsDragging] = useState(false);
   const dragCounter = useRef(0);
 
@@ -63,7 +65,7 @@ export const CoDropZone: FC<CoDropZoneProps> = ({ onFilesDrop, className, childr
     >
       {isDragging && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center rounded-lg bg-primary/5">
-          <p className="text-lg font-medium text-primary">释放以导入照片</p>
+          <p className="text-lg font-medium text-primary">{t('common.dropZone.releaseToImport')}</p>
         </div>
       )}
       {children}

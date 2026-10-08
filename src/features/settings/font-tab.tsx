@@ -9,6 +9,7 @@ import {
 } from '@/features/fonts/use-font-library';
 import { isNativeWindowAvailable } from '@/platform';
 import { useSystemFonts } from '@/shared/hooks/use-system-fonts';
+import { type MessageKey, useTranslate } from '@/shared/i18n';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -20,8 +21,20 @@ const PREVIEW_TEXT = 'Sony ILCE-7M4 122mm f/5.0 ISO 320 中文示例 Aa';
 /** 每页渲染多少个族：近两千个族一次铺出来会卡，分页 + 分类收窄。 */
 const PAGE_SIZE = 48;
 
-/** 分类筛选项；空值表示不过滤。 */
-const CATEGORY_FILTERS = ['无衬线', '衬线', '展示', '手写', '等宽'] as const;
+/**
+ * Google 清单里的分类（值就是 `features/fonts/google-fonts.ts` 里的分类标签）
+ * → 界面文案 key。
+ */
+const CATEGORY_LABEL_KEYS: Record<string, MessageKey> = {
+  无衬线: 'settings.fonts.category.sansSerif',
+  衬线: 'settings.fonts.category.serif',
+  展示: 'settings.fonts.category.display',
+  手写: 'settings.fonts.category.handwriting',
+  等宽: 'settings.fonts.category.monospace',
+};
+
+/** 分类筛选项；`null` 表示不过滤。 */
+const CATEGORY_FILTERS: Array<string | null> = [null, ...Object.keys(CATEGORY_LABEL_KEYS)];
 
 /** 一个 Google CSS 请求里最多拼几个族（接口支持多 family，拼太多 URL 会过长）。 */
 const PREVIEW_CHUNK = 15;
@@ -163,6 +176,7 @@ function GoogleSource({
   library: ReturnType<typeof useFontLibrary>;
   previewText: string;
 }) {
+  const t = useTranslate();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<string | null>(null);
   const [page, setPage] = useState(0);
@@ -242,11 +256,11 @@ function GoogleSource({
       const css = await fetchGoogleFontCss(family);
       const fileUrls = parseFontFaceUrls(css);
       if (fileUrls.length === 0) {
-        throw new Error('没有解析到字体文件');
+        throw new Error(t('settings.fonts.google.errorNoFiles'));
       }
       if (fileUrls.length > 4) {
         // CJK 字体在 Google Fonts 上会被拆成上百个 unicode-range 子集
-        throw new Error('该字体被拆成多个子集，请改用「自定义导入」');
+        throw new Error(t('settings.fonts.google.errorSubsets'));
       }
 
       // 按真实地址取扩展名：UA 不同时 Google 会给 woff2 或 ttf，后缀写错会让
@@ -256,7 +270,7 @@ function GoogleSource({
       await library.importFromUrl(fileUrl, `${family.replace(/\s+/g, '')}.${ext}`);
     } catch (error) {
       console.error('引入 Google 字体失败:', error);
-      toast.error(error instanceof Error ? error.message : '引入失败，请稍后重试');
+      toast.error(error instanceof Error ? error.message : t('settings.fonts.google.importFailed'));
     } finally {
       setBusy(null);
     }
@@ -268,7 +282,7 @@ function GoogleSource({
         <Search className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
         <Input
           value={query}
-          placeholder="搜索 Google Fonts"
+          placeholder={t('settings.fonts.google.searchPlaceholder')}
           className="pl-7"
           onChange={(event) => {
             setQuery(event.target.value);
@@ -279,9 +293,10 @@ function GoogleSource({
 
       {/* 分类分组：近两千个族先按类别收窄，再翻页 */}
       <div className="flex shrink-0 flex-wrap gap-1">
-        {[null, ...CATEGORY_FILTERS].map((item) => {
+        {CATEGORY_FILTERS.map((item) => {
           const active = category === item;
-          const label = item ?? '全部';
+          const label =
+            item === null ? t('settings.fonts.category.all') : t(CATEGORY_LABEL_KEYS[item]);
           return (
             <button
               key={label}
@@ -314,14 +329,18 @@ function GoogleSource({
               key={entry.family}
               title={entry.family}
               family={entry.family}
-              meta={entry.category}
+              meta={
+                CATEGORY_LABEL_KEYS[entry.category]
+                  ? t(CATEGORY_LABEL_KEYS[entry.category])
+                  : entry.category
+              }
               text={previewText}
             >
               {introduced.has(entry.family) ? (
                 // 已经引入过的不再给按钮：重复点只会被去重，这里直接表明状态
                 <Button type="button" variant="plain" size="sm" disabled>
                   <Check data-icon="inline-start" />
-                  已引入
+                  {t('settings.fonts.google.introduced')}
                 </Button>
               ) : (
                 <Button
@@ -332,7 +351,7 @@ function GoogleSource({
                   onClick={() => void handleImport(entry.family)}
                 >
                   <Download data-icon="inline-start" />
-                  引入
+                  {t('settings.fonts.google.import')}
                 </Button>
               )}
             </FontRow>
@@ -342,8 +361,12 @@ function GoogleSource({
 
       <div className="flex shrink-0 items-center justify-between gap-2 text-[10px] text-muted-foreground">
         <span>
-          共 {GOOGLE_FONTS.length} 个族
-          {filtered.length !== GOOGLE_FONTS.length ? `，匹配 ${filtered.length} 个` : ''}
+          {filtered.length === GOOGLE_FONTS.length
+            ? t('settings.fonts.google.total', { count: GOOGLE_FONTS.length })
+            : t('settings.fonts.google.totalFiltered', {
+                total: GOOGLE_FONTS.length,
+                matched: filtered.length,
+              })}
         </span>
         {pageCount > 1 ? (
           <div className="flex items-center gap-1">
@@ -354,7 +377,7 @@ function GoogleSource({
               disabled={currentPage === 0}
               onClick={() => setPage(Math.max(0, currentPage - 1))}
             >
-              上一页
+              {t('settings.fonts.google.prevPage')}
             </Button>
             <span className="tabular-nums">
               {currentPage + 1} / {pageCount}
@@ -366,7 +389,7 @@ function GoogleSource({
               disabled={currentPage >= pageCount - 1}
               onClick={() => setPage(Math.min(pageCount - 1, currentPage + 1))}
             >
-              下一页
+              {t('settings.fonts.google.nextPage')}
             </Button>
           </div>
         ) : null}
@@ -383,6 +406,7 @@ function SystemSource({
   library: ReturnType<typeof useFontLibrary>;
   previewText: string;
 }) {
+  const t = useTranslate();
   const { fonts, loading } = useSystemFonts();
   const [query, setQuery] = useState('');
   const introduced = useMemo(() => new Set(library.favorites), [library.favorites]);
@@ -403,18 +427,22 @@ function SystemSource({
           <Search className="absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
-            placeholder="搜索本机字体"
+            placeholder={t('settings.fonts.system.searchPlaceholder')}
             className="pl-7"
             onChange={(event) => setQuery(event.target.value)}
           />
         </div>
         <span className="shrink-0 text-[10px] text-muted-foreground">
-          {loading ? '读取中…' : `共 ${fonts.length} 个`}
+          {loading
+            ? t('settings.fonts.system.loading')
+            : t('settings.fonts.system.total', { count: fonts.length })}
         </span>
       </div>
 
       {matched.length === 0 ? (
-        <p className="text-xs leading-5 text-muted-foreground">没有匹配的本机字体。</p>
+        <p className="text-xs leading-5 text-muted-foreground">
+          {t('settings.fonts.system.empty')}
+        </p>
       ) : (
         <ScrollArea className="min-h-0 flex-1" viewportClassName="[&>div]:!block">
           <ul className="space-y-2 pr-1">
@@ -423,7 +451,7 @@ function SystemSource({
                 key={item.family}
                 title={item.family}
                 family={item.family}
-                meta="本机"
+                meta={t('settings.fonts.sourceMeta.system')}
                 text={previewText}
               >
                 {introduced.has(item.family) ? (
@@ -434,7 +462,7 @@ function SystemSource({
                     onClick={() => void library.removeFavorite(item.family)}
                   >
                     <X data-icon="inline-start" />
-                    移出
+                    {t('settings.fonts.system.remove')}
                   </Button>
                 ) : (
                   <Button
@@ -443,7 +471,7 @@ function SystemSource({
                     size="sm"
                     onClick={() => void library.addFavorite(item.family)}
                   >
-                    引入
+                    {t('settings.fonts.system.import')}
                   </Button>
                 )}
               </FontRow>
@@ -457,6 +485,7 @@ function SystemSource({
 
 /** 自定义导入：文件复制进工作区 `Fonts/`。 */
 function FileSource({ library }: { library: ReturnType<typeof useFontLibrary> }) {
+  const t = useTranslate();
   const canImport = isNativeWindowAvailable();
 
   return (
@@ -470,13 +499,15 @@ function FileSource({ library }: { library: ReturnType<typeof useFontLibrary> })
           onClick={() => void library.importFromFile()}
         >
           <FolderInput data-icon="inline-start" />
-          选择字体文件
+          {t('settings.fonts.file.select')}
         </Button>
-        <span className="text-[10px] text-muted-foreground">支持 ttf / otf / woff / woff2</span>
+        <span className="text-[10px] text-muted-foreground">
+          {t('settings.fonts.file.formats')}
+        </span>
       </div>
       <p className="text-xs leading-5 text-muted-foreground">
-        文件会被复制到工作区的 <code>{fontsDirectory('…')}</code> 下，跟着工作区一起备份。
-        集合字体（ttc / otc）请先在字体工具里导出单字重再导入。
+        {t('settings.fonts.file.hintPrefix')} <code>{fontsDirectory('…')}</code>{' '}
+        {t('settings.fonts.file.hintSuffix')}
       </p>
     </div>
   );
@@ -490,21 +521,22 @@ function IntroducedList({
   library: ReturnType<typeof useFontLibrary>;
   previewText: string;
 }) {
+  const t = useTranslate();
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
 
   if (library.entries.length === 0) {
     return (
       <p className="text-xs leading-5 text-muted-foreground">
-        还没有引入任何字体。引入后才会出现在模板页的「全局字体」下拉里。
+        {t('settings.fonts.introduced.empty')}
       </p>
     );
   }
 
   const sourceLabel: Record<FontLibraryEntry['source'], string> = {
-    online: 'Google',
-    file: '导入',
-    system: '本机',
+    online: t('settings.fonts.sourceMeta.online'),
+    file: t('settings.fonts.sourceMeta.file'),
+    system: t('settings.fonts.sourceMeta.system'),
   };
 
   const startEditing = (family: string, note?: string) => {
@@ -532,9 +564,9 @@ function IntroducedList({
             <Input
               autoFocus
               value={draft}
-              placeholder="备注，如「手写」"
+              placeholder={t('settings.fonts.introduced.notePlaceholder')}
               className="h-6 w-32 text-xs"
-              aria-label={`${entry.label} 的备注`}
+              aria-label={t('settings.fonts.introduced.noteAria', { name: entry.label })}
               onChange={(event) => setDraft(event.target.value)}
               onBlur={() => void commit(entry.family)}
               onKeyDown={(event) => {
@@ -551,11 +583,13 @@ function IntroducedList({
               type="button"
               variant="plain"
               size="sm"
-              aria-label={`给 ${entry.label} 写备注`}
+              aria-label={t('settings.fonts.introduced.writeNoteAria', { name: entry.label })}
               onClick={() => startEditing(entry.family, entry.note)}
             >
               <Pencil data-icon="inline-start" />
-              {entry.note ? '改备注' : '写备注'}
+              {entry.note
+                ? t('settings.fonts.introduced.editNote')
+                : t('settings.fonts.introduced.writeNote')}
             </Button>
           )}
 
@@ -567,7 +601,7 @@ function IntroducedList({
               onClick={() => void library.removeFavorite(entry.family)}
             >
               <X data-icon="inline-start" />
-              移除
+              {t('settings.fonts.introduced.remove')}
             </Button>
           ) : (
             <Button
@@ -577,7 +611,7 @@ function IntroducedList({
               onClick={() => void library.removeImported(entry.id)}
             >
               <X data-icon="inline-start" />
-              移除
+              {t('settings.fonts.introduced.remove')}
             </Button>
           )}
         </FontRow>
@@ -588,10 +622,10 @@ function IntroducedList({
 
 /** 「待引入」下面的三种来源。 */
 const SOURCE_TABS = [
-  { id: 'google', label: 'Google Fonts' },
-  { id: 'system', label: '本机字体' },
-  { id: 'file', label: '自定义导入' },
-] as const;
+  { id: 'google', labelKey: 'settings.fonts.sources.google' },
+  { id: 'system', labelKey: 'settings.fonts.sources.system' },
+  { id: 'file', labelKey: 'settings.fonts.sources.file' },
+] as const satisfies ReadonlyArray<{ id: string; labelKey: MessageKey }>;
 
 type SourceTabId = (typeof SOURCE_TABS)[number]['id'];
 
@@ -603,6 +637,7 @@ type SourceTabId = (typeof SOURCE_TABS)[number]['id'];
  * 「待引入」下面再分三种来源：Google Fonts、本机字体、自定义导入。
  */
 export function FontLibraryTab() {
+  const t = useTranslate();
   const library = useFontLibrary();
   const [mode, setMode] = useState<'available' | 'introduced'>('available');
   const [source, setSource] = useState<SourceTabId>('google');
@@ -627,7 +662,7 @@ export function FontLibraryTab() {
               : 'text-foreground/60 hover:text-foreground',
           )}
         >
-          待引入
+          {t('settings.fonts.modes.available')}
         </button>
         <button
           type="button"
@@ -639,25 +674,27 @@ export function FontLibraryTab() {
               : 'text-foreground/60 hover:text-foreground',
           )}
         >
-          已引入（{library.entries.length}）
+          {t('settings.fonts.modes.introduced', { count: library.entries.length })}
         </button>
       </div>
 
       {mode === 'available' ? (
         <section className="flex min-h-0 flex-1 flex-col border border-border/80 bg-card px-5 py-4 shadow-sm">
           <div className="shrink-0">
-            <h3 className="text-sm font-semibold">引入字体</h3>
+            <h3 className="text-sm font-semibold">{t('settings.fonts.importFonts.title')}</h3>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              只有引入过的字体会出现在模板页的「全局字体」下拉里；导入的字体文件保存在工作区 的{' '}
-              <code>{fontsDirectory('…')}</code> 下，跟着工作区一起备份。
+              {t('settings.fonts.importFonts.descriptionPrefix')} <code>{fontsDirectory('…')}</code>{' '}
+              {t('settings.fonts.importFonts.descriptionSuffix')}
             </p>
 
             <div className="mt-3 flex items-center gap-2">
-              <span className="shrink-0 text-[10px] text-muted-foreground">预览文本</span>
+              <span className="shrink-0 text-[10px] text-muted-foreground">
+                {t('settings.fonts.preview.label')}
+              </span>
               <Input
                 value={previewText}
                 placeholder={PREVIEW_TEXT}
-                aria-label="预览文本"
+                aria-label={t('settings.fonts.preview.label')}
                 onChange={(event) => setPreviewText(event.target.value)}
               />
               {previewText !== PREVIEW_TEXT ? (
@@ -668,7 +705,7 @@ export function FontLibraryTab() {
                   className="shrink-0"
                   onClick={() => setPreviewText(PREVIEW_TEXT)}
                 >
-                  重置
+                  {t('settings.fonts.preview.reset')}
                 </Button>
               ) : null}
             </div>
@@ -686,7 +723,7 @@ export function FontLibraryTab() {
                       : 'text-foreground/60 hover:text-foreground',
                   )}
                 >
-                  {tab.label}
+                  {t(tab.labelKey)}
                 </button>
               ))}
             </div>
@@ -706,7 +743,7 @@ export function FontLibraryTab() {
         <section className="flex min-h-0 flex-1 flex-col border border-border/80 bg-card px-5 py-4 shadow-sm">
           <h3 className="flex shrink-0 items-center gap-2 text-sm font-semibold">
             <Type className="size-4" />
-            已引入（{library.entries.length}）
+            {t('settings.fonts.modes.introduced', { count: library.entries.length })}
           </h3>
           <ScrollArea className="mt-3 min-h-0 flex-1" viewportClassName="[&>div]:!block">
             <div className="pr-1">

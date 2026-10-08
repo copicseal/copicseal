@@ -64,6 +64,14 @@ const {
 import { CoDirectoryField } from '@/shared/components/co-directory-field';
 import { CoFontField } from '@/shared/components/co-font-field';
 import { CoWindowHeader } from '@/shared/components/co-window-header';
+import {
+  LANGUAGE_OPTIONS,
+  type Language,
+  type MessageKey,
+  translate,
+  useI18n,
+  useTranslate,
+} from '@/shared/i18n';
 import { cn } from '@/shared/lib/utils';
 import { useAppNavigation } from '@/shared/providers/navigation-provider';
 import { usePageActive } from '@/shared/providers/page-activity-provider';
@@ -88,14 +96,14 @@ import { FontLibraryTab } from './font-tab';
 
 interface SettingsTab {
   id: string;
-  label: string;
+  labelKey: MessageKey;
   /** 只有一级 tab 带图标；二级 tab 靠缩进表达层级，不再重复图标 */
   icon?: LucideIcon;
 }
 
 interface SettingsTabGroup {
-  /** 有 label 就是分组：标题不可点，内容放在子项里 */
-  label?: string;
+  /** 有 labelKey 就是分组：标题不可点，内容放在子项里 */
+  labelKey?: MessageKey;
   icon?: LucideIcon;
   items: SettingsTab[];
 }
@@ -107,28 +115,28 @@ interface SettingsTabGroup {
  * 一起；纯分组标题不可点，避免出现"父级有内容、子级也有内容"的双份入口。
  */
 const TAB_GROUPS: SettingsTabGroup[] = [
-  { items: [{ id: 'general', label: '通用', icon: Cog }] },
+  { items: [{ id: 'general', labelKey: 'settings.tabs.general', icon: Cog }] },
   {
-    label: '边框水印',
+    labelKey: 'settings.tabs.groups.template',
     icon: Box,
     items: [
-      { id: 'template', label: '默认项' },
-      { id: 'template-preset', label: '模板预设' },
-      { id: 'template-export', label: '导出' },
+      { id: 'template', labelKey: 'settings.tabs.templateDefaults' },
+      { id: 'template-preset', labelKey: 'settings.tabs.templatePresets' },
+      { id: 'template-export', labelKey: 'settings.tabs.templateExport' },
     ],
   },
   {
-    label: '拼图',
+    labelKey: 'settings.tabs.groups.collage',
     icon: Palette,
     items: [
-      { id: 'collage', label: '默认项' },
-      { id: 'collage-export', label: '导出' },
+      { id: 'collage', labelKey: 'settings.tabs.collageDefaults' },
+      { id: 'collage-export', labelKey: 'settings.tabs.collageExport' },
     ],
   },
-  { items: [{ id: 'fonts', label: '字体', icon: Type }] },
-  { items: [{ id: 'export', label: '导出', icon: Download }] },
-  { items: [{ id: 'cache', label: '缓存', icon: Database }] },
-  { items: [{ id: 'about', label: '关于', icon: Info }] },
+  { items: [{ id: 'fonts', labelKey: 'settings.tabs.fonts', icon: Type }] },
+  { items: [{ id: 'export', labelKey: 'settings.tabs.exportTab', icon: Download }] },
+  { items: [{ id: 'cache', labelKey: 'settings.tabs.cache', icon: Database }] },
+  { items: [{ id: 'about', labelKey: 'settings.tabs.about', icon: Info }] },
 ];
 
 /** 工作区目录下的默认缓存目录；缓存没被单独改过时会跟着工作区目录走。 */
@@ -148,9 +156,12 @@ const ANCHOR_TABS: Record<string, string> = {
   'export-directory': 'export',
 };
 
+/** 组件里取到的翻译函数：模块级的小工具（摘要、后缀）也复用它，才能跟着语言切换 */
+type Translate = ReturnType<typeof useTranslate>;
+
 /** 清理缓存时被保留下来的在用量提示；没有在使用的素材时不追加。 */
-function keepNote(count: number): string {
-  return count > 0 ? `（保留 ${count} 张正在使用的图片）` : '';
+function keepNote(count: number, t: Translate): string {
+  return count > 0 ? t('settings.toast.keepInUse', { count }) : '';
 }
 
 function formatBytes(bytes: number): string {
@@ -214,11 +225,12 @@ function SettingField({
 }
 
 function StorageSummary({ overview }: { overview: CacheOverview | null }) {
+  const t = useTranslate();
   const total = overview?.total_bytes ?? 0;
   const segments = [
     {
       key: 'images',
-      label: '图片副本',
+      label: t('settings.cache.storage.images'),
       count: overview?.image_count ?? 0,
       bytes: overview?.image_bytes ?? 0,
       color: 'bg-sky-400',
@@ -227,7 +239,7 @@ function StorageSummary({ overview }: { overview: CacheOverview | null }) {
     },
     {
       key: 'previews',
-      label: '预览缓存',
+      label: t('settings.cache.storage.previews'),
       count: overview?.preview_count ?? 0,
       bytes: overview?.preview_bytes ?? 0,
       color: 'bg-emerald-400',
@@ -236,7 +248,7 @@ function StorageSummary({ overview }: { overview: CacheOverview | null }) {
     },
     {
       key: 'thumbnails',
-      label: '缩略图缓存',
+      label: t('settings.cache.storage.thumbnails'),
       count: overview?.thumbnail_count ?? 0,
       bytes: overview?.thumbnail_bytes ?? 0,
       color: 'bg-amber-400',
@@ -285,7 +297,7 @@ function StorageSummary({ overview }: { overview: CacheOverview | null }) {
                 {formatBytes(segment.bytes)}
               </p>
               <p className="text-[11px] text-muted-foreground sm:text-xs xl:mt-1">
-                {segment.count} 个文件
+                {t('settings.cache.storage.files', { count: segment.count })}
               </p>
             </div>
           </div>
@@ -293,7 +305,7 @@ function StorageSummary({ overview }: { overview: CacheOverview | null }) {
       </div>
 
       <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-        <span>总占用</span>
+        <span>{t('settings.cache.storage.total')}</span>
         <span className="font-medium text-foreground">{formatBytes(total)}</span>
       </div>
     </div>
@@ -301,10 +313,15 @@ function StorageSummary({ overview }: { overview: CacheOverview | null }) {
 }
 
 /** 默认档位一行的摘要：尺寸 + 倍率（JPEG 才带质量）。 */
-function describeOutputPreset(preset: OutputPreset): string {
-  const parts = [`${preset.width} × ${preset.height}`, `倍率 ${preset.scale.toFixed(1)}x`];
+function describeOutputPreset(preset: OutputPreset, t: Translate): string {
+  const parts = [
+    `${preset.width} × ${preset.height}`,
+    t('settings.templateExport.presetSummary.scale', { scale: preset.scale.toFixed(1) }),
+  ];
   if (preset.type === 'jpeg') {
-    parts.push(`质量 ${Math.round(preset.quality)}`);
+    parts.push(
+      t('settings.templateExport.presetSummary.quality', { quality: Math.round(preset.quality) }),
+    );
   }
 
   return parts.join(' · ');
@@ -314,19 +331,26 @@ function GeneralTab({
   config,
   onSelectWorkspaceDirectory,
   onOpenWorkspaceDirectory,
+  onLanguageChange,
 }: {
   config: AppConfig;
   onSelectWorkspaceDirectory: () => Promise<void>;
   onOpenWorkspaceDirectory: () => Promise<void>;
+  onLanguageChange: (language: Language) => void;
 }) {
+  const t = useTranslate();
+  const { language } = useI18n();
   const { frameMode, frameModePending, setFrameMode } = useWindowStyle();
 
   return (
     <div className="space-y-4">
-      <FieldGroup title="通用" description="控制应用的全局行为与默认保存位置。">
+      <FieldGroup
+        title={t('settings.general.title')}
+        description={t('settings.general.description')}
+      >
         <SettingField
-          label="窗口边框"
-          description="切换使用系统边框或无边框窗口，修改后会立即生效。"
+          label={t('settings.general.windowStyle.label')}
+          description={t('settings.general.windowStyle.description')}
         >
           <div className="space-y-2">
             <RadioGroup
@@ -338,8 +362,8 @@ function GeneralTab({
               }
             >
               {[
-                { value: 'native', label: '系统边框' },
-                { value: 'frameless', label: '无边框' },
+                { value: 'native', label: t('settings.general.windowStyle.native') },
+                { value: 'frameless', label: t('settings.general.windowStyle.frameless') },
               ].map(({ value, label }) => (
                 <label
                   key={value}
@@ -357,28 +381,37 @@ function GeneralTab({
             </RadioGroup>
             <p className="text-xs leading-5 text-muted-foreground">
               {frameModePending
-                ? '正在切换窗口样式...'
-                : '系统边框模式将使用操作系统自带窗口外框。'}
+                ? t('settings.general.windowStyle.switching')
+                : t('settings.general.windowStyle.nativeHint')}
             </p>
           </div>
         </SettingField>
 
-        <SettingField label="语言" description="当前界面语言来自持久化配置。">
-          <Select value={config.language} disabled>
+        <SettingField
+          label={t('settings.general.language.label')}
+          description={t('settings.general.language.description')}
+        >
+          <Select value={language} onValueChange={(value) => onLanguageChange(value as Language)}>
             <SelectTrigger className="w-full max-w-[240px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="zh-CN">简体中文</SelectItem>
+                {LANGUAGE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.value === 'system'
+                      ? t('settings.general.language.system')
+                      : option.label}
+                  </SelectItem>
+                ))}
               </SelectGroup>
             </SelectContent>
           </Select>
         </SettingField>
 
         <SettingField
-          label="工作区目录"
-          description="应用自己的数据目录，缓存目录默认位于它下面的 Cache 文件夹。修改后如果缓存目录仍是默认值，会一起跟随更新。"
+          label={t('settings.general.workspace.label')}
+          description={t('settings.general.workspace.description')}
         >
           <CoDirectoryField
             directory={config.save_directory}
@@ -398,6 +431,7 @@ function TemplateDefaultsTab({
   font: string;
   onFontChange: (font: string) => void;
 }) {
+  const t = useTranslate();
   const library = useFontLibrary();
 
   // 只列已引入的字体；重复族名去重
@@ -413,13 +447,13 @@ function TemplateDefaultsTab({
   return (
     <div className="space-y-4">
       <FieldGroup
-        title="边框水印默认项"
-        description="新导入的图片默认使用的样式；已经单独调过的图片不受影响。"
+        title={t('settings.templateDefaults.title')}
+        description={t('settings.templateDefaults.description')}
       >
         <SettingField
           id="template-default-font"
-          label="全局字体"
-          description="只列出已引入的字体：在「字体」里从在线、本机或字体文件三种来源引入。"
+          label={t('settings.templateDefaults.font.label')}
+          description={t('settings.templateDefaults.font.description')}
         >
           <CoFontField
             value={font}
@@ -430,7 +464,7 @@ function TemplateDefaultsTab({
           />
           {options.length === 0 ? (
             <p className="mt-2 text-xs leading-5 text-muted-foreground">
-              还没有引入字体，去「字体」里引入后这里就能选了。
+              {t('settings.templateDefaults.font.empty')}
             </p>
           ) : null}
         </SettingField>
@@ -440,6 +474,7 @@ function TemplateDefaultsTab({
 }
 
 function TemplatePresetsTab({ onGoToTemplate }: { onGoToTemplate: () => void }) {
+  const t = useTranslate();
   const { presets, removePreset, renamePreset, movePreset } = useTemplatePresets();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [nameDraft, setNameDraft] = useState('');
@@ -463,24 +498,27 @@ function TemplatePresetsTab({ onGoToTemplate }: { onGoToTemplate: () => void }) 
   return (
     <div className="space-y-4">
       <FieldGroup
-        title="模板预设"
-        description="只对边框水印生效。在模板页属性面板的「模板预设」里保存，这里可以改名、排序与删除。"
+        title={t('settings.templatePresets.title')}
+        description={t('settings.templatePresets.description')}
       >
         <SettingField
           id="template-presets"
-          label="已保存的配置"
-          description={`最多 ${MAX_TEMPLATE_PRESETS} 条。应用配置只改模板、参数、背景与字体，各张图片自己的导出档位保持不动。`}
+          label={t('settings.templatePresets.saved.label')}
+          description={t('settings.templatePresets.saved.description', {
+            count: MAX_TEMPLATE_PRESETS,
+          })}
         >
           {presets.length === 0 ? (
             <p className="text-xs leading-5 text-muted-foreground">
-              还没有保存的配置，新导入的图片会从模板自带的默认样式开始。
+              {t('settings.templatePresets.saved.empty')}
             </p>
           ) : (
             <ul className="space-y-2">
               {presets.map((preset, index) => {
                 const editing = editingId === preset.id;
                 const expanded = expandedId === preset.id;
-                const templateLabel = preset.templateName ?? '模板已失效';
+                const templateLabel =
+                  preset.templateName ?? t('settings.templatePresets.saved.templateMissing');
 
                 return (
                   <li key={preset.id} className="border border-border/70 bg-background/60">
@@ -489,7 +527,11 @@ function TemplatePresetsTab({ onGoToTemplate }: { onGoToTemplate: () => void }) 
                         type="button"
                         variant="plain"
                         size="icon-sm"
-                        aria-label={expanded ? `收起 ${preset.name}` : `展开 ${preset.name}`}
+                        aria-label={
+                          expanded
+                            ? t('settings.templatePresets.aria.collapse', { name: preset.name })
+                            : t('settings.templatePresets.aria.expand', { name: preset.name })
+                        }
                         aria-expanded={expanded}
                         onClick={() => setExpandedId(expanded ? null : preset.id)}
                       >
@@ -504,7 +546,7 @@ function TemplatePresetsTab({ onGoToTemplate }: { onGoToTemplate: () => void }) 
                           value={nameDraft}
                           maxLength={TEMPLATE_PRESET_NAME_MAX}
                           className="h-6 flex-1 text-xs"
-                          aria-label="配置名称"
+                          aria-label={t('settings.templatePresets.aria.name')}
                           onChange={(event) => setNameDraft(event.target.value)}
                           onBlur={() => void commitRename()}
                           onKeyDown={(event) => {
@@ -535,7 +577,9 @@ function TemplatePresetsTab({ onGoToTemplate }: { onGoToTemplate: () => void }) 
                         type="button"
                         variant="plain"
                         size="icon-sm"
-                        aria-label={`上移 ${preset.name}`}
+                        aria-label={t('settings.templatePresets.aria.moveUp', {
+                          name: preset.name,
+                        })}
                         disabled={index === 0}
                         onClick={() => void movePreset(preset.id, -1)}
                       >
@@ -545,7 +589,9 @@ function TemplatePresetsTab({ onGoToTemplate }: { onGoToTemplate: () => void }) 
                         type="button"
                         variant="plain"
                         size="icon-sm"
-                        aria-label={`下移 ${preset.name}`}
+                        aria-label={t('settings.templatePresets.aria.moveDown', {
+                          name: preset.name,
+                        })}
                         disabled={index === presets.length - 1}
                         onClick={() => void movePreset(preset.id, 1)}
                       >
@@ -555,7 +601,9 @@ function TemplatePresetsTab({ onGoToTemplate }: { onGoToTemplate: () => void }) 
                         type="button"
                         variant="plain"
                         size="icon-sm"
-                        aria-label={`重命名 ${preset.name}`}
+                        aria-label={t('settings.templatePresets.aria.rename', {
+                          name: preset.name,
+                        })}
                         onClick={() => startRename(preset.id, preset.name)}
                       >
                         <Pencil />
@@ -564,10 +612,12 @@ function TemplatePresetsTab({ onGoToTemplate }: { onGoToTemplate: () => void }) 
                         type="button"
                         variant="plain"
                         size="icon-sm"
-                        aria-label={`删除 ${preset.name}`}
+                        aria-label={t('settings.templatePresets.aria.remove', {
+                          name: preset.name,
+                        })}
                         onClick={() => {
                           void removePreset(preset.id);
-                          toast.success(`已删除配置「${preset.name}」`);
+                          toast.success(t('settings.toast.presetDeleted', { name: preset.name }));
                         }}
                       >
                         <Trash2 />
@@ -576,7 +626,7 @@ function TemplatePresetsTab({ onGoToTemplate }: { onGoToTemplate: () => void }) 
 
                     {expanded ? (
                       <pre className="border-t border-border/60 px-3 py-2 font-sans text-[10px] leading-5 whitespace-pre-wrap text-muted-foreground">
-                        {preset.description || '这条配置没有摘要。'}
+                        {preset.description || t('settings.templatePresets.saved.noSummary')}
                       </pre>
                     ) : null}
                   </li>
@@ -588,7 +638,7 @@ function TemplatePresetsTab({ onGoToTemplate }: { onGoToTemplate: () => void }) 
           <div className="mt-3">
             <Button type="button" variant="outline" size="sm" onClick={onGoToTemplate}>
               <LayoutTemplate data-icon="inline-start" />
-              去模板页保存新配置
+              {t('settings.templatePresets.goToTemplate')}
             </Button>
           </div>
         </SettingField>
@@ -610,25 +660,28 @@ function TemplateExportDefaultsTab({
   onChangeSizes: (next: OutputSize[]) => void;
   onGoToTemplate: () => void;
 }) {
+  const t = useTranslate();
+
   return (
     <div className="space-y-4">
       <FieldGroup
-        title="边框水印导出"
-        description="只对边框水印生效。在模板页导出面板点「存为默认档位」写入，新导入的图片自动套用。"
+        title={t('settings.templateExport.title')}
+        description={t('settings.templateExport.description')}
       >
         <SettingField
           id="template-export-presets"
-          label="默认档位"
-          description="每档一组格式、尺寸、倍率与质量，导出时逐档输出一份文件。"
+          label={t('settings.templateExport.presets.label')}
+          description={t('settings.templateExport.presets.description')}
         >
           {presets.length === 0 ? (
             <p className="text-xs leading-5 text-muted-foreground">
-              还没有默认档位，新图片会从 2000 × 2000 的 PNG 开始。
+              {t('settings.templateExport.presets.empty')}
             </p>
           ) : (
             <ul className="space-y-2">
               {presets.map((preset, index) => {
-                const presetLabel = `${preset.type.toUpperCase()} ${describeOutputPreset(preset)}`;
+                const presetType = preset.type.toUpperCase();
+                const presetDetail = describeOutputPreset(preset, t);
 
                 return (
                   <li
@@ -636,16 +689,19 @@ function TemplateExportDefaultsTab({
                     className="flex items-center gap-3 border border-border/70 bg-background/60 px-3 py-1.5"
                   >
                     <span className="shrink-0 border border-border px-1.5 py-0.5 text-[10px] font-medium text-foreground">
-                      {preset.type.toUpperCase()}
+                      {presetType}
                     </span>
                     <span className="min-w-0 flex-1 text-xs text-muted-foreground">
-                      {describeOutputPreset(preset)}
+                      {presetDetail}
                     </span>
                     <Button
                       type="button"
                       variant="plain"
                       size="icon-sm"
-                      aria-label={`删除 ${presetLabel}`}
+                      aria-label={t('settings.templateExport.aria.removePreset', {
+                        type: presetType,
+                        detail: presetDetail,
+                      })}
                       onClick={() => onRemovePreset(index)}
                     >
                       <Trash2 />
@@ -658,24 +714,24 @@ function TemplateExportDefaultsTab({
           <div className="mt-3">
             <Button type="button" variant="outline" size="sm" onClick={onGoToTemplate}>
               <LayoutTemplate data-icon="inline-start" />
-              去模板页设置档位
+              {t('settings.templateExport.goToTemplate')}
             </Button>
           </div>
         </SettingField>
       </FieldGroup>
 
       <FieldGroup
-        title="常用尺寸"
-        description="模板页导出面板里「添加档位」右侧下拉显示的快捷尺寸，点一下即按该尺寸新建档位。"
+        title={t('settings.templateExport.sizes.title')}
+        description={t('settings.templateExport.sizes.description')}
       >
         <SettingField
           id="template-export-sizes"
-          label="尺寸清单"
-          description="写成一组名字与像素尺寸即可；只影响这个下拉，不改变已有档位。"
+          label={t('settings.templateExport.sizes.label')}
+          description={t('settings.templateExport.sizes.hint')}
         >
           {sizes.length === 0 ? (
             <p className="text-xs leading-5 text-muted-foreground">
-              还没有常用尺寸，下拉里只会显示「原始尺寸」。
+              {t('settings.templateExport.sizes.empty')}
             </p>
           ) : (
             <ul className="space-y-2">
@@ -683,8 +739,8 @@ function TemplateExportDefaultsTab({
                 <li key={size.id ?? `${size.label}-${index}`} className="flex items-center gap-2">
                   <Input
                     value={size.label}
-                    aria-label={`第 ${index + 1} 个常用尺寸的名称`}
-                    placeholder="名称"
+                    aria-label={t('settings.templateExport.aria.sizeName', { index: index + 1 })}
+                    placeholder={t('settings.templateExport.sizes.namePlaceholder')}
                     className="h-7 min-w-0 flex-1 text-xs"
                     onChange={(event) =>
                       onChangeSizes(
@@ -698,7 +754,7 @@ function TemplateExportDefaultsTab({
                     type="number"
                     min={1}
                     value={size.width}
-                    aria-label={`${size.label} 的宽度`}
+                    aria-label={t('settings.templateExport.aria.sizeWidth', { name: size.label })}
                     className="h-7 w-20 text-xs"
                     onChange={(event) =>
                       onChangeSizes(
@@ -713,7 +769,7 @@ function TemplateExportDefaultsTab({
                     type="number"
                     min={1}
                     value={size.height}
-                    aria-label={`${size.label} 的高度`}
+                    aria-label={t('settings.templateExport.aria.sizeHeight', { name: size.label })}
                     className="h-7 w-20 text-xs"
                     onChange={(event) =>
                       onChangeSizes(
@@ -727,7 +783,7 @@ function TemplateExportDefaultsTab({
                     type="button"
                     variant="plain"
                     size="icon-sm"
-                    aria-label={`删除常用尺寸 ${size.label}`}
+                    aria-label={t('settings.templateExport.aria.removeSize', { name: size.label })}
                     onClick={() => onChangeSizes(sizes.filter((_, i) => i !== index))}
                   >
                     <Trash2 />
@@ -742,11 +798,18 @@ function TemplateExportDefaultsTab({
               variant="outline"
               size="sm"
               onClick={() =>
-                onChangeSizes([...sizes, { label: '自定义', width: 1920, height: 1080 }])
+                onChangeSizes([
+                  ...sizes,
+                  {
+                    label: t('settings.templateExport.sizes.customName'),
+                    width: 1920,
+                    height: 1080,
+                  },
+                ])
               }
             >
               <Plus data-icon="inline-start" />
-              添加尺寸
+              {t('settings.templateExport.sizes.add')}
             </Button>
           </div>
         </SettingField>
@@ -781,25 +844,25 @@ function ChoiceChip({
   );
 }
 
-const COLLAGE_MODE_OPTIONS = [
-  { id: 'grid' as const, label: '网格' },
-  { id: 'long' as const, label: '长图' },
-  { id: 'free' as const, label: '自由' },
+const COLLAGE_MODE_OPTIONS: Array<{ id: 'grid' | 'long' | 'free'; labelKey: MessageKey }> = [
+  { id: 'grid', labelKey: 'settings.collageDefaults.mode.grid' },
+  { id: 'long', labelKey: 'settings.collageDefaults.mode.long' },
+  { id: 'free', labelKey: 'settings.collageDefaults.mode.free' },
 ];
 
 const COLLAGE_LONG_ALIGN: Record<
   'vertical' | 'horizontal',
-  Array<{ id: 'start' | 'center' | 'end'; label: string }>
+  Array<{ id: 'start' | 'center' | 'end'; labelKey: MessageKey }>
 > = {
   vertical: [
-    { id: 'start', label: '左对齐' },
-    { id: 'center', label: '居中' },
-    { id: 'end', label: '右对齐' },
+    { id: 'start', labelKey: 'settings.collageDefaults.align.verticalStart' },
+    { id: 'center', labelKey: 'settings.collageDefaults.align.verticalCenter' },
+    { id: 'end', labelKey: 'settings.collageDefaults.align.verticalEnd' },
   ],
   horizontal: [
-    { id: 'start', label: '上对齐' },
-    { id: 'center', label: '居中' },
-    { id: 'end', label: '下对齐' },
+    { id: 'start', labelKey: 'settings.collageDefaults.align.horizontalStart' },
+    { id: 'center', labelKey: 'settings.collageDefaults.align.horizontalCenter' },
+    { id: 'end', labelKey: 'settings.collageDefaults.align.horizontalEnd' },
   ],
 };
 
@@ -813,18 +876,19 @@ function CollageDefaultsTab({
   onChange: (patch: Partial<CollageConfig>) => void;
   onGoToCollage: () => void;
 }) {
+  const t = useTranslate();
   const isVertical = config.long_direction !== 'horizontal';
 
   return (
     <div className="space-y-4">
       <FieldGroup
-        title="拼图默认项"
-        description="新建拼图时使用的布局与画布样式。已经摆在画布上的拼图不受影响——在拼图页对应分区点「恢复默认」即可套用这里的值。"
+        title={t('settings.collageDefaults.title')}
+        description={t('settings.collageDefaults.description')}
       >
         <SettingField
           id="collage-default-mode"
-          label="默认布局模式"
-          description="打开拼图页时默认停在哪个模式。"
+          label={t('settings.collageDefaults.mode.label')}
+          description={t('settings.collageDefaults.mode.description')}
         >
           <div className="flex flex-wrap gap-1.5">
             {COLLAGE_MODE_OPTIONS.map((option) => (
@@ -833,7 +897,7 @@ function CollageDefaultsTab({
                 active={config.layout_mode === option.id}
                 onClick={() => onChange({ layout_mode: option.id })}
               >
-                {option.label}
+                {t(option.labelKey)}
               </ChoiceChip>
             ))}
           </div>
@@ -841,8 +905,8 @@ function CollageDefaultsTab({
 
         <SettingField
           id="collage-default-layout"
-          label="默认网格布局"
-          description="网格模式下默认选中的布局；选「跟随布局库」则用布局库里的第一个。"
+          label={t('settings.collageDefaults.layout.label')}
+          description={t('settings.collageDefaults.layout.description')}
         >
           <Select
             value={config.layout_id || '__default__'}
@@ -855,14 +919,18 @@ function CollageDefaultsTab({
               {/* 下拉项的 4px 内边距来自 SelectGroup（SelectContent 自身没有 p-1），
                   裸 item 的高亮会铺满整个弹层 */}
               <SelectGroup>
-                <SelectItem value="__default__">跟随布局库</SelectItem>
+                <SelectItem value="__default__">
+                  {t('settings.collageDefaults.layout.follow')}
+                </SelectItem>
               </SelectGroup>
               {COLLAGE_LAYOUT_GROUPS.map((group) => (
                 <SelectGroup key={group.group}>
-                  <SelectLabel>{group.group}</SelectLabel>
+                  <SelectLabel>
+                    {t('collage.layoutLibrary.group', { count: group.count })}
+                  </SelectLabel>
                   {group.layouts.map((layout) => (
                     <SelectItem key={layout.id} value={layout.id}>
-                      {layout.name}
+                      {layout.nameKey ? t(layout.nameKey, { count: layout.count }) : layout.name}
                     </SelectItem>
                   ))}
                 </SelectGroup>
@@ -873,8 +941,8 @@ function CollageDefaultsTab({
 
         <SettingField
           id="collage-default-ratio"
-          label="画布比例"
-          description="网格与自由模式的画布比例，也可以留「自定义」。"
+          label={t('settings.collageDefaults.ratio.label')}
+          description={t('settings.collageDefaults.ratio.description')}
         >
           <div className="flex flex-wrap gap-1.5">
             {COLLAGE_RATIO_OPTIONS.map((option) => (
@@ -890,7 +958,7 @@ function CollageDefaultsTab({
               active={config.aspect_preset === 'custom'}
               onClick={() => onChange({ aspect_preset: 'custom' })}
             >
-              自定义
+              {t('settings.collageDefaults.ratio.custom')}
             </ChoiceChip>
           </div>
           {config.aspect_preset === 'custom' ? (
@@ -918,16 +986,31 @@ function CollageDefaultsTab({
 
         <SettingField
           id="collage-default-canvas"
-          label="画布样式"
-          description="间距、边距、圆角与阴影，按设计基准像素计。"
+          label={t('settings.collageDefaults.canvas.title')}
+          description={t('settings.collageDefaults.canvas.description')}
         >
           <div className="grid max-w-2xl gap-4 md:grid-cols-2">
             {(
               [
-                { key: 'gap', label: '间距', min: 0, max: 120 },
-                { key: 'padding', label: '边距', min: 0, max: 160 },
-                { key: 'border_radius', label: '圆角', min: 0, max: 96 },
-                { key: 'shadow', label: '阴影', min: 0, max: 40 },
+                { key: 'gap', label: t('settings.collageDefaults.canvas.gap'), min: 0, max: 120 },
+                {
+                  key: 'padding',
+                  label: t('settings.collageDefaults.canvas.padding'),
+                  min: 0,
+                  max: 160,
+                },
+                {
+                  key: 'border_radius',
+                  label: t('settings.collageDefaults.canvas.radius'),
+                  min: 0,
+                  max: 96,
+                },
+                {
+                  key: 'shadow',
+                  label: t('settings.collageDefaults.canvas.shadow'),
+                  min: 0,
+                  max: 40,
+                },
               ] as const
             ).map((item) => (
               <div key={item.key}>
@@ -949,8 +1032,8 @@ function CollageDefaultsTab({
 
         <SettingField
           id="collage-default-background"
-          label="背景色"
-          description="画布底色，透明区域会露出它。"
+          label={t('settings.collageDefaults.background.label')}
+          description={t('settings.collageDefaults.background.description')}
         >
           <div className="flex items-center gap-2">
             <input
@@ -969,8 +1052,8 @@ function CollageDefaultsTab({
 
         <SettingField
           id="collage-default-long"
-          label="长图默认值"
-          description="切到长图模式时的拼接方向、对齐方式与横轴尺寸。"
+          label={t('settings.collageDefaults.long.label')}
+          description={t('settings.collageDefaults.long.description')}
         >
           <div className="space-y-3">
             <div className="flex flex-wrap gap-1.5">
@@ -978,13 +1061,13 @@ function CollageDefaultsTab({
                 active={isVertical}
                 onClick={() => onChange({ long_direction: 'vertical' })}
               >
-                竖向拼接
+                {t('settings.collageDefaults.long.vertical')}
               </ChoiceChip>
               <ChoiceChip
                 active={!isVertical}
                 onClick={() => onChange({ long_direction: 'horizontal' })}
               >
-                横向拼接
+                {t('settings.collageDefaults.long.horizontal')}
               </ChoiceChip>
             </div>
             <div className="flex flex-wrap gap-1.5">
@@ -994,7 +1077,7 @@ function CollageDefaultsTab({
                   active={config.long_align === option.id}
                   onClick={() => onChange({ long_align: option.id })}
                 >
-                  {option.label}
+                  {t(option.labelKey)}
                 </ChoiceChip>
               ))}
             </div>
@@ -1006,7 +1089,9 @@ function CollageDefaultsTab({
                 onChange={(event) => onChange({ long_size: Number(event.target.value) || 720 })}
               />
               <span className="text-xs text-muted-foreground">
-                {isVertical ? '画布宽度' : '画布高度'}（px）
+                {isVertical
+                  ? t('settings.collageDefaults.long.canvasWidth')
+                  : t('settings.collageDefaults.long.canvasHeight')}
               </span>
             </div>
           </div>
@@ -1015,11 +1100,9 @@ function CollageDefaultsTab({
 
       <div className="flex items-center gap-3">
         <Button type="button" variant="outline" size="sm" onClick={onGoToCollage}>
-          到拼图页看看
+          {t('settings.collageDefaults.goToCollage')}
         </Button>
-        <p className="text-xs text-muted-foreground">
-          已保存的拼图不会自动跟随，可在拼图页点「恢复默认」。
-        </p>
+        <p className="text-xs text-muted-foreground">{t('settings.collageDefaults.savedHint')}</p>
       </div>
     </div>
   );
@@ -1035,16 +1118,18 @@ function CollageExportDefaultsTab({
   onChange: (patch: Partial<CollageConfig>) => void;
   onGoToCollage: () => void;
 }) {
+  const t = useTranslate();
+
   return (
     <div className="space-y-4">
       <FieldGroup
-        title="拼图导出"
-        description="新建拼图时导出面板的初始参数。已经摆在画布上的拼图不受影响——在拼图页「导出」分区点「恢复默认」即可套用这里的值。"
+        title={t('settings.collageExport.title')}
+        description={t('settings.collageExport.description')}
       >
         <SettingField
           id="collage-export-format"
-          label="默认格式"
-          description="JPG 体积更小，PNG 无损。"
+          label={t('settings.collageExport.format.label')}
+          description={t('settings.collageExport.format.description')}
         >
           <div className="flex flex-wrap gap-1.5">
             {[
@@ -1062,12 +1147,16 @@ function CollageExportDefaultsTab({
           </div>
         </SettingField>
 
-        <SettingField id="collage-export-quality" label="默认质量" description="只有 JPG 会用到。">
+        <SettingField
+          id="collage-export-quality"
+          label={t('settings.collageExport.quality.label')}
+          description={t('settings.collageExport.quality.description')}
+        >
           <div className="flex flex-wrap gap-1.5">
             {[
-              { id: 'standard' as const, label: '标准' },
-              { id: 'high' as const, label: '高清' },
-              { id: 'ultra' as const, label: '超清' },
+              { id: 'standard' as const, label: t('settings.collageExport.quality.standard') },
+              { id: 'high' as const, label: t('settings.collageExport.quality.high') },
+              { id: 'ultra' as const, label: t('settings.collageExport.quality.ultra') },
             ].map((option) => (
               <ChoiceChip
                 key={option.id}
@@ -1082,8 +1171,8 @@ function CollageExportDefaultsTab({
 
         <SettingField
           id="collage-export-scale"
-          label="默认倍率"
-          description="在目标尺寸之上做位图超采样，2x 就是长宽各翻一倍。"
+          label={t('settings.collageExport.scale.label')}
+          description={t('settings.collageExport.scale.description')}
         >
           <div className="flex flex-wrap gap-1.5">
             {[1, 2, 3].map((value) => (
@@ -1100,14 +1189,16 @@ function CollageExportDefaultsTab({
 
         <SettingField
           id="collage-export-size"
-          label="默认尺寸"
-          description="导出面板里的目标宽高；锁定比例时改宽度会自动推高度。"
+          label={t('settings.collageExport.size.label')}
+          description={t('settings.collageExport.size.description')}
         >
           <div className="flex flex-wrap items-end gap-3">
             <div className="space-y-1">
-              <span className="text-xs text-muted-foreground">宽度</span>
+              <span className="text-xs text-muted-foreground">
+                {t('settings.collageExport.size.width')}
+              </span>
               <Input
-                aria-label="默认导出宽度"
+                aria-label={t('settings.collageExport.aria.width')}
                 className="h-8 w-28"
                 inputMode="numeric"
                 value={String(config.export_width)}
@@ -1115,9 +1206,11 @@ function CollageExportDefaultsTab({
               />
             </div>
             <div className="space-y-1">
-              <span className="text-xs text-muted-foreground">高度</span>
+              <span className="text-xs text-muted-foreground">
+                {t('settings.collageExport.size.height')}
+              </span>
               <Input
-                aria-label="默认导出高度"
+                aria-label={t('settings.collageExport.aria.height')}
                 className="h-8 w-28"
                 inputMode="numeric"
                 value={String(config.export_height)}
@@ -1131,7 +1224,9 @@ function CollageExportDefaultsTab({
                 checked={config.export_lock_ratio}
                 onCheckedChange={(checked) => onChange({ export_lock_ratio: checked })}
               />
-              <span className="text-xs text-muted-foreground">锁定画布比例</span>
+              <span className="text-xs text-muted-foreground">
+                {t('settings.collageExport.size.lockRatio')}
+              </span>
             </div>
           </div>
         </SettingField>
@@ -1139,11 +1234,9 @@ function CollageExportDefaultsTab({
 
       <div className="flex items-center gap-3">
         <Button type="button" variant="outline" size="sm" onClick={onGoToCollage}>
-          到拼图页看看
+          {t('settings.collageExport.goToCollage')}
         </Button>
-        <p className="text-xs text-muted-foreground">
-          「常用尺寸」在「导出」页维护，拼图导出面板与边框水印共用同一份。
-        </p>
+        <p className="text-xs text-muted-foreground">{t('settings.collageExport.sizesHint')}</p>
       </div>
     </div>
   );
@@ -1158,16 +1251,18 @@ function ExportTab({
   onSelectExportDirectory: () => Promise<void>;
   onOpenExportDirectory: () => Promise<void>;
 }) {
+  const t = useTranslate();
+
   return (
     <div className="space-y-4">
       <FieldGroup
-        title="导出"
-        description="边框水印与拼图共用这个目录，导出过程不会再弹保存对话框。"
+        title={t('settings.exportTab.title')}
+        description={t('settings.exportTab.description')}
       >
         <SettingField
           id="export-directory"
-          label="文件导出目录"
-          description="导出的图片直接写到这个目录，文件名由导出面板里的档位决定。"
+          label={t('settings.exportTab.directory.label')}
+          description={t('settings.exportTab.directory.description')}
         >
           <CoDirectoryField
             directory={config.output.default_path}
@@ -1204,6 +1299,7 @@ function CacheTab({
   onClearAll: () => Promise<void>;
 }) {
   const [draftMaxAgeDays, setDraftMaxAgeDays] = useState(config.cache.max_age_days);
+  const t = useTranslate();
 
   useEffect(() => {
     setDraftMaxAgeDays(config.cache.max_age_days);
@@ -1211,10 +1307,10 @@ function CacheTab({
 
   return (
     <div className="space-y-4">
-      <FieldGroup title="缓存" description="管理导入图片副本、缩略图与自动清理策略。">
+      <FieldGroup title={t('settings.cache.title')} description={t('settings.cache.description')}>
         <SettingField
-          label="缓存目录"
-          description="导入后的图片副本、预览文件与缩略图都会保存在这里。"
+          label={t('settings.cache.directory.label')}
+          description={t('settings.cache.directory.description')}
         >
           <CoDirectoryField
             directory={config.cache.directory}
@@ -1224,13 +1320,16 @@ function CacheTab({
         </SettingField>
 
         <SettingField
-          label="缓存摘要"
-          description="从当前缓存目录实时扫描图片副本、预览副本和缩略图占用。"
+          label={t('settings.cache.summary.label')}
+          description={t('settings.cache.summary.description')}
         >
           <StorageSummary overview={overview} />
         </SettingField>
 
-        <SettingField label="自动清理" description="应用启动时自动清理超过保留天数的缓存文件。">
+        <SettingField
+          label={t('settings.cache.autoCleanup.label')}
+          description={t('settings.cache.autoCleanup.description')}
+        >
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <Switch
@@ -1238,7 +1337,9 @@ function CacheTab({
                 onCheckedChange={(checked) => void onToggleAutoCleanup(checked)}
               />
               <span className="text-sm">
-                {config.cache.auto_cleanup_on_startup ? '已开启自动清理' : '已关闭自动清理'}
+                {config.cache.auto_cleanup_on_startup
+                  ? t('settings.cache.autoCleanup.on')
+                  : t('settings.cache.autoCleanup.off')}
               </span>
             </div>
             <div className="max-w-md">
@@ -1252,28 +1353,28 @@ function CacheTab({
                 step={1}
               />
               <p className="mt-2 text-xs text-muted-foreground">
-                当前保留时长 {draftMaxAgeDays} 天
+                {t('settings.cache.autoCleanup.retention', { days: draftMaxAgeDays })}
               </p>
             </div>
           </div>
         </SettingField>
 
         <SettingField
-          label="清理缓存"
-          description="可单独清理缩略图，或清理过期/全部缓存；正在使用的图片副本会保留。"
+          label={t('settings.cache.cleanup.label')}
+          description={t('settings.cache.cleanup.description')}
         >
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" disabled={loading} onClick={() => void onCleanupExpired()}>
               <RefreshCw data-icon="inline-start" className={cn(loading && 'animate-spin')} />
-              清理过期缓存
+              {t('settings.cache.cleanup.expired')}
             </Button>
             <Button variant="outline" disabled={loading} onClick={() => void onClearThumbnails()}>
               <Trash2 data-icon="inline-start" />
-              清理缩略图
+              {t('settings.cache.cleanup.thumbnails')}
             </Button>
             <Button variant="outline" disabled={loading} onClick={() => void onClearAll()}>
               <Trash2 data-icon="inline-start" />
-              清理全部缓存
+              {t('settings.cache.cleanup.all')}
             </Button>
           </div>
         </SettingField>
@@ -1290,6 +1391,7 @@ function CacheTab({
  * 不在应用窗口里加载外部页面。
  */
 function AboutTab() {
+  const t = useTranslate();
   const [checking, setChecking] = useState(false);
   const [installing, setInstalling] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
@@ -1316,7 +1418,7 @@ function AboutTab() {
   const openLink = (url: string) => {
     void platformRuntime.openExternal(url).catch((error) => {
       console.error('打开链接失败:', error);
-      toast.error('打开链接失败，请手动访问');
+      toast.error(t('settings.toast.openLinkFailed'));
     });
   };
 
@@ -1328,9 +1430,13 @@ function AboutTab() {
     try {
       const next = await checkForUpdate();
       setUpdate(next);
-      setStatus(next ? `发现新版本 ${next.version}` : '已是最新版本');
+      setStatus(
+        next
+          ? t('settings.update.found', { version: next.version })
+          : t('settings.update.upToDate'),
+      );
     } catch {
-      setStatus('检查更新失败');
+      setStatus(t('settings.update.checkFailed'));
     } finally {
       setChecking(false);
     }
@@ -1344,11 +1450,11 @@ function AboutTab() {
       await installUpdate({ onProgress: (next) => setProgress(next.percent) });
       // Windows 上安装阶段会由安装器结束进程并重新拉起应用，这里主要覆盖 macOS。
       setUpdate(null);
-      toast.success('更新已安装，请重新启动应用');
-      setStatus('更新已安装，请重新启动应用');
+      toast.success(t('settings.update.installed'));
+      setStatus(t('settings.update.installed'));
     } catch {
-      toast.error('更新安装失败，请稍后重试');
-      setStatus('更新安装失败');
+      toast.error(t('settings.toast.updateInstallFailed'));
+      setStatus(t('settings.update.installFailed'));
     } finally {
       setInstalling(false);
       setProgress(null);
@@ -1373,14 +1479,19 @@ function AboutTab() {
             ) : null}
           </h3>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            图片加边框水印工具：读取 EXIF 信息，按模板为照片加上机型、光圈、快门等相机参数，
-            支持自定义字体、背景与导出档位，可批量导出。
+            {t('settings.about.tagline')}
           </p>
         </div>
       </div>
 
-      <FieldGroup title="版本" description="检查新版本，或在发现更新时直接下载安装。">
-        <SettingField label="版本更新" description="从发布渠道读取最新版本，安装后需重新启动应用。">
+      <FieldGroup
+        title={t('settings.about.version.title')}
+        description={t('settings.about.version.description')}
+      >
+        <SettingField
+          label={t('settings.about.version.updateLabel')}
+          description={t('settings.about.version.updateDescription')}
+        >
           {platformCapabilities.system.autoUpdate ? (
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-3">
@@ -1390,12 +1501,14 @@ function AboutTab() {
                   disabled={checking || installing}
                 >
                   <RefreshCw className={cn('size-3.5', checking && 'animate-spin')} />
-                  {checking ? '检查中...' : '检查更新'}
+                  {checking ? t('settings.update.checking') : t('settings.update.check')}
                 </Button>
                 {update ? (
                   <Button onClick={() => void handleInstallUpdate()} disabled={installing}>
                     <Download className="size-3.5" />
-                    {installing ? '安装中...' : `下载并安装 ${update.version}`}
+                    {installing
+                      ? t('settings.update.installing')
+                      : t('settings.update.downloadAndInstall', { version: update.version })}
                   </Button>
                 ) : null}
                 {status ? <p className="text-xs text-muted-foreground">{status}</p> : null}
@@ -1411,18 +1524,26 @@ function AboutTab() {
                       style={{ width: `${progress}%` }}
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground">已下载 {progress}%</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t('settings.update.downloaded', { progress })}
+                  </p>
                 </div>
               ) : null}
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">当前环境不支持应用内更新。</p>
+            <p className="text-xs text-muted-foreground">{t('settings.update.unsupported')}</p>
           )}
         </SettingField>
       </FieldGroup>
 
-      <FieldGroup title="社区" description="问题反馈与更新动态都在这些地方。">
-        <SettingField label="相关链接" description="用系统默认浏览器打开。">
+      <FieldGroup
+        title={t('settings.about.community.title')}
+        description={t('settings.about.community.description')}
+      >
+        <SettingField
+          label={t('settings.about.community.links.label')}
+          description={t('settings.about.community.links.description')}
+        >
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"
@@ -1431,7 +1552,7 @@ function AboutTab() {
               onClick={() => openLink('https://github.com/copicseal/copicseal')}
             >
               <Code2 data-icon="inline-start" />
-              开源仓库
+              {t('settings.about.community.repository')}
             </Button>
             <Button
               type="button"
@@ -1440,7 +1561,7 @@ function AboutTab() {
               onClick={() => openLink('https://github.com/copicseal/copicseal/issues')}
             >
               <MessageSquare data-icon="inline-start" />
-              问题反馈
+              {t('settings.about.community.feedback')}
             </Button>
             <Button
               type="button"
@@ -1449,45 +1570,51 @@ function AboutTab() {
               onClick={() => openLink('https://github.com/kohaiy')}
             >
               <User data-icon="inline-start" />
-              作者主页
+              {t('settings.about.community.author')}
             </Button>
           </div>
         </SettingField>
 
         <div className="border border-border/80 bg-muted/40 px-4 py-3 text-[11px] leading-5 text-muted-foreground">
-          ⚠️ 本工具展示的相机 / 手机品牌商标版权归各自公司所有，仅用于展示 EXIF
-          信息，不构成商业关联或侵权。若您认为相关内容侵犯了您的合法权益，请通过上方「问题反馈」联系我们删除。
+          {t('settings.about.trademark')}
         </div>
       </FieldGroup>
 
-      <FieldGroup title="开源许可" description="本软件使用了下列开源项目，感谢它们的作者与社区。">
+      <FieldGroup
+        title={t('settings.about.licenses.title')}
+        description={t('settings.about.licenses.description')}
+      >
         <SettingField
           id="about-third-party"
-          label="第三方依赖"
-          description="只列随应用一起分发的运行时依赖；版本与完整依赖树见仓库的 Cargo.lock 与 pnpm-lock.yaml。"
+          label={t('settings.about.licenses.dependencies.label')}
+          description={t('settings.about.licenses.dependencies.description')}
         >
           <ScrollArea viewportClassName="max-h-56 [&>div]:!block">
             <div className="space-y-3 pr-1">
-              {THIRD_PARTY_NOTICES.map((group) => (
-                <div key={group.title}>
-                  <p className="mb-1 text-[10px] font-medium text-muted-foreground">
-                    {group.title}
-                  </p>
-                  <ul className="grid gap-x-4 gap-y-0.5 md:grid-cols-2">
-                    {group.items.map((item) => (
-                      <li
-                        key={`${group.title}-${item.name}`}
-                        className="flex items-baseline justify-between gap-2 text-[11px]"
-                      >
-                        <span className="min-w-0 truncate text-foreground">{item.name}</span>
-                        <span className="shrink-0 text-[10px] text-muted-foreground">
-                          {item.license}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+              {THIRD_PARTY_NOTICES.map((group) => {
+                const groupTitle = t(group.titleKey);
+
+                return (
+                  <div key={group.titleKey}>
+                    <p className="mb-1 text-[10px] font-medium text-muted-foreground">
+                      {groupTitle}
+                    </p>
+                    <ul className="grid gap-x-4 gap-y-0.5 md:grid-cols-2">
+                      {group.items.map((item) => (
+                        <li
+                          key={`${group.titleKey}-${item.name}`}
+                          className="flex items-baseline justify-between gap-2 text-[11px]"
+                        >
+                          <span className="min-w-0 truncate text-foreground">{item.name}</span>
+                          <span className="shrink-0 text-[10px] text-muted-foreground">
+                            {item.license}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
             </div>
           </ScrollArea>
         </SettingField>
@@ -1497,12 +1624,14 @@ function AboutTab() {
 }
 
 export function SettingsPage() {
+  const t = useTranslate();
   const pageActive = usePageActive();
   const navigate = useAppNavigation();
   const setDefaultPresets = useTemplateStore((state) => state.setDefaultPresets);
   const setDefaultFont = useTemplateStore((state) => state.setDefaultFont);
   const [tab, setTab] = useState('general');
   const [config, setConfig] = useState<AppConfig | null>(null);
+  const { setLanguage } = useI18n();
   const [overview, setOverview] = useState<CacheOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [cacheActionPending, setCacheActionPending] = useState(false);
@@ -1516,7 +1645,8 @@ export function SettingsPage() {
       setOverview(nextOverview);
     } catch (error) {
       console.error('Load settings failed:', error);
-      toast.error('读取设置失败');
+      // 这里用模块级的 translate()：`t` 进依赖会让语言一换就重扫一遍缓存目录
+      toast.error(translate('settings.toast.loadSettingsFailed'));
     } finally {
       setLoading(false);
     }
@@ -1588,17 +1718,20 @@ export function SettingsPage() {
     [saveConfig],
   );
 
-  const withCacheAction = useCallback(async (runner: () => Promise<void>) => {
-    setCacheActionPending(true);
-    try {
-      await runner();
-    } catch (error) {
-      console.error('Cache settings action failed:', error);
-      toast.error('缓存设置操作失败');
-    } finally {
-      setCacheActionPending(false);
-    }
-  }, []);
+  const withCacheAction = useCallback(
+    async (runner: () => Promise<void>) => {
+      setCacheActionPending(true);
+      try {
+        await runner();
+      } catch (error) {
+        console.error('Cache settings action failed:', error);
+        toast.error(t('settings.toast.cacheActionFailed'));
+      } finally {
+        setCacheActionPending(false);
+      }
+    },
+    [t],
+  );
 
   // 从别处跳进来时（例如导出完成提示里的「更改」）滚到目标设置项并闪一下，
   // 让用户一眼看到该改哪里。地址栏 hash 由导航写入，读完即清掉。
@@ -1659,9 +1792,9 @@ export function SettingsPage() {
             }
           : config.cache,
       });
-      toast.success('工作区目录已更新');
+      toast.success(t('settings.toast.workspaceUpdated'));
     });
-  }, [config, saveConfig, withCacheAction]);
+  }, [config, saveConfig, withCacheAction, t]);
 
   const handleOpenWorkspaceDirectory = useCallback(async () => {
     if (!config) {
@@ -1672,9 +1805,9 @@ export function SettingsPage() {
       await openDirectory(config.save_directory);
     } catch (error) {
       console.error('Open workspace directory failed:', error);
-      toast.error('打开工作区目录失败');
+      toast.error(t('settings.toast.openWorkspaceFailed'));
     }
-  }, [config]);
+  }, [config, t]);
 
   const handleSelectExportDirectory = useCallback(async () => {
     if (!config) {
@@ -1691,12 +1824,12 @@ export function SettingsPage() {
         ...config,
         output: { ...config.output, default_path: selected },
       });
-      toast.success('文件导出目录已更新');
+      toast.success(t('settings.toast.exportDirectoryUpdated'));
     } catch (error) {
       console.error('Update export directory failed:', error);
-      toast.error('更新文件导出目录失败');
+      toast.error(t('settings.toast.updateExportDirectoryFailed'));
     }
-  }, [config, saveConfig]);
+  }, [config, saveConfig, t]);
 
   /**
    * 改写常用尺寸清单。
@@ -1708,6 +1841,17 @@ export function SettingsPage() {
   const collageConfig = useMemo<CollageConfig>(
     () => ({ ...DEFAULT_COLLAGE_CONFIG, ...(config?.collage ?? {}) }),
     [config?.collage],
+  );
+
+  /**
+   * 切语言：先写配置（沿用 patchConfig，避免和别的设置互相覆盖），再立即切当前会话。
+   */
+  const handleLanguageChange = useCallback(
+    (next: Language) => {
+      setLanguage(next);
+      void patchConfig((current) => ({ ...current, language: next }));
+    },
+    [patchConfig, setLanguage],
   );
 
   const handleChangeCollage = useCallback(
@@ -1730,10 +1874,10 @@ export function SettingsPage() {
         await saveConfig({ ...config, output: { ...config.output, sizes } });
       } catch (error) {
         console.error('Update export sizes failed:', error);
-        toast.error('更新常用尺寸失败');
+        toast.error(t('settings.toast.updateSizesFailed'));
       }
     },
-    [config, saveConfig],
+    [config, saveConfig, t],
   );
 
   /**
@@ -1754,13 +1898,13 @@ export function SettingsPage() {
         await saveConfig({ ...config, output: { ...config.output, presets } });
         // 同一会话里新导入的图片立刻用上剩下的档位，不必重启
         setDefaultPresets(parseDefaultPresets(presets));
-        toast.success('已删除默认档位');
+        toast.success(t('settings.toast.defaultPresetDeleted'));
       } catch (error) {
         console.error('Remove default export preset failed:', error);
-        toast.error('删除默认档位失败');
+        toast.error(t('settings.toast.removeDefaultPresetFailed'));
       }
     },
-    [config, saveConfig, setDefaultPresets],
+    [config, saveConfig, setDefaultPresets, t],
   );
 
   /**
@@ -1786,10 +1930,10 @@ export function SettingsPage() {
         await updateConfig(nextConfig);
       } catch (error) {
         console.error('Save default font failed:', error);
-        toast.error('保存默认字体失败');
+        toast.error(t('settings.toast.saveFontFailed'));
       }
     },
-    [config, setDefaultFont],
+    [config, setDefaultFont, t],
   );
 
   const handleOpenExportDirectory = useCallback(async () => {
@@ -1801,9 +1945,9 @@ export function SettingsPage() {
       await openDirectory(config.output.default_path);
     } catch (error) {
       console.error('Open export directory failed:', error);
-      toast.error('打开文件导出目录失败');
+      toast.error(t('settings.toast.openExportDirectoryFailed'));
     }
-  }, [config]);
+  }, [config, t]);
 
   const handleSelectCacheDirectory = useCallback(async () => {
     if (!config) {
@@ -1824,9 +1968,9 @@ export function SettingsPage() {
         },
       });
       clearAssetCaches();
-      toast.success('缓存目录已更新');
+      toast.success(t('settings.toast.cacheDirectoryUpdated'));
     });
-  }, [config, saveConfig, withCacheAction]);
+  }, [config, saveConfig, withCacheAction, t]);
 
   const handleOpenCacheDirectory = useCallback(async () => {
     if (!config) {
@@ -1837,9 +1981,9 @@ export function SettingsPage() {
       await openDirectory(config.cache.directory);
     } catch (error) {
       console.error('Open cache directory failed:', error);
-      toast.error('打开缓存目录失败');
+      toast.error(t('settings.toast.openCacheDirectoryFailed'));
     }
-  }, [config]);
+  }, [config, t]);
 
   const handleToggleAutoCleanup = useCallback(
     async (checked: boolean) => {
@@ -1890,9 +2034,14 @@ export function SettingsPage() {
       const nextOverview = await getCacheOverview(config.cache.directory);
       setOverview(nextOverview);
       clearAssetCaches();
-      toast.success(`已清理 ${result.removed_files} 个过期缓存文件${keepNote(inUse.length)}`);
+      toast.success(
+        t('settings.toast.cacheExpiredCleaned', {
+          count: result.removed_files,
+          keep: keepNote(inUse.length, t),
+        }),
+      );
     });
-  }, [config, withCacheAction]);
+  }, [config, withCacheAction, t]);
 
   const handleClearThumbnails = useCallback(async () => {
     if (!config) {
@@ -1904,9 +2053,9 @@ export function SettingsPage() {
       const nextOverview = await clearCache(config.cache.directory, 'thumbnails', inUse);
       setOverview(nextOverview);
       clearAssetCaches();
-      toast.success(`缩略图缓存已清理${keepNote(inUse.length)}`);
+      toast.success(t('settings.toast.thumbnailsCleared', { keep: keepNote(inUse.length, t) }));
     });
-  }, [config, withCacheAction]);
+  }, [config, withCacheAction, t]);
 
   const handleClearAll = useCallback(async () => {
     if (!config) {
@@ -1918,16 +2067,20 @@ export function SettingsPage() {
       const nextOverview = await clearCache(config.cache.directory, 'all', inUse);
       setOverview(nextOverview);
       clearAssetCaches();
-      toast.success(`全部缓存已清理${keepNote(inUse.length)}`);
+      toast.success(t('settings.toast.allCachesCleared', { keep: keepNote(inUse.length, t) }));
     });
-  }, [config, withCacheAction]);
+  }, [config, withCacheAction, t]);
 
   if (loading || !config) {
     return (
       <div className="flex h-full min-h-0 flex-col bg-background">
-        <CoWindowHeader icon={Settings2} title="设置" description="正在读取配置与缓存状态。" />
+        <CoWindowHeader
+          icon={Settings2}
+          title={t('settings.header.title')}
+          description={t('settings.header.loadingDescription')}
+        />
         <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-          正在加载设置...
+          {t('settings.header.loading')}
         </div>
       </div>
     );
@@ -1937,8 +2090,8 @@ export function SettingsPage() {
     <div className="flex h-full min-h-0 flex-col bg-background">
       <CoWindowHeader
         icon={Settings2}
-        title="设置"
-        description="管理软件行为、缓存目录、缩略图生成与自动清理策略。"
+        title={t('settings.header.title')}
+        description={t('settings.header.description')}
       />
 
       {/* 受控 tab：从提示跳进来时（hash 锚点）需要先切到目标所在的 tab */}
@@ -1954,38 +2107,44 @@ export function SettingsPage() {
         >
           {TAB_GROUPS.map((group, index) => {
             const GroupIcon = group.icon;
+            const groupLabel = group.labelKey ? t(group.labelKey) : null;
 
             return (
-              <Fragment key={group.label ?? group.items[0].id}>
+              <Fragment key={group.labelKey ?? group.items[0].id}>
                 {index > 0 ? (
                   // w-full 不能省：TabsList 是 items-center 的 flex 列，没有宽度的
                   // 元素会被压成 0 宽并居中（分隔线会直接看不见）
                   <span aria-hidden="true" className="my-1.5 h-px w-full bg-border/70" />
                 ) : null}
-                {group.label ? (
+                {groupLabel ? (
                   // 同理，分组标题也必须铺满，否则会被 TabsList 居中
                   <span
                     aria-hidden="true"
                     className="flex w-full items-center gap-2 px-1.5 pt-1 pb-0.5 text-[10px] font-medium text-muted-foreground"
                   >
                     {GroupIcon ? <GroupIcon className="size-3.5" /> : null}
-                    {group.label}
+                    {groupLabel}
                   </span>
                 ) : null}
                 {group.items.map((tab) => {
                   const Icon = tab.icon;
+                  const tabLabel = t(tab.labelKey);
 
                   return (
                     <TabsTrigger
                       key={tab.id}
                       value={tab.id}
                       // 子项缩进一级，父级图标已表达归属，这里不再重复
-                      className={cn(group.label && 'pl-6')}
+                      className={cn(group.labelKey && 'pl-6')}
                       // 分组标题对读屏隐藏，靠可访问名把归属补回去
-                      aria-label={group.label ? `${group.label} ${tab.label}` : undefined}
+                      aria-label={
+                        groupLabel
+                          ? t('settings.tabs.itemAria', { group: groupLabel, tab: tabLabel })
+                          : undefined
+                      }
                     >
                       {Icon ? <Icon className="size-3.5" /> : null}
-                      {tab.label}
+                      {tabLabel}
                     </TabsTrigger>
                   );
                 })}
@@ -2024,6 +2183,7 @@ export function SettingsPage() {
             <TabsContent value="general" className="mt-0">
               <GeneralTab
                 config={config}
+                onLanguageChange={handleLanguageChange}
                 onSelectWorkspaceDirectory={handleSelectWorkspaceDirectory}
                 onOpenWorkspaceDirectory={handleOpenWorkspaceDirectory}
               />

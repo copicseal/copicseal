@@ -3,10 +3,48 @@ import {
   DEFAULT_TEMPLATE_ID,
   type RegisteredTemplate,
   type TemplateField,
+  type TemplateFieldOption,
   type TemplateSchema,
 } from '@/features/template/templates';
+import type { MessageKey } from '@/shared/i18n';
 
 export { DEFAULT_TEMPLATE_ID };
+
+/** 取文案的函数：组件里传 `useTranslate()`，非组件代码传 `translate()`。 */
+export type MessageTranslator = (key: MessageKey) => string;
+
+/**
+ * 模板显示名。
+ *
+ * 元数据里的 `name` 是模板作者写的字面量，`nameKey` 是抽取后的文案 key；
+ * 有 key 就用当前语言，没有就回落字面量——作者可以对某个模板完全不写 key。
+ */
+export function resolveTemplateName(template: RegisteredTemplate, t: MessageTranslator): string {
+  return template.meta.nameKey ? t(template.meta.nameKey) : template.meta.name;
+}
+
+/** 模板说明，规则同显示名。 */
+export function resolveTemplateDescription(
+  template: RegisteredTemplate,
+  t: MessageTranslator,
+): string {
+  return template.meta.descriptionKey ? t(template.meta.descriptionKey) : template.meta.description;
+}
+
+/** 参数标签，规则同显示名。 */
+export function resolveFieldLabel(field: TemplateField, t: MessageTranslator): string {
+  return field.labelKey ? t(field.labelKey) : field.label;
+}
+
+/** 参数补充说明，规则同显示名；字段本身没有说明时返回空串。 */
+export function resolveFieldDescription(field: TemplateField, t: MessageTranslator): string {
+  return field.descriptionKey ? t(field.descriptionKey) : (field.description ?? '');
+}
+
+/** 选项名，规则同显示名。 */
+export function resolveOptionLabel(option: TemplateFieldOption, t: MessageTranslator): string {
+  return option.labelKey ? t(option.labelKey) : option.label;
+}
 
 export function listBuiltinTemplates(): readonly RegisteredTemplate[] {
   return BUILTIN_TEMPLATES;

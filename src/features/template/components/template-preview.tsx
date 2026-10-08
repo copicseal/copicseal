@@ -7,9 +7,13 @@ import {
   resolvePreviewSizeTarget,
 } from '@/features/template/lib/render-size';
 import { TemplateRuntime } from '@/features/template/runtime';
-import { resolveBuiltinTemplate } from '@/features/template/runtime/template-registry';
+import {
+  resolveBuiltinTemplate,
+  resolveTemplateName,
+} from '@/features/template/runtime/template-registry';
 import { useElementSize } from '@/shared/hooks/use-element-size';
 import { usePhotos } from '@/shared/hooks/use-photos';
+import { useTranslate } from '@/shared/i18n';
 import { Button } from '@/shared/ui/button';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { usePhotoExif } from '../hooks/use-photo-exif';
@@ -55,6 +59,7 @@ export function TemplatePreview({
   previewRef,
   suspendAutoFit = false,
 }: TemplatePreviewProps) {
+  const t = useTranslate();
   const { currentPhoto } = usePhotos();
   const { exif } = usePhotoExif(currentPhoto);
   const [zoomMode, setZoomMode] = useState<TemplateZoomMode>('fit');
@@ -152,8 +157,10 @@ export function TemplatePreview({
       <div className="flex h-full w-full flex-col items-center justify-center gap-4 text-center text-muted-foreground">
         <LayoutTemplate className="size-14 text-primary" />
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">边框水印预览</h1>
-          <p className="mt-2 text-sm leading-6">选择一张图片后，这里会显示真实模板渲染结果。</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            {t('template.preview.emptyTitle')}
+          </h1>
+          <p className="mt-2 text-sm leading-6">{t('template.preview.emptyDescription')}</p>
         </div>
       </div>
     );
@@ -207,7 +214,7 @@ export function TemplatePreview({
         {suspendAutoFit ? (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-background/85 text-xs text-muted-foreground backdrop-blur-[1px]">
             <Loader2 className="size-4 animate-spin text-primary" />
-            正在导出…
+            {t('template.preview.exporting')}
           </div>
         ) : null}
       </div>
@@ -228,14 +235,14 @@ export function TemplatePreview({
                 size="sm"
                 onClick={() => setZoomMode(option)}
               >
-                {option === 'fit' ? '适应' : `${option}%`}
+                {option === 'fit' ? t('template.preview.zoomFit') : `${option}%`}
               </Button>
             );
           })}
         </div>
         <div className="flex items-center gap-2">
           <ImageIcon className="size-3.5" />
-          <span>{template.meta.name}</span>
+          <span>{resolveTemplateName(template, t)}</span>
         </div>
       </div>
     </div>

@@ -9,19 +9,22 @@
  * 依赖升级后这里只需要核对有没有新增/移除的条目。
  */
 
+import type { MessageKey } from '@/shared/i18n';
+
 export interface ThirdPartyNotice {
   name: string;
   license: string;
 }
 
 export interface ThirdPartyNoticeGroup {
-  title: string;
+  /** 分组标题的文案 key：软件名与许可证名不翻译，标题由调用方翻译后显示 */
+  titleKey: MessageKey;
   items: ThirdPartyNotice[];
 }
 
 export const THIRD_PARTY_NOTICES: readonly ThirdPartyNoticeGroup[] = [
   {
-    title: '运行时 · Rust',
+    titleKey: 'settings.about.licenses.groups.runtimeRust',
     items: [
       { name: 'tauri', license: 'Apache-2.0 OR MIT' },
       { name: 'tauri-plugin-opener', license: 'Apache-2.0 OR MIT' },
@@ -44,7 +47,7 @@ export const THIRD_PARTY_NOTICES: readonly ThirdPartyNoticeGroup[] = [
     ],
   },
   {
-    title: '界面 · JavaScript',
+    titleKey: 'settings.about.licenses.groups.uiJavaScript',
     items: [
       { name: 'react', license: 'MIT' },
       { name: 'react-dom', license: 'MIT' },
@@ -70,7 +73,7 @@ export const THIRD_PARTY_NOTICES: readonly ThirdPartyNoticeGroup[] = [
     ],
   },
   {
-    title: '元数据 · WebAssembly',
+    titleKey: 'settings.about.licenses.groups.metadataWasm',
     items: [
       { name: '@uswriting/exiftool', license: 'Apache-2.0' },
       { name: '@6over3/zeroperl-ts', license: 'Apache-2.0' },

@@ -12,6 +12,7 @@ import {
 } from '@/platform';
 import type { FontConfig, ImportedFont } from '@/platform/contracts';
 import { platformRuntime } from '@/platform/providers/platform-runtime';
+import { translate } from '@/shared/i18n';
 import { findImportedFont, setImportedFontRegistry } from '@/shared/lib/inline-font-registry';
 
 /** 字体来源：在线下载 / 自定义导入 / 本机引用。 */
@@ -151,7 +152,7 @@ async function persistFonts(next: FontConfig): Promise<void> {
     await saveFontConfig(next);
   } catch (error) {
     console.error('保存字体设置失败:', error);
-    toast.error('保存字体设置失败');
+    toast.error(translate('fonts.error.saveFailed'));
   }
 }
 
@@ -165,7 +166,7 @@ async function addImportedFont(font: ImportedFont): Promise<void> {
     } catch (error) {
       console.warn('清理重复字体文件失败:', error);
     }
-    toast.info(`「${font.family}」已经引入过了`);
+    toast.info(translate('fonts.toast.alreadyImported', { family: font.family }));
     return;
   }
 
@@ -186,10 +187,10 @@ async function importFontFromFile(): Promise<void> {
 
     const font = await importFontFile(workspace, sourcePath);
     await addImportedFont(font);
-    toast.success(`已导入字体「${font.family}」`);
+    toast.success(translate('fonts.toast.imported', { family: font.family }));
   } catch (error) {
     console.error('导入字体失败:', error);
-    toast.error('导入字体失败，请确认文件是有效的字体');
+    toast.error(translate('fonts.error.importFailed'));
   }
 }
 
@@ -206,11 +207,11 @@ async function importFontFromUrl(url: string, fileName?: string): Promise<Import
     const bytes = Array.from(new Uint8Array(await response.arrayBuffer()));
     const font = await importFontBytes(workspace, fileName ?? null, bytes);
     await addImportedFont(font);
-    toast.success(`已引入在线字体「${font.family}」`);
+    toast.success(translate('fonts.toast.onlineImported', { family: font.family }));
     return font;
   } catch (error) {
     console.error('下载字体失败:', error);
-    toast.error('下载字体失败：地址不可达或该来源不允许跨域访问');
+    toast.error(translate('fonts.error.downloadFailed'));
     return null;
   }
 }
@@ -238,7 +239,7 @@ async function removeImportedFont(id: string): Promise<void> {
   } catch (error) {
     console.warn('删除字体文件失败:', error);
   }
-  toast.success(`已移除字体「${font.family}」`);
+  toast.success(translate('fonts.toast.removed', { family: font.family }));
 }
 
 async function addFavoriteFont(family: string): Promise<void> {

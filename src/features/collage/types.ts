@@ -1,3 +1,5 @@
+import type { MessageKey } from '@/shared/i18n';
+
 /** 拼图布局模式：规则网格、长图拼接、自由摆放。 */
 export type CollageLayoutMode = 'grid' | 'long' | 'free';
 
@@ -41,8 +43,12 @@ export interface CollageLayoutSlot {
 
 export interface CollageLayout {
   id: string;
+  /** 布局名（zh-CN 字面量）：作为没有文案 key 时的回落，界面优先用 `nameKey` 取当前语言 */
   name: string;
+  /** 布局名的文案 key（`collage.layouts.names.*`） */
+  nameKey?: MessageKey;
   count: number;
+  /** 分组名：既是分组键也用作滚动锚点 id，展示文案由界面按张数取 */
   group: string;
   slots: CollageLayoutSlot[];
 }

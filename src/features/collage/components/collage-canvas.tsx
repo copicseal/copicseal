@@ -18,6 +18,7 @@ import type { CollageZoom } from '@/features/collage/store/use-collage-store';
 import { useCollageStore } from '@/features/collage/store/use-collage-store';
 import { useElementSize } from '@/shared/hooks/use-element-size';
 import { usePhotos } from '@/shared/hooks/use-photos';
+import { useTranslate } from '@/shared/i18n';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { ScrollArea } from '@/shared/ui/scroll-area';
@@ -66,6 +67,7 @@ export function CollageCanvas({
   /** 导出期间画布会被临时放大到输出尺寸，需要盖一层遮罩挡住尺寸跳变 */
   exporting?: boolean;
 }) {
+  const t = useTranslate();
   const { photos, currentPhoto } = usePhotos();
   const {
     present,
@@ -382,8 +384,10 @@ export function CollageCanvas({
       <div className="flex h-full w-full flex-col items-center justify-center gap-4 text-center text-muted-foreground">
         <ImagePlus className="size-14 text-primary" />
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">拼图预览</h1>
-          <p className="mt-2 text-sm leading-6">导入图片后，这里会显示真实拼图预览结果。</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            {t('collage.empty.previewTitle')}
+          </h1>
+          <p className="mt-2 text-sm leading-6">{t('collage.empty.previewDescription')}</p>
         </div>
       </div>
     );
@@ -544,9 +548,11 @@ export function CollageCanvas({
                           ) : exporting ? null : (
                             <div className="pointer-events-none flex flex-col items-center gap-1.5 text-muted-foreground">
                               <Plus className="size-5" />
-                              <span className="text-[10px]">第 {index + 1} 格</span>
+                              <span className="text-[10px]">
+                                {t('collage.canvas.slotIndex', { index: index + 1 })}
+                              </span>
                               <span className="text-[10px] opacity-0 transition-opacity group-hover:opacity-100">
-                                点击填充 / 从素材区拖入
+                                {t('collage.canvas.slotPlaceholder')}
                               </span>
                             </div>
                           )}
@@ -659,7 +665,7 @@ export function CollageCanvas({
         {exporting ? (
           <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2 bg-background/85 text-xs text-muted-foreground backdrop-blur-[1px]">
             <Loader2 className="size-4 animate-spin text-primary" />
-            正在导出…
+            {t('collage.canvas.exporting')}
           </div>
         ) : null}
       </div>
@@ -668,13 +674,25 @@ export function CollageCanvas({
         <div className="min-w-0">
           <p className="truncate font-medium text-foreground">
             {mode === 'grid'
-              ? `布局 ${layout.name} · ${layout.count} 格`
+              ? t('collage.canvas.statusGrid', {
+                  name: layout.nameKey ? t(layout.nameKey, { count: layout.count }) : layout.name,
+                  count: layout.count,
+                })
               : mode === 'long'
-                ? `${present.canvas.longDirection === 'vertical' ? '竖向' : '横向'}长图 · ${present.slotItems.length} 张`
-                : `自由摆放 · ${present.slotItems.length} 张`}
+                ? t('collage.canvas.statusLong', {
+                    direction: t(
+                      present.canvas.longDirection === 'vertical'
+                        ? 'collage.canvas.directionVertical'
+                        : 'collage.canvas.directionHorizontal',
+                    ),
+                    count: present.slotItems.length,
+                  })
+                : t('collage.canvas.statusFree', { count: present.slotItems.length })}
           </p>
           <p className="truncate">
-            {unusedCount > 0 ? `还有 ${unusedCount} 张素材未放入` : '素材都已放入画布'}
+            {unusedCount > 0
+              ? t('collage.canvas.unusedHint', { count: unusedCount })
+              : t('collage.canvas.allPlaced')}
           </p>
         </div>
 
@@ -693,7 +711,7 @@ export function CollageCanvas({
                 size="sm"
                 onClick={() => setZoom(option)}
               >
-                {option === 'fit' ? '适应' : `${option * 100}%`}
+                {option === 'fit' ? t('collage.canvas.zoomFit') : `${option * 100}%`}
               </Button>
             );
           })}
@@ -701,8 +719,8 @@ export function CollageCanvas({
 
         <span className="hidden shrink-0 sm:inline">
           {mode === 'long'
-            ? `画布宽度 ${present.canvas.longSize}px`
-            : `画布比例 ${getAspectRatioText(present.canvas)}`}
+            ? t('collage.canvas.canvasWidth', { value: present.canvas.longSize })
+            : t('collage.canvas.canvasRatio', { ratio: getAspectRatioText(present.canvas) })}
         </span>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { toast } from 'sonner';
 import { openDirectory, platformCapabilities } from '@/platform';
+import { translate, useTranslate } from '@/shared/i18n';
 import { useAppNavigation } from '@/shared/providers/navigation-provider';
 
 /** 设置页里导出目录那一项的元素 id，跳转时靠它定位。 */
@@ -37,6 +38,7 @@ export function CoOpenDirectoryLink({ directory }: CoOpenDirectoryLinkProps) {
 
 /** 提示里的「更改」：跳到设置页的导出目录那一项。 */
 function ChangeExportDirectoryButton() {
+  const t = useTranslate();
   const navigate = useAppNavigation();
 
   return (
@@ -46,7 +48,7 @@ function ChangeExportDirectoryButton() {
       className="shrink-0 rounded-sm bg-primary/10 px-1.5 py-0.5 text-[10px] leading-4 text-primary transition-colors hover:bg-primary/20"
       onClick={() => navigate('/settings', EXPORT_DIRECTORY_ANCHOR)}
     >
-      更改
+      {t('common.action.change')}
     </button>
   );
 }
@@ -57,7 +59,7 @@ export function notifyExportedDirectory(directory: string | null) {
     return;
   }
 
-  toast.success('导出完成', {
+  toast.success(translate('common.export.done'), {
     description: (
       <span className="flex items-start gap-1.5">
         <span className="min-w-0">
@@ -73,5 +75,5 @@ export function notifyExportedDirectory(directory: string | null) {
 /** 导出失败的兜底提示：直写目录之后，最常见的失败原因就是保存目录不可用。 */
 export function notifyExportFailed(error: unknown) {
   console.error('导出失败:', error);
-  toast.error('导出失败，请检查设置里的保存目录是否可用');
+  toast.error(translate('common.export.failed'));
 }

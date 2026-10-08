@@ -1,4 +1,5 @@
 import { FolderOpen } from 'lucide-react';
+import { useTranslate } from '@/shared/i18n';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui/tooltip';
@@ -17,6 +18,8 @@ interface CoDirectoryFieldProps {
  * 标题与描述由调用方自己的 SettingField 负责，这里只管控件本身。
  */
 export function CoDirectoryField({ directory, onOpen, onSelect }: CoDirectoryFieldProps) {
+  const t = useTranslate();
+
   return (
     <div className="flex max-w-3xl items-center gap-2">
       <TooltipProvider>
@@ -31,11 +34,11 @@ export function CoDirectoryField({ directory, onOpen, onSelect }: CoDirectoryFie
       </TooltipProvider>
       <Button variant="outline" onClick={onOpen}>
         <FolderOpen data-icon="inline-start" />
-        打开
+        {t('common.action.open')}
       </Button>
       <Button variant="outline" onClick={onSelect}>
         <FolderOpen data-icon="inline-start" />
-        选择
+        {t('common.action.select')}
       </Button>
     </div>
   );

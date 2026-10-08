@@ -20,6 +20,7 @@ import type {
   UpsertComarkTemplatePayload,
   WindowFrameMode,
 } from '@/platform/contracts';
+import { translate } from '@/shared/i18n';
 
 export type {
   AppConfig,
@@ -262,7 +263,13 @@ export function toNativeFileUrl(path: string) {
 export function openImageDialog() {
   return open({
     multiple: true,
-    filters: [{ name: '图片', extensions: ['jpg', 'jpeg', 'png', 'heic', 'heif', 'hif', 'webp'] }],
+    filters: [
+      {
+        // 原生对话框由系统绘制，筛选名要按当前界面语言取
+        name: translate('common.dialog.imageFilter'),
+        extensions: ['jpg', 'jpeg', 'png', 'heic', 'heif', 'hif', 'webp'],
+      },
+    ],
   });
 }
 export function saveImageDialog(defaultPath: string, extension: string) {

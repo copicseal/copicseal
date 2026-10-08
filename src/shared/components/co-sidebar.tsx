@@ -1,6 +1,7 @@
 import { Grid3x3, LayoutTemplate, Settings2 } from 'lucide-react';
 import type { AppRoute } from '@/app/routes';
 import appLogoUrl from '@/assets/logo.svg';
+import { type MessageKey, useTranslate } from '@/shared/i18n';
 import { cn } from '@/shared/lib/utils';
 import { useWindowStyle } from '@/shared/providers/window-style-provider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui/tooltip';
@@ -12,14 +13,15 @@ interface CoSidebarProps {
 
 const items: Array<{
   route: AppRoute;
-  label: string;
+  labelKey: MessageKey;
   icon: typeof LayoutTemplate;
 }> = [
-  { route: '/template', label: '边框水印', icon: LayoutTemplate },
-  { route: '/collage', label: '拼图', icon: Grid3x3 },
+  { route: '/template', labelKey: 'common.nav.template', icon: LayoutTemplate },
+  { route: '/collage', labelKey: 'common.nav.collage', icon: Grid3x3 },
 ];
 
 export function CoSidebar({ route, onRouteChange }: CoSidebarProps) {
+  const t = useTranslate();
   const { variant } = useWindowStyle();
 
   return (
@@ -37,14 +39,14 @@ export function CoSidebar({ route, onRouteChange }: CoSidebarProps) {
             <TooltipTrigger asChild>
               <button
                 type="button"
-                aria-label="可图匠"
+                aria-label={t('common.brand.name')}
                 onClick={() => onRouteChange('/template')}
                 className="flex size-11 items-center justify-center rounded-2xl border border-border/80 bg-card text-primary shadow-sm transition-transform hover:-translate-y-0.5"
               >
                 <img src={appLogoUrl} alt="" className="size-6" />
               </button>
             </TooltipTrigger>
-            <TooltipContent>可图匠</TooltipContent>
+            <TooltipContent>{t('common.brand.name')}</TooltipContent>
           </Tooltip>
 
           <div className="flex flex-col items-center gap-2">
@@ -57,7 +59,7 @@ export function CoSidebar({ route, onRouteChange }: CoSidebarProps) {
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      aria-label={item.label}
+                      aria-label={t(item.labelKey)}
                       onClick={() => onRouteChange(item.route)}
                       className={cn(
                         'flex size-11 items-center justify-center rounded-2xl border transition-all',
@@ -69,7 +71,7 @@ export function CoSidebar({ route, onRouteChange }: CoSidebarProps) {
                       <Icon className="size-4.5" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent>{item.label}</TooltipContent>
+                  <TooltipContent>{t(item.labelKey)}</TooltipContent>
                 </Tooltip>
               );
             })}
@@ -81,7 +83,7 @@ export function CoSidebar({ route, onRouteChange }: CoSidebarProps) {
             <TooltipTrigger asChild>
               <button
                 type="button"
-                aria-label="设置"
+                aria-label={t('common.nav.settings')}
                 onClick={() => onRouteChange('/settings')}
                 className={cn(
                   'flex size-11 items-center justify-center rounded-2xl border transition-all',
@@ -93,7 +95,7 @@ export function CoSidebar({ route, onRouteChange }: CoSidebarProps) {
                 <Settings2 className="size-4.5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent>设置</TooltipContent>
+            <TooltipContent>{t('common.nav.settings')}</TooltipContent>
           </Tooltip>
         </div>
       </aside>

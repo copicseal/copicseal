@@ -1,6 +1,7 @@
 import { useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { resolveTemplatePresets, saveTemplatePresets } from '@/platform';
+import { useTranslate } from '@/shared/i18n';
 import {
   createTemplatePresetRecord,
   isValidPresetName,
@@ -37,6 +38,7 @@ export interface TemplatePresetsController {
  * 模板页与设置页各自挂载这个 hook，读到的是同一份数据，改完两边立刻同步。
  */
 export function useTemplatePresets(): TemplatePresetsController {
+  const t = useTranslate();
   const presets = useTemplateStore((state) => state.templatePresets);
   const setTemplatePresets = useTemplateStore((state) => state.setTemplatePresets);
 
@@ -64,10 +66,10 @@ export function useTemplatePresets(): TemplatePresetsController {
         setTemplatePresets(next);
       } catch (error) {
         console.error('保存模板预设失败:', error);
-        toast.error('保存模板预设失败');
+        toast.error(t('template.preset.saveFailed'));
       }
     },
-    [setTemplatePresets],
+    [setTemplatePresets, t],
   );
 
   const createPreset = useCallback(
@@ -75,12 +77,17 @@ export function useTemplatePresets(): TemplatePresetsController {
       const trimmed = name.trim();
 
       if (!isValidPresetName(trimmed)) {
-        toast.warning(`名称需要 ${TEMPLATE_PRESET_NAME_MIN} - ${TEMPLATE_PRESET_NAME_MAX} 个字符`);
+        toast.warning(
+          t('template.preset.nameLength', {
+            min: TEMPLATE_PRESET_NAME_MIN,
+            max: TEMPLATE_PRESET_NAME_MAX,
+          }),
+        );
         return null;
       }
 
       if (presets.length >= MAX_TEMPLATE_PRESETS) {
-        toast.warning(`模板预设已达上限（${MAX_TEMPLATE_PRESETS}），请先删除一些`);
+        toast.warning(t('template.preset.limitReached', { count: MAX_TEMPLATE_PRESETS }));
         return null;
       }
 
@@ -89,7 +96,7 @@ export function useTemplatePresets(): TemplatePresetsController {
       await persist([record, ...presets]);
       return record;
     },
-    [persist, presets],
+    [persist, presets, t],
   );
 
   const overwritePreset = useCallback(
@@ -115,7 +122,12 @@ export function useTemplatePresets(): TemplatePresetsController {
       const trimmed = name.trim();
 
       if (!isValidPresetName(trimmed)) {
-        toast.warning(`名称需要 ${TEMPLATE_PRESET_NAME_MIN} - ${TEMPLATE_PRESET_NAME_MAX} 个字符`);
+        toast.warning(
+          t('template.preset.nameLength', {
+            min: TEMPLATE_PRESET_NAME_MIN,
+            max: TEMPLATE_PRESET_NAME_MAX,
+          }),
+        );
         return;
       }
 
@@ -123,7 +135,7 @@ export function useTemplatePresets(): TemplatePresetsController {
         presets.map((preset) => (preset.id === id ? { ...preset, name: trimmed } : preset)),
       );
     },
-    [persist, presets],
+    [persist, presets, t],
   );
 
   const movePreset = useCallback(

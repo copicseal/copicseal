@@ -1,10 +1,15 @@
 import { Star } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useFontLibrary } from '@/features/fonts/use-font-library';
-import { listBuiltinTemplates } from '@/features/template/runtime/template-registry';
+import {
+  listBuiltinTemplates,
+  resolveTemplateDescription,
+  resolveTemplateName,
+} from '@/features/template/runtime/template-registry';
 import { CoFontField } from '@/shared/components/co-font-field';
 import { CoPanelSection } from '@/shared/components/co-panel-section';
 import { useSystemFonts } from '@/shared/hooks/use-system-fonts';
+import { useTranslate } from '@/shared/i18n';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import {
@@ -45,6 +50,7 @@ export function TemplateSelector({
   font,
   onFontChange,
 }: TemplateSelectorProps) {
+  const t = useTranslate();
   const templates = listBuiltinTemplates();
   const [favorites, setFavorites] = useState<string[]>(['minimal', 'film']);
   const [recentIds, setRecentIds] = useState<string[]>(['minimal']);
@@ -94,7 +100,7 @@ export function TemplateSelector({
 
   return (
     <CoPanelSection
-      title="模板"
+      title={t('template.selector.title')}
       actions={
         <Button
           type="button"
@@ -105,13 +111,15 @@ export function TemplateSelector({
           onClick={toggleFavorite}
         >
           <Star data-icon="inline-start" className={cn(activeFavorite && 'fill-current')} />
-          {activeFavorite ? '已收藏' : '收藏'}
+          {activeFavorite ? t('template.selector.favorited') : t('template.selector.favorite')}
         </Button>
       }
     >
       <div className="space-y-3">
         <div className="space-y-1.5">
-          <span className="text-xs font-medium text-foreground">全局字体</span>
+          <span className="text-xs font-medium text-foreground">
+            {t('template.selector.globalFont')}
+          </span>
           <CoFontField
             value={font}
             onChange={onFontChange}
@@ -122,15 +130,15 @@ export function TemplateSelector({
           />
           <p className="text-[10px] leading-4 text-muted-foreground">
             {familyOptions.length === 0
-              ? '还没有引入字体；可在 设置 → 字体 里从在线、本机或文件引入。'
-              : '只列出已引入的字体，可在 设置 → 字体 里调整。'}
+              ? t('template.selector.noFonts')
+              : t('template.selector.fontHint')}
           </p>
         </div>
 
         <div className="space-y-2">
           <Select value={activeTemplateId} onValueChange={handleSelect}>
             <SelectTrigger className="w-full">
-              <SelectValue placeholder="选择模板" />
+              <SelectValue placeholder={t('template.selector.placeholder')} />
             </SelectTrigger>
             <SelectContent>
               {/* 下拉项的 4px 内边距来自 SelectGroup（SelectContent 自身没有 p-1），
@@ -138,7 +146,7 @@ export function TemplateSelector({
               <SelectGroup>
                 {orderedTemplates.map((template) => (
                   <SelectItem key={template.meta.id} value={template.meta.id}>
-                    {template.meta.name}
+                    {resolveTemplateName(template, t)}
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -147,7 +155,7 @@ export function TemplateSelector({
 
           {activeTemplate ? (
             <p className="text-xs leading-5 text-muted-foreground">
-              {activeTemplate.meta.description}
+              {resolveTemplateDescription(activeTemplate, t)}
             </p>
           ) : null}
         </div>

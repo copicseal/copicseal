@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import {
-  COLLAGE_EXPORT_LABELS,
+  COLLAGE_EXPORT_LABEL_KEYS,
   COLLAGE_RATIO_OPTIONS,
   canvasStateFromConfig,
   clamp,
@@ -22,6 +22,7 @@ import { useCollageStore } from '@/features/collage/store/use-collage-store';
 import type { OutputSize } from '@/platform/contracts';
 import { CoPanelSection } from '@/shared/components/co-panel-section';
 import { usePhotos } from '@/shared/hooks/use-photos';
+import { type MessageKey, useTranslate } from '@/shared/i18n';
 import { selectPhotosViaDialog } from '@/shared/lib/import-photo';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
@@ -48,6 +49,11 @@ interface CollagePropertiesPanelProps {
 
 type PanelTab = 'slot' | 'canvas';
 
+const TARGET_TABS: Array<{ id: PanelTab; labelKey: MessageKey }> = [
+  { id: 'slot', labelKey: 'collage.properties.targetSlot' },
+  { id: 'canvas', labelKey: 'collage.properties.targetCanvas' },
+];
+
 function FieldLabel({ label, value }: { label: string; value: string }) {
   return (
     <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
@@ -64,6 +70,7 @@ export function CollagePropertiesPanel({
   sizes,
   onSizesOpen,
 }: CollagePropertiesPanelProps) {
+  const t = useTranslate();
   const { photos, replacePhoto } = usePhotos();
   const {
     present,
@@ -154,12 +161,11 @@ export function CollagePropertiesPanel({
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
-        <span className="text-xs font-medium text-foreground">编辑对象</span>
+        <span className="text-xs font-medium text-foreground">
+          {t('collage.properties.target')}
+        </span>
         <div className="flex items-center gap-1 bg-muted/50 p-1">
-          {[
-            { id: 'slot' as const, label: '单格' },
-            { id: 'canvas' as const, label: '画布' },
-          ].map((item) => (
+          {TARGET_TABS.map((item) => (
             <button
               key={item.id}
               type="button"
@@ -171,7 +177,7 @@ export function CollagePropertiesPanel({
                   : 'text-muted-foreground hover:text-foreground',
               )}
             >
-              {item.label}
+              {t(item.labelKey)}
             </button>
           ))}
         </div>
@@ -179,22 +185,22 @@ export function CollagePropertiesPanel({
 
       {tab === 'slot' ? (
         <CoPanelSection
-          title="单格调整"
-          description="先点选画布上的一格，再在这里单独调整它的取景、大小与圆角。"
+          title={t('collage.properties.slotSection.title')}
+          description={t('collage.properties.slotSection.description')}
         >
           {!slot || slotIndex === null ? (
             <p className="border border-border/80 bg-background/70 px-4 py-4 text-center text-xs leading-6 text-muted-foreground shadow-sm">
-              还没有选中格子，点击画布中的任意一格开始调整。
+              {t('collage.properties.slotSection.empty')}
             </p>
           ) : (
             <div className="space-y-4">
               <div className="flex items-center justify-between gap-2 border border-border/70 bg-muted/20 px-3 py-2">
                 <div className="min-w-0">
                   <p className="truncate text-xs font-medium text-foreground">
-                    第 {slotIndex + 1} 格
+                    {t('collage.properties.slotIndex', { index: slotIndex + 1 })}
                   </p>
                   <p className="truncate text-[11px] text-muted-foreground">
-                    {slotPhoto ? slotPhoto.name : '空格子'}
+                    {slotPhoto ? slotPhoto.name : t('collage.properties.emptySlot')}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
@@ -205,7 +211,7 @@ export function CollagePropertiesPanel({
                       onClick={() => void handleReplace(slotPhoto.id)}
                     >
                       <Upload data-icon="inline-start" />
-                      替换
+                      {t('collage.properties.replace')}
                     </Button>
                   ) : null}
                   <Button
@@ -215,7 +221,7 @@ export function CollagePropertiesPanel({
                     onClick={() => clearSlot(slotIndex)}
                   >
                     <Trash2 data-icon="inline-start" />
-                    清空
+                    {t('collage.properties.clear')}
                   </Button>
                 </div>
               </div>
@@ -223,7 +229,10 @@ export function CollagePropertiesPanel({
               {mode === 'free' ? (
                 <>
                   <div>
-                    <FieldLabel label="大小" value={`${Math.round(slot.freeW)}%`} />
+                    <FieldLabel
+                      label={t('collage.properties.size')}
+                      value={`${Math.round(slot.freeW)}%`}
+                    />
                     <Slider
                       value={[slot.freeW]}
                       min={4}
@@ -233,7 +242,10 @@ export function CollagePropertiesPanel({
                     />
                   </div>
                   <div>
-                    <FieldLabel label="水平位置" value={`${Math.round(slot.freeX)}%`} />
+                    <FieldLabel
+                      label={t('collage.properties.offsetX')}
+                      value={`${Math.round(slot.freeX)}%`}
+                    />
                     <Slider
                       value={[slot.freeX]}
                       min={-10}
@@ -243,7 +255,10 @@ export function CollagePropertiesPanel({
                     />
                   </div>
                   <div>
-                    <FieldLabel label="垂直位置" value={`${Math.round(slot.freeY)}%`} />
+                    <FieldLabel
+                      label={t('collage.properties.offsetY')}
+                      value={`${Math.round(slot.freeY)}%`}
+                    />
                     <Slider
                       value={[slot.freeY]}
                       min={-10}
@@ -256,7 +271,10 @@ export function CollagePropertiesPanel({
               ) : (
                 <>
                   <div>
-                    <FieldLabel label="缩放" value={`${slot.scale.toFixed(2)}x`} />
+                    <FieldLabel
+                      label={t('collage.properties.scale')}
+                      value={`${slot.scale.toFixed(2)}x`}
+                    />
                     <Slider
                       value={[slot.scale]}
                       min={mode === 'grid' ? 1 : 0.2}
@@ -266,7 +284,10 @@ export function CollagePropertiesPanel({
                     />
                   </div>
                   <div>
-                    <FieldLabel label="水平位置" value={`${Math.round(slot.offsetX)}%`} />
+                    <FieldLabel
+                      label={t('collage.properties.offsetX')}
+                      value={`${Math.round(slot.offsetX)}%`}
+                    />
                     <Slider
                       value={[slot.offsetX]}
                       min={-50}
@@ -276,7 +297,10 @@ export function CollagePropertiesPanel({
                     />
                   </div>
                   <div>
-                    <FieldLabel label="垂直位置" value={`${Math.round(slot.offsetY)}%`} />
+                    <FieldLabel
+                      label={t('collage.properties.offsetY')}
+                      value={`${Math.round(slot.offsetY)}%`}
+                    />
                     <Slider
                       value={[slot.offsetY]}
                       min={-50}
@@ -286,7 +310,10 @@ export function CollagePropertiesPanel({
                     />
                   </div>
                   <div>
-                    <FieldLabel label="旋转" value={`${Math.round(slot.rotation)}°`} />
+                    <FieldLabel
+                      label={t('collage.properties.rotation')}
+                      value={`${Math.round(slot.rotation)}°`}
+                    />
                     <Slider
                       value={[slot.rotation]}
                       min={-45}
@@ -297,7 +324,9 @@ export function CollagePropertiesPanel({
                   </div>
                   {mode === 'grid' ? (
                     <div>
-                      <span className="text-xs font-medium text-foreground">填充方式</span>
+                      <span className="text-xs font-medium text-foreground">
+                        {t('collage.properties.fit')}
+                      </span>
                       <div className="mt-2 grid grid-cols-2 gap-2">
                         {(['cover', 'contain'] as const).map((item) => (
                           <button
@@ -311,14 +340,16 @@ export function CollagePropertiesPanel({
                                 : 'border-border text-muted-foreground hover:text-foreground',
                             )}
                           >
-                            {item === 'cover' ? '裁切填满' : '完整显示'}
+                            {item === 'cover'
+                              ? t('collage.properties.fitCover')
+                              : t('collage.properties.fitContain')}
                           </button>
                         ))}
                       </div>
                       <p className="mt-1.5 text-[11px] leading-5 text-muted-foreground">
                         {slot.fit === 'cover'
-                          ? '按格子比例放大图片、裁掉超出部分（照片比例与格子不一致时看不到全图，换「完整显示」可看全）。'
-                          : '整张图缩进格子，比例不一致时留出画布背景。'}
+                          ? t('collage.properties.fitCoverHint')
+                          : t('collage.properties.fitContainHint')}
                       </p>
                     </div>
                   ) : null}
@@ -330,7 +361,7 @@ export function CollagePropertiesPanel({
                       onClick={() => updateSlot(slotIndex, { flipX: !slot.flipX })}
                     >
                       <FlipHorizontal2 data-icon="inline-start" />
-                      水平翻转
+                      {t('collage.properties.flipHorizontal')}
                     </Button>
                     <Button
                       variant={slot.flipY ? 'default' : 'outline'}
@@ -338,7 +369,7 @@ export function CollagePropertiesPanel({
                       onClick={() => updateSlot(slotIndex, { flipY: !slot.flipY })}
                     >
                       <FlipVertical2 data-icon="inline-start" />
-                      垂直翻转
+                      {t('collage.properties.flipVertical')}
                     </Button>
                   </div>
                 </>
@@ -346,10 +377,12 @@ export function CollagePropertiesPanel({
 
               <div>
                 <FieldLabel
-                  label="圆角"
+                  label={t('collage.properties.radius')}
                   value={
                     slot.borderRadius === null
-                      ? `跟随画布 ${present.canvas.borderRadius}px`
+                      ? t('collage.properties.radiusFollowCanvas', {
+                          value: present.canvas.borderRadius,
+                        })
                       : `${slot.borderRadius}px`
                   }
                 />
@@ -366,7 +399,7 @@ export function CollagePropertiesPanel({
                     className="mt-1 text-[11px] text-muted-foreground hover:text-foreground"
                     onClick={() => updateSlot(slotIndex, { borderRadius: null })}
                   >
-                    改回跟随画布
+                    {t('collage.properties.radiusFollowCanvasReset')}
                   </button>
                 ) : null}
               </div>
@@ -383,7 +416,7 @@ export function CollagePropertiesPanel({
                         selectSlot(slotIndex + 1);
                       }}
                     >
-                      上移一层
+                      {t('collage.properties.bringForward')}
                     </Button>
                     <Button
                       variant="outline"
@@ -394,11 +427,11 @@ export function CollagePropertiesPanel({
                         selectSlot(slotIndex - 1);
                       }}
                     >
-                      下移一层
+                      {t('collage.properties.sendBackward')}
                     </Button>
                   </div>
                   <p className="mt-1.5 text-[11px] leading-5 text-muted-foreground">
-                    自由模式里图片可以互相压住，靠这里调整谁在上面。
+                    {t('collage.properties.layerHint')}
                   </p>
                 </div>
               ) : null}
@@ -410,36 +443,38 @@ export function CollagePropertiesPanel({
                 onClick={() => resetSlot(slotIndex)}
               >
                 <RotateCcw data-icon="inline-start" />
-                复位这一格
+                {t('collage.properties.resetSlot')}
               </Button>
             </div>
           )}
         </CoPanelSection>
       ) : (
         <CoPanelSection
-          title="画布"
-          description="控制整块拼图的尺寸比例、间距与背景。"
+          title={t('collage.properties.canvasSection.title')}
+          description={t('collage.properties.canvasSection.description')}
           actions={
             <Button
               variant="ghost"
               size="sm"
               disabled={isSameCanvasState(present.canvas, defaultCanvas)}
-              title="把画布比例、间距、边距、圆角、阴影、背景色与长图参数恢复成默认值"
+              title={t('collage.properties.canvasSection.resetTooltip')}
               onClick={resetCanvas}
             >
               <RotateCcw data-icon="inline-start" />
-              恢复默认
+              {t('collage.properties.resetDefault')}
             </Button>
           }
         >
           <div className="space-y-4">
             {isLong ? (
               <p className="border border-border/70 bg-muted/20 px-3 py-2 text-[11px] leading-5 text-muted-foreground">
-                长图比例由图片内容决定，横轴尺寸与对齐方式在左侧「长图」里设置。
+                {t('collage.properties.longHint')}
               </p>
             ) : (
               <div>
-                <span className="text-xs font-medium text-foreground">画布比例</span>
+                <span className="text-xs font-medium text-foreground">
+                  {t('collage.properties.aspect')}
+                </span>
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {COLLAGE_RATIO_OPTIONS.map((option) => (
                     <button
@@ -459,7 +494,9 @@ export function CollagePropertiesPanel({
                 </div>
                 <div className="mt-2 flex items-end gap-2">
                   <div className="flex-1 space-y-1">
-                    <span className="text-[11px] text-muted-foreground">自定义宽</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {t('collage.properties.customWidth')}
+                    </span>
                     <Input
                       value={customText.width}
                       inputMode="numeric"
@@ -476,7 +513,9 @@ export function CollagePropertiesPanel({
                     />
                   </div>
                   <div className="flex-1 space-y-1">
-                    <span className="text-[11px] text-muted-foreground">自定义高</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {t('collage.properties.customHeight')}
+                    </span>
                     <Input
                       value={customText.height}
                       inputMode="numeric"
@@ -498,7 +537,7 @@ export function CollagePropertiesPanel({
 
             {mode === 'free' ? null : (
               <div>
-                <FieldLabel label="间距" value={`${present.canvas.gap}px`} />
+                <FieldLabel label={t('collage.properties.gap')} value={`${present.canvas.gap}px`} />
                 <Slider
                   value={[present.canvas.gap]}
                   min={0}
@@ -509,7 +548,10 @@ export function CollagePropertiesPanel({
               </div>
             )}
             <div>
-              <FieldLabel label="边距" value={`${present.canvas.padding}px`} />
+              <FieldLabel
+                label={t('collage.properties.padding')}
+                value={`${present.canvas.padding}px`}
+              />
               <Slider
                 value={[present.canvas.padding]}
                 min={0}
@@ -519,7 +561,10 @@ export function CollagePropertiesPanel({
               />
             </div>
             <div>
-              <FieldLabel label="圆角" value={`${present.canvas.borderRadius}px`} />
+              <FieldLabel
+                label={t('collage.properties.radius')}
+                value={`${present.canvas.borderRadius}px`}
+              />
               <Slider
                 value={[present.canvas.borderRadius]}
                 min={0}
@@ -529,7 +574,10 @@ export function CollagePropertiesPanel({
               />
             </div>
             <div>
-              <FieldLabel label="阴影" value={`${present.canvas.shadow}`} />
+              <FieldLabel
+                label={t('collage.properties.shadow')}
+                value={`${present.canvas.shadow}`}
+              />
               <Slider
                 value={[present.canvas.shadow]}
                 min={0}
@@ -539,7 +587,9 @@ export function CollagePropertiesPanel({
               />
             </div>
             <label className="block space-y-1.5">
-              <span className="text-xs font-medium text-foreground">背景色</span>
+              <span className="text-xs font-medium text-foreground">
+                {t('collage.properties.background')}
+              </span>
               <div className="flex items-center gap-2">
                 <input
                   type="color"
@@ -558,24 +608,26 @@ export function CollagePropertiesPanel({
       )}
 
       <CoPanelSection
-        title="导出"
-        description="导出的是当前整块拼图，按设置里的目录直接落盘。"
+        title={t('collage.export.sectionTitle')}
+        description={t('collage.export.sectionDescription')}
         actions={
           <Button
             variant="ghost"
             size="sm"
             disabled={isSameExportState(present.exportSettings, defaultExport)}
-            title="把格式、质量、倍率、尺寸与锁定比例恢复成设置里的默认值"
+            title={t('collage.export.resetTooltip')}
             onClick={resetExportSettings}
           >
             <RotateCcw data-icon="inline-start" />
-            恢复默认
+            {t('collage.export.resetDefault')}
           </Button>
         }
       >
         <div className="space-y-4">
           <div>
-            <span className="text-xs font-medium text-foreground">格式</span>
+            <span className="text-xs font-medium text-foreground">
+              {t('collage.export.format')}
+            </span>
             <div className="mt-2 grid grid-cols-2 gap-2">
               {(['png', 'jpeg'] as const).map((item) => (
                 <button
@@ -597,7 +649,9 @@ export function CollagePropertiesPanel({
 
           {present.exportSettings.format === 'jpeg' ? (
             <div>
-              <span className="text-xs font-medium text-foreground">质量</span>
+              <span className="text-xs font-medium text-foreground">
+                {t('collage.export.quality')}
+              </span>
               <div className="mt-2 grid grid-cols-3 gap-2">
                 {(['standard', 'high', 'ultra'] as const).map((item) => (
                   <button
@@ -611,7 +665,7 @@ export function CollagePropertiesPanel({
                         : 'border-border text-muted-foreground hover:text-foreground',
                     )}
                   >
-                    {COLLAGE_EXPORT_LABELS[item]}
+                    {t(COLLAGE_EXPORT_LABEL_KEYS[item])}
                   </button>
                 ))}
               </div>
@@ -619,7 +673,7 @@ export function CollagePropertiesPanel({
           ) : null}
 
           <div>
-            <span className="text-xs font-medium text-foreground">倍率</span>
+            <span className="text-xs font-medium text-foreground">{t('collage.export.scale')}</span>
             <div className="mt-2 grid grid-cols-3 gap-2">
               {[1, 2, 3].map((item) => (
                 <button
@@ -641,7 +695,9 @@ export function CollagePropertiesPanel({
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-foreground">锁定画布比例</span>
+              <span className="text-xs font-medium text-foreground">
+                {t('collage.export.lockRatio')}
+              </span>
               <Switch
                 checked={present.exportSettings.lockRatio}
                 onCheckedChange={handleLockRatio}
@@ -649,7 +705,9 @@ export function CollagePropertiesPanel({
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <span className="text-[11px] text-muted-foreground">宽度</span>
+                <span className="text-[11px] text-muted-foreground">
+                  {t('collage.export.width')}
+                </span>
                 <Input
                   value={sizeText.width}
                   inputMode="numeric"
@@ -660,7 +718,9 @@ export function CollagePropertiesPanel({
                 />
               </div>
               <div className="space-y-1">
-                <span className="text-[11px] text-muted-foreground">高度</span>
+                <span className="text-[11px] text-muted-foreground">
+                  {t('collage.export.height')}
+                </span>
                 <Input
                   value={sizeText.height}
                   inputMode="numeric"
@@ -682,13 +742,13 @@ export function CollagePropertiesPanel({
               <DropdownMenuTrigger asChild>
                 <Button type="button" variant="outline" size="sm" className="w-full">
                   <ChevronDown data-icon="inline-start" />
-                  常用尺寸
+                  {t('collage.export.commonSizes')}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuLabel>常用尺寸</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('collage.export.commonSizes')}</DropdownMenuLabel>
                 {sizes.length === 0 ? (
-                  <DropdownMenuItem disabled>还没有常用尺寸，可在设置里添加</DropdownMenuItem>
+                  <DropdownMenuItem disabled>{t('collage.export.noCommonSizes')}</DropdownMenuItem>
                 ) : (
                   sizes.map((size, index) => (
                     <DropdownMenuItem
@@ -720,7 +780,7 @@ export function CollagePropertiesPanel({
             onClick={onExport}
           >
             {exporting ? <Loader2 data-icon="inline-start" className="animate-spin" /> : null}
-            导出拼图
+            {t('collage.export.button')}
           </Button>
         </div>
       </CoPanelSection>

@@ -1,6 +1,7 @@
 import { RefreshCw } from 'lucide-react';
 import { useMemo } from 'react';
 import type { FontInfo } from '@/platform';
+import { useTranslate } from '@/shared/i18n';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import {
@@ -47,6 +48,8 @@ export function CoFontField({
   onRefresh,
   noteOf,
 }: CoFontFieldProps) {
+  const t = useTranslate();
+
   const labelOf = (family: string) => {
     const note = noteOf?.(family);
     return note ? `${family} · ${note}` : family;
@@ -66,11 +69,11 @@ export function CoFontField({
         onValueChange={(next) => onChange(next === FOLLOW_TEMPLATE_FONT ? '' : next)}
       >
         <SelectTrigger className="w-full">
-          <SelectValue placeholder="选择字体" />
+          <SelectValue placeholder={t('common.font.selectPlaceholder')} />
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
-            <SelectItem value={FOLLOW_TEMPLATE_FONT}>跟随模板默认</SelectItem>
+            <SelectItem value={FOLLOW_TEMPLATE_FONT}>{t('common.font.followTemplate')}</SelectItem>
             {families.map((family) => (
               <SelectItem key={family} value={family}>
                 {labelOf(family)}
@@ -86,7 +89,7 @@ export function CoFontField({
           variant="plain"
           size="icon-sm"
           className="shrink-0"
-          aria-label="刷新系统字体"
+          aria-label={t('common.font.refresh')}
           disabled={loading}
           onClick={onRefresh}
         >

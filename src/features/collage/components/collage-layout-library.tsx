@@ -4,6 +4,7 @@ import { COLLAGE_LAYOUT_GROUPS } from '@/features/collage/layouts';
 import { getSlotRect } from '@/features/collage/lib';
 import { useCollageStore } from '@/features/collage/store/use-collage-store';
 import { usePhotos } from '@/shared/hooks/use-photos';
+import { type MessageKey, useTranslate } from '@/shared/i18n';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { ScrollArea } from '@/shared/ui/scroll-area';
@@ -18,24 +19,24 @@ import {
 import { Slider } from '@/shared/ui/slider';
 import type { CollageLayout, CollageLayoutMode, CollageLongAlign } from '../types';
 
-const MODE_TABS: Array<{ id: CollageLayoutMode; label: string; icon: typeof LayoutGrid }> = [
-  { id: 'grid', label: '网格', icon: LayoutGrid },
-  { id: 'long', label: '长图', icon: Rows3 },
-  { id: 'free', label: '自由', icon: Move },
+const MODE_TABS: Array<{ id: CollageLayoutMode; labelKey: MessageKey; icon: typeof LayoutGrid }> = [
+  { id: 'grid', labelKey: 'collage.layoutLibrary.mode.grid', icon: LayoutGrid },
+  { id: 'long', labelKey: 'collage.layoutLibrary.mode.long', icon: Rows3 },
+  { id: 'free', labelKey: 'collage.layoutLibrary.mode.free', icon: Move },
 ];
 
 const LONG_SIZE_PRESETS = [720, 1080, 1440, 2048];
 
-const VERTICAL_ALIGN: Array<{ id: CollageLongAlign; label: string }> = [
-  { id: 'start', label: '左对齐' },
-  { id: 'center', label: '居中' },
-  { id: 'end', label: '右对齐' },
+const VERTICAL_ALIGN: Array<{ id: CollageLongAlign; labelKey: MessageKey }> = [
+  { id: 'start', labelKey: 'collage.layoutLibrary.alignLeft' },
+  { id: 'center', labelKey: 'collage.layoutLibrary.alignCenter' },
+  { id: 'end', labelKey: 'collage.layoutLibrary.alignRight' },
 ];
 
-const HORIZONTAL_ALIGN: Array<{ id: CollageLongAlign; label: string }> = [
-  { id: 'start', label: '上对齐' },
-  { id: 'center', label: '居中' },
-  { id: 'end', label: '下对齐' },
+const HORIZONTAL_ALIGN: Array<{ id: CollageLongAlign; labelKey: MessageKey }> = [
+  { id: 'start', labelKey: 'collage.layoutLibrary.alignTop' },
+  { id: 'center', labelKey: 'collage.layoutLibrary.alignCenter' },
+  { id: 'end', labelKey: 'collage.layoutLibrary.alignBottom' },
 ];
 
 function LayoutThumb({ layout }: { layout: CollageLayout }) {
@@ -68,10 +69,12 @@ function SegmentedControl<T extends string>({
   className,
 }: {
   value: T;
-  options: Array<{ id: T; label: string; icon?: typeof LayoutGrid }>;
+  options: Array<{ id: T; labelKey: MessageKey; icon?: typeof LayoutGrid }>;
   onChange: (value: T) => void;
   className?: string;
 }) {
+  const t = useTranslate();
+
   return (
     <div className={cn('flex min-w-0 items-center gap-1 bg-muted/50 p-1', className)}>
       {options.map((option) => {
@@ -91,7 +94,7 @@ function SegmentedControl<T extends string>({
             )}
           >
             {Icon ? <Icon className="size-3.5 shrink-0" /> : null}
-            <span className="truncate">{option.label}</span>
+            <span className="truncate">{t(option.labelKey)}</span>
           </button>
         );
       })}
@@ -101,34 +104,44 @@ function SegmentedControl<T extends string>({
 
 /** 长图参数：方向、对齐、横轴尺寸。 */
 function LongLayoutControls() {
+  const t = useTranslate();
   const { present, updateCanvas } = useCollageStore();
   const { longDirection, longAlign, longSize } = present.canvas;
   const alignOptions = longDirection === 'vertical' ? VERTICAL_ALIGN : HORIZONTAL_ALIGN;
-  const crossLabel = longDirection === 'vertical' ? '画布宽度' : '画布高度';
+  const crossLabel =
+    longDirection === 'vertical'
+      ? t('collage.layoutLibrary.canvasWidth')
+      : t('collage.layoutLibrary.canvasHeight');
 
   return (
     <div className="space-y-4 p-3">
       <div className="space-y-2">
-        <span className="text-xs font-medium text-foreground">拼接方向</span>
+        <span className="text-xs font-medium text-foreground">
+          {t('collage.layoutLibrary.direction')}
+        </span>
         <SegmentedControl
           value={longDirection}
           onChange={(value) => updateCanvas({ longDirection: value })}
           options={[
-            { id: 'vertical', label: '竖向拼接' },
-            { id: 'horizontal', label: '横向拼接' },
+            { id: 'vertical', labelKey: 'collage.layoutLibrary.directionVertical' },
+            { id: 'horizontal', labelKey: 'collage.layoutLibrary.directionHorizontal' },
           ]}
         />
       </div>
 
       <div className="space-y-2">
-        <span className="text-xs font-medium text-foreground">对齐方式</span>
+        <span className="text-xs font-medium text-foreground">
+          {t('collage.layoutLibrary.align')}
+        </span>
         <SegmentedControl
           value={longAlign}
           onChange={(value) => updateCanvas({ longAlign: value })}
           options={alignOptions}
         />
         <p className="text-[11px] leading-5 text-muted-foreground">
-          图片宽度小于{crossLabel}时按这里的方式贴边。
+          {longDirection === 'vertical'
+            ? t('collage.layoutLibrary.alignHintWidth')
+            : t('collage.layoutLibrary.alignHintHeight')}
         </p>
       </div>
 
@@ -164,7 +177,7 @@ function LongLayoutControls() {
       </div>
 
       <p className="border border-border/70 bg-muted/30 px-3 py-2 text-[11px] leading-5 text-muted-foreground">
-        长图按素材列表顺序首尾相接，长度由图片自身的比例决定。想调整顺序，用「选择」工具在画布上拖动某一格即可。
+        {t('collage.layoutLibrary.longHint')}
       </p>
     </div>
   );
@@ -172,6 +185,7 @@ function LongLayoutControls() {
 
 /** 自由模式说明与快捷操作。 */
 function FreeLayoutControls() {
+  const t = useTranslate();
   const { present, distributePhotos, resetSlots } = useCollageStore();
   const { photos } = usePhotos();
   const photoIds = useMemo(() => photos.map((photo) => photo.id), [photos]);
@@ -179,7 +193,7 @@ function FreeLayoutControls() {
   return (
     <div className="space-y-3 p-3">
       <p className="text-[11px] leading-5 text-muted-foreground">
-        自由模式里每张图片独立摆放：在画布上直接拖动位置，双击复位到默认位置；大小与圆角在右侧「单格」里调。
+        {t('collage.layoutLibrary.freeHint')}
       </p>
 
       <Button
@@ -190,7 +204,7 @@ function FreeLayoutControls() {
         onClick={() => distributePhotos(photoIds)}
       >
         <Wand2 data-icon="inline-start" />
-        按素材顺序铺开
+        {t('collage.layoutLibrary.distribute')}
       </Button>
 
       <Button
@@ -200,13 +214,14 @@ function FreeLayoutControls() {
         disabled={present.slotItems.length === 0}
         onClick={resetSlots}
       >
-        复位所有位置
+        {t('collage.layoutLibrary.resetAll')}
       </Button>
     </div>
   );
 }
 
 export function CollageLayoutLibrary() {
+  const t = useTranslate();
   const { present, setLayout, setLayoutMode } = useCollageStore();
   const activeLayoutId = present.layoutId;
   const mode = present.canvas.layoutMode;
@@ -243,14 +258,17 @@ export function CollageLayoutLibrary() {
           <div className="shrink-0 border-b border-border/80 p-2">
             <Select value={jumpGroup} onValueChange={handleJump}>
               <SelectTrigger size="sm" className="w-full">
-                <SelectValue placeholder="跳转到…" />
+                <SelectValue placeholder={t('collage.layoutLibrary.jumpTo')} />
               </SelectTrigger>
               <SelectContent>
                 {/* 与设置页同理：内边距来自 SelectGroup，裸 item 的高亮会铺满弹层 */}
                 <SelectGroup>
                   {COLLAGE_LAYOUT_GROUPS.map((group) => (
                     <SelectItem key={group.group} value={group.group}>
-                      {group.group}（{group.layouts.length}）
+                      {t('collage.layoutLibrary.groupOption', {
+                        count: group.count,
+                        total: group.layouts.length,
+                      })}
                     </SelectItem>
                   ))}
                 </SelectGroup>
@@ -262,14 +280,16 @@ export function CollageLayoutLibrary() {
             {COLLAGE_LAYOUT_GROUPS.map((group) => (
               <section key={group.group} id={`collage-layout-group-${group.group}`}>
                 <h3 className="sticky top-0 z-10 border-b border-border/60 bg-card/95 px-3 py-1.5 text-[11px] font-semibold text-muted-foreground backdrop-blur-sm">
-                  {group.group}
+                  {t('collage.layoutLibrary.group', { count: group.count })}
                 </h3>
                 <div className="grid grid-cols-2 gap-2 p-2">
                   {group.layouts.map((layout) => (
                     <button
                       key={layout.id}
                       type="button"
-                      title={layout.name}
+                      title={
+                        layout.nameKey ? t(layout.nameKey, { count: layout.count }) : layout.name
+                      }
                       onClick={() => setLayout(layout.id)}
                       className={cn(
                         'flex flex-col gap-1 border p-1.5 text-left transition-colors',
@@ -280,7 +300,7 @@ export function CollageLayoutLibrary() {
                     >
                       <LayoutThumb layout={layout} />
                       <span className="truncate px-0.5 text-[10px] text-muted-foreground">
-                        {layout.name}
+                        {layout.nameKey ? t(layout.nameKey, { count: layout.count }) : layout.name}
                       </span>
                     </button>
                   ))}

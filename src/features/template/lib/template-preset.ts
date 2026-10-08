@@ -1,10 +1,14 @@
 import type { TemplatePreset } from '@/platform/contracts';
+import { translate } from '@/shared/i18n';
 import type { TemplateBackground } from '../background';
 import { resolveTemplateBackground, TEMPLATE_BACKGROUND_FIELDS } from '../background';
 import {
   getBuiltinTemplateById,
   isTemplateFieldVisible,
   normalizeParams,
+  resolveFieldLabel,
+  resolveOptionLabel,
+  resolveTemplateName,
 } from '../runtime/template-registry';
 import type { TemplateField } from '../templates';
 
@@ -69,7 +73,10 @@ function describeFields(fields: readonly TemplateField[], value: Record<string, 
       const current = value[field.key];
       const text =
         current === undefined || current === null || current === '' ? '—' : String(current);
-      return `- ${field.label}: ${text}`;
+      return translate('template.preset.fieldLine', {
+        label: resolveFieldLabel(field, translate),
+        value: text,
+      });
     })
     .join('\n');
 }
@@ -79,21 +86,36 @@ function describeFields(fields: readonly TemplateField[], value: Record<string, 
  *
  * 摘要只是给设置页看的说明文字，应用预设时一律以结构化的
  * `params` / `background` 为准，因此这里不必也不该做任何归一化。
+ *
+ * 文案在生成的那一刻取当前语言（非组件代码走 `translate()`），
+ * 之后作为字符串随预设落库，与语言切换无关。
  */
 export function buildTemplatePresetDescription(record: TemplatePresetContent): string {
   const template = getBuiltinTemplateById(record.templateId);
-  const backgroundMode =
-    TEMPLATE_BACKGROUND_FIELDS.find((field) => field.key === 'mode')?.options.find(
-      (option) => option.value === record.background.mode,
-    )?.label ?? record.background.mode;
+  const modeOption = TEMPLATE_BACKGROUND_FIELDS.find((field) => field.key === 'mode')?.options.find(
+    (option) => option.value === record.background.mode,
+  );
+  const backgroundMode = modeOption
+    ? resolveOptionLabel(modeOption, translate)
+    : record.background.mode;
 
-  const lines = [`模板: ${template?.meta.name ?? record.templateId}`];
+  const lines = [
+    translate('template.preset.templateLine', {
+      name: template ? resolveTemplateName(template, translate) : record.templateId,
+    }),
+  ];
 
   if (template) {
-    lines.push('模板参数:', describeFields(template.schema.fields, record.params));
+    lines.push(
+      translate('template.preset.paramsTitle'),
+      describeFields(template.schema.fields, record.params),
+    );
   }
 
-  lines.push('背景:', `- 模式: ${backgroundMode}`);
+  lines.push(
+    translate('template.preset.backgroundTitle'),
+    translate('template.preset.backgroundModeLine', { mode: backgroundMode }),
+  );
   if (record.background.mode !== 'none') {
     lines.push(
       describeFields(
@@ -111,12 +133,14 @@ export function createTemplatePresetRecord(
   name: string,
   content: TemplatePresetContent,
 ): TemplatePresetRecord {
+  const template = getBuiltinTemplateById(content.templateId);
+
   return {
     ...structuredClone(content),
     id: nextTemplatePresetId(),
     name,
     description: buildTemplatePresetDescription(content),
-    templateName: getBuiltinTemplateById(content.templateId)?.meta.name ?? null,
+    templateName: template ? resolveTemplateName(template, translate) : null,
   };
 }
 
@@ -130,11 +154,13 @@ export function overwriteTemplatePresetRecord(
   preset: TemplatePresetRecord,
   content: TemplatePresetContent,
 ): TemplatePresetRecord {
+  const template = getBuiltinTemplateById(content.templateId);
+
   return {
     ...preset,
     ...structuredClone(content),
     description: buildTemplatePresetDescription(content),
-    templateName: getBuiltinTemplateById(content.templateId)?.meta.name ?? null,
+    templateName: template ? resolveTemplateName(template, translate) : null,
   };
 }
 
@@ -173,7 +199,7 @@ export function parseTemplatePresets(list: readonly TemplatePreset[]): TemplateP
       params,
       background: resolveTemplateBackground(preset.background as Partial<TemplateBackground>),
       font: preset.font ?? '',
-      templateName: template?.meta.name ?? null,
+      templateName: template ? resolveTemplateName(template, translate) : null,
     };
   });
 }

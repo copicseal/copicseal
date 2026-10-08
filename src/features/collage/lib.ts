@@ -1,4 +1,5 @@
 import type { CollageConfig } from '@/platform/contracts';
+import { type MessageKey, translate } from '@/shared/i18n';
 import type {
   CollageAnnotation,
   CollageAspectPreset,
@@ -33,10 +34,11 @@ export const COLLAGE_RATIO_OPTIONS: Array<{
   { label: '2:3', width: 2, height: 3 },
 ];
 
-export const COLLAGE_EXPORT_LABELS: Record<CollageExportQuality, string> = {
-  standard: '标准',
-  high: '高清',
-  ultra: '超清',
+/** 导出质量档位的文案 key：档位是稳定取值，展示名跟着语言走。 */
+export const COLLAGE_EXPORT_LABEL_KEYS: Record<CollageExportQuality, MessageKey> = {
+  standard: 'collage.export.qualityStandard',
+  high: 'collage.export.qualityHigh',
+  ultra: 'collage.export.qualityUltra',
 };
 
 export const COLLAGE_QUALITY_VALUES: Record<CollageExportQuality, number> = {
@@ -171,7 +173,7 @@ export function createAnnotation(kind: CollageAnnotation['type']): CollageAnnota
       height: 0.1,
       rotation: 0,
       color: '#111827',
-      text: '文字',
+      text: translate('collage.annotations.defaultText'),
       fontSize: 20,
     };
   }

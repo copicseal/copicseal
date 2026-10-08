@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { CoPanelSection } from '@/shared/components/co-panel-section';
 import { usePhotos } from '@/shared/hooks/use-photos';
+import { useTranslate } from '@/shared/i18n';
 import { Button } from '@/shared/ui/button';
 import {
   Dialog,
@@ -23,6 +24,7 @@ import { Input } from '@/shared/ui/input';
 import { useTemplatePresets } from '../hooks/use-template-presets';
 import {
   isPresetUsable,
+  MAX_TEMPLATE_PRESETS,
   TEMPLATE_PRESET_NAME_MAX,
   TEMPLATE_PRESET_NAME_MIN,
   type TemplatePresetContent,
@@ -41,6 +43,7 @@ interface TemplatePresetMenuProps {
  * 它调整的是「这张图的样式」，与旁边的模板、字体属于同一类操作。
  */
 export function TemplatePresetMenu({ content }: TemplatePresetMenuProps) {
+  const t = useTranslate();
   const { photos, currentPhoto } = usePhotos();
   const applyPreset = useTemplateStore((state) => state.applyPreset);
   const { presets, createPreset, overwritePreset, removePreset } = useTemplatePresets();
@@ -61,7 +64,7 @@ export function TemplatePresetMenu({ content }: TemplatePresetMenuProps) {
       return;
     }
 
-    toast.success(`已存为配置「${record.name}」`);
+    toast.success(t('templateExport.toast.saved', { name: record.name }));
     setCreating(false);
   };
 
@@ -81,7 +84,7 @@ export function TemplatePresetMenu({ content }: TemplatePresetMenuProps) {
     }
 
     await overwritePreset(activePreset.id, content);
-    toast.success(`已用当前图片覆盖配置「${activePreset.name}」`);
+    toast.success(t('templateExport.toast.overwritten', { name: activePreset.name }));
     setActiveId(null);
   };
 
@@ -91,7 +94,7 @@ export function TemplatePresetMenu({ content }: TemplatePresetMenuProps) {
     }
 
     await removePreset(activePreset.id);
-    toast.success(`已删除配置「${activePreset.name}」`);
+    toast.success(t('templateExport.toast.removed', { name: activePreset.name }));
     setActiveId(null);
   };
 
@@ -99,14 +102,14 @@ export function TemplatePresetMenu({ content }: TemplatePresetMenuProps) {
 
   return (
     <CoPanelSection
-      title="模板预设"
-      description="把当前图片的模板、参数、背景与字体存成一条配置，之后可一键套用到其它图片。"
+      title={t('templateExport.presetMenu.title')}
+      description={t('templateExport.presetMenu.description')}
     >
       <div className="space-y-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button type="button" variant="outline" className="w-full justify-between">
-              选择配置
+              {t('templateExport.presetMenu.select')}
               <ChevronDown data-icon="inline-end" />
             </Button>
           </DropdownMenuTrigger>
@@ -123,7 +126,7 @@ export function TemplatePresetMenu({ content }: TemplatePresetMenuProps) {
               }}
             >
               <Plus />
-              存为新配置
+              {t('templateExport.presetMenu.create')}
             </DropdownMenuItem>
             {presets.length > 0 ? <DropdownMenuSeparator /> : null}
             {/* 模板失效的条目仍可点开：覆盖与删除都要留着出口 */}
@@ -132,35 +135,39 @@ export function TemplatePresetMenu({ content }: TemplatePresetMenuProps) {
                 <Bookmark />
                 <span className="min-w-0 flex-1 truncate">{preset.name}</span>
                 {isPresetUsable(preset) ? null : (
-                  <span className="shrink-0 text-[10px] text-muted-foreground">模板已失效</span>
+                  <span className="shrink-0 text-[10px] text-muted-foreground">
+                    {t('templateExport.presetMenu.invalidTemplate')}
+                  </span>
                 )}
               </DropdownMenuItem>
             ))}
             {presets.length === 0 ? (
-              <DropdownMenuItem disabled>还没有保存的配置</DropdownMenuItem>
+              <DropdownMenuItem disabled>{t('templateExport.presetMenu.empty')}</DropdownMenuItem>
             ) : null}
           </DropdownMenuContent>
         </DropdownMenu>
 
         <p className="text-[10px] leading-4 text-muted-foreground">
-          最多保存 10 条；改名、排序与删除在设置的「模板预设」里。
+          {t('templateExport.presetMenu.presetLimitHint', { count: MAX_TEMPLATE_PRESETS })}
         </p>
       </div>
 
       <Dialog open={creating} onOpenChange={setCreating}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>存为新配置</DialogTitle>
+            <DialogTitle>{t('templateExport.presetMenu.create')}</DialogTitle>
             <DialogDescription>
-              把当前图片的模板、参数、背景与字体存成一条配置，名称以
-              {TEMPLATE_PRESET_NAME_MIN} - {TEMPLATE_PRESET_NAME_MAX} 个字符为宜。
+              {t('templateExport.presetMenu.createDescription', {
+                min: TEMPLATE_PRESET_NAME_MIN,
+                max: TEMPLATE_PRESET_NAME_MAX,
+              })}
             </DialogDescription>
           </DialogHeader>
           <Input
             autoFocus
             value={nameDraft}
             maxLength={TEMPLATE_PRESET_NAME_MAX}
-            placeholder="例如 微博图 · 白边"
+            placeholder={t('templateExport.presetMenu.namePlaceholder')}
             onChange={(event) => setNameDraft(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && nameReady) {
@@ -170,10 +177,10 @@ export function TemplatePresetMenu({ content }: TemplatePresetMenuProps) {
           />
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setCreating(false)}>
-              取消
+              {t('templateExport.presetMenu.cancel')}
             </Button>
             <Button type="button" disabled={!nameReady} onClick={() => void submitCreate()}>
-              保存
+              {t('templateExport.presetMenu.save')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -192,25 +199,27 @@ export function TemplatePresetMenu({ content }: TemplatePresetMenuProps) {
             <DialogTitle>{activePreset?.name ?? ''}</DialogTitle>
             <DialogDescription>
               {activePreset && activeUsable
-                ? `模板：${activePreset.templateName}`
-                : '这条配置用的模板在当前版本里已不存在，只能覆盖或删除。'}
+                ? t('templateExport.presetMenu.templateLabel', {
+                    name: activePreset.templateName ?? '',
+                  })
+                : t('templateExport.presetMenu.invalidTemplateDescription')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-1 text-xs leading-5 text-muted-foreground">
-            <p>【覆盖配置】把当前图片的样式覆盖到这条配置。</p>
-            <p>【应用全部】把这条配置应用到所有图片。</p>
-            <p>【应用配置】把这条配置应用到当前图片。</p>
-            <p>导出档位不属于配置，应用时保持每张图片已有的档位。</p>
+            <p>{t('templateExport.presetMenu.overwriteHint')}</p>
+            <p>{t('templateExport.presetMenu.applyAllHint')}</p>
+            <p>{t('templateExport.presetMenu.applyCurrentHint')}</p>
+            <p>{t('templateExport.presetMenu.exportPresetHint')}</p>
           </div>
 
           <DialogFooter className="sm:justify-between">
             <Button type="button" variant="destructive" onClick={() => void handleRemove()}>
-              删除
+              {t('templateExport.presetMenu.remove')}
             </Button>
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="outline" onClick={() => void handleOverwrite()}>
-                覆盖配置
+                {t('templateExport.presetMenu.overwrite')}
               </Button>
               <Button
                 type="button"
@@ -219,22 +228,22 @@ export function TemplatePresetMenu({ content }: TemplatePresetMenuProps) {
                 onClick={() =>
                   applyToPhotos(
                     photos.map((photo) => photo.id),
-                    `已应用配置到全部 ${photos.length} 张图片`,
+                    t('templateExport.toast.appliedAll', { count: photos.length }),
                   )
                 }
               >
-                应用全部
+                {t('templateExport.presetMenu.applyAll')}
               </Button>
               <Button
                 type="button"
                 disabled={!activeUsable || !currentPhoto}
                 onClick={() => {
                   if (currentPhoto) {
-                    applyToPhotos([currentPhoto.id], '已应用配置到当前图片');
+                    applyToPhotos([currentPhoto.id], t('templateExport.toast.appliedCurrent'));
                   }
                 }}
               >
-                应用配置
+                {t('templateExport.presetMenu.applyCurrent')}
               </Button>
             </div>
           </DialogFooter>

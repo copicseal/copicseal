@@ -6,6 +6,7 @@ import {
   resolvePresetFileName,
 } from '@/features/template/lib/export-preset';
 import type { OutputSize } from '@/platform/contracts';
+import { type MessageKey, useTranslate } from '@/shared/i18n';
 import type { ExportFormat, ExportPreset } from '@/shared/types/export';
 import { Button } from '@/shared/ui/button';
 import {
@@ -51,6 +52,12 @@ interface ExportPresetCardProps {
 
 const FORMATS: ExportFormat[] = ['png', 'jpeg'];
 
+/** 格式按钮上的可读名称：枚举值仍是 `png` / `jpeg`，只有显示走文案 */
+const FORMAT_LABEL_KEYS: Record<ExportFormat, MessageKey> = {
+  png: 'templateExport.format.png',
+  jpeg: 'templateExport.format.jpeg',
+};
+
 /** 清空输入时用 NaN 占位：它既无法通过校验，也能让输入框显示为空。 */
 function readSizeInput(raw: string): number {
   return raw === '' ? Number.NaN : Number(raw);
@@ -63,6 +70,7 @@ function ExportPresetCard({
   onChange,
   onRemove,
 }: ExportPresetCardProps) {
+  const t = useTranslate();
   const update = (patch: Partial<ExportPreset>) => onChange({ ...preset, ...patch });
 
   // 留空即自动命名：名字跟着目标尺寸走；手填之后就不再被覆盖
@@ -75,7 +83,7 @@ function ExportPresetCard({
         <div className="relative min-w-0 flex-1">
           <Input
             value={fileName}
-            aria-label="导出文件名"
+            aria-label={t('templateExport.panel.fileName')}
             onChange={(event) =>
               update({
                 fileName: event.target.value.trim() === '' ? undefined : event.target.value,
@@ -92,7 +100,7 @@ function ExportPresetCard({
             type="button"
             variant="plain"
             size="icon-sm"
-            aria-label={`删除 ${fileName}`}
+            aria-label={t('templateExport.panel.removePreset', { name: fileName })}
             onClick={onRemove}
           >
             <Trash2 />
@@ -112,14 +120,16 @@ function ExportPresetCard({
                 : 'border-border text-muted-foreground'
             }`}
           >
-            {format.toUpperCase()}
+            {t(FORMAT_LABEL_KEYS[format])}
           </button>
         ))}
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
-          <span className="text-[10px] text-muted-foreground">目标宽</span>
+          <span className="text-[10px] text-muted-foreground">
+            {t('templateExport.preset.targetWidth')}
+          </span>
           <Input
             type="number"
             min={1}
@@ -128,7 +138,9 @@ function ExportPresetCard({
           />
         </div>
         <div className="space-y-1">
-          <span className="text-[10px] text-muted-foreground">目标高</span>
+          <span className="text-[10px] text-muted-foreground">
+            {t('templateExport.preset.targetHeight')}
+          </span>
           <Input
             type="number"
             min={1}
@@ -139,7 +151,9 @@ function ExportPresetCard({
       </div>
 
       <div className="space-y-1">
-        <span className="text-[10px] text-muted-foreground">倍率 {preset.scale.toFixed(1)}x</span>
+        <span className="text-[10px] text-muted-foreground">
+          {t('templateExport.preset.scale', { scale: preset.scale.toFixed(1) })}
+        </span>
         <Slider
           value={[preset.scale]}
           onValueChange={([value]) => update({ scale: value })}
@@ -151,7 +165,9 @@ function ExportPresetCard({
 
       {preset.format !== 'png' ? (
         <div className="space-y-1">
-          <span className="text-[10px] text-muted-foreground">质量 {preset.quality}</span>
+          <span className="text-[10px] text-muted-foreground">
+            {t('templateExport.quality.label', { value: preset.quality })}
+          </span>
           <Slider
             value={[preset.quality]}
             onValueChange={([value]) => update({ quality: value })}
@@ -175,6 +191,7 @@ export function TemplateExportPanel({
   onSaveAsDefault,
   resolvePhotoSize,
 }: TemplateExportPanelProps) {
+  const t = useTranslate();
   const [photoSize, setPhotoSize] = useState<{ width: number; height: number } | null>(null);
 
   /** 新建档位：带上尺寸时按该尺寸，否则用内置默认尺寸。 */
@@ -225,7 +242,7 @@ export function TemplateExportPanel({
             onClick={() => addPreset()}
           >
             <Plus data-icon="inline-start" />
-            添加档位
+            {t('templateExport.panel.addPreset')}
           </Button>
           <DropdownMenu
             onOpenChange={(open) => {
@@ -240,13 +257,13 @@ export function TemplateExportPanel({
                 type="button"
                 variant="outline"
                 size="icon-sm"
-                aria-label="按常用尺寸添加档位"
+                aria-label={t('templateExport.panel.addPresetBySize')}
               >
                 <ChevronDown />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52">
-              <DropdownMenuLabel>常用尺寸</DropdownMenuLabel>
+              <DropdownMenuLabel>{t('templateExport.size.menuLabel')}</DropdownMenuLabel>
               <DropdownMenuItem
                 disabled={!photoSize}
                 onSelect={() => {
@@ -255,14 +272,16 @@ export function TemplateExportPanel({
                   }
                 }}
               >
-                <span className="flex-1">原始尺寸</span>
+                <span className="flex-1">{t('templateExport.size.original')}</span>
                 <span className="text-[10px] text-muted-foreground">
-                  {photoSize ? `${photoSize.width}×${photoSize.height}` : '图片未就绪'}
+                  {photoSize
+                    ? `${photoSize.width}×${photoSize.height}`
+                    : t('templateExport.size.photoNotReady')}
                 </span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               {sizes.length === 0 ? (
-                <DropdownMenuItem disabled>还没有常用尺寸，可在设置里添加</DropdownMenuItem>
+                <DropdownMenuItem disabled>{t('templateExport.size.empty')}</DropdownMenuItem>
               ) : (
                 sizes.map((size, index) => (
                   <DropdownMenuItem
@@ -288,13 +307,13 @@ export function TemplateExportPanel({
           onClick={onSaveAsDefault}
         >
           <Save data-icon="inline-start" />
-          存为默认档位
+          {t('templateExport.panel.saveAsDefault')}
         </Button>
       </div>
 
       {!ready ? (
         <p className="text-[10px] leading-4 text-destructive">
-          目标宽与目标高都必须填写正数，否则无法解算导出尺寸。
+          {t('templateExport.error.invalidSize')}
         </p>
       ) : null}
     </div>

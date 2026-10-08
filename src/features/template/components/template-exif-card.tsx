@@ -1,6 +1,7 @@
 import { Loader2 } from 'lucide-react';
 import type { ExifData } from '@/platform';
 import { usePhotos } from '@/shared/hooks/use-photos';
+import { useTranslate } from '@/shared/i18n';
 import { usePhotoExif } from '../hooks/use-photo-exif';
 
 /** EXIF 拍摄时间形如 "2024:01:15 14:30:00"，转换为 "2024-01-15 14:30:00" 展示。 */
@@ -21,6 +22,7 @@ function formatDimensions(exif: ExifData): string | null {
 
 /** 右侧属性栏最下方的 EXIF 信息卡片，展示当前图片读取到的拍摄参数。 */
 export function TemplateExifCard() {
+  const t = useTranslate();
   const { currentPhoto } = usePhotos();
   const { exif, loading } = usePhotoExif(currentPhoto);
 
@@ -31,15 +33,15 @@ export function TemplateExifCard() {
       .join(' · ') || null;
 
   const rows: Array<[string, string | null]> = [
-    ['相机', camera],
-    ['镜头', exif?.lens_model ?? null],
-    ['拍摄参数', shootingParams],
-    ['拍摄时间', formatExifDate(exif?.date_taken ?? null)],
-    ['曝光补偿', exif?.exposure_compensation ?? null],
-    ['白平衡', exif?.white_balance ?? null],
-    ['测光模式', exif?.metering_mode ?? null],
-    ['尺寸', exif ? formatDimensions(exif) : null],
-    ['GPS', exif ? formatGps(exif) : null],
+    [t('template.exifCard.field.camera'), camera],
+    [t('template.exifCard.field.lens'), exif?.lens_model ?? null],
+    [t('template.exifCard.field.shootingParams'), shootingParams],
+    [t('template.exifCard.field.dateTaken'), formatExifDate(exif?.date_taken ?? null)],
+    [t('template.exifCard.field.exposureCompensation'), exif?.exposure_compensation ?? null],
+    [t('template.exifCard.field.whiteBalance'), exif?.white_balance ?? null],
+    [t('template.exifCard.field.meteringMode'), exif?.metering_mode ?? null],
+    [t('template.exifCard.field.dimensions'), exif ? formatDimensions(exif) : null],
+    [t('template.exifCard.field.gps'), exif ? formatGps(exif) : null],
   ];
   const visibleRows = rows.filter((row): row is [string, string] => Boolean(row[1]));
 
@@ -48,11 +50,11 @@ export function TemplateExifCard() {
       {loading ? (
         <p className="flex items-center gap-2 text-xs text-muted-foreground">
           <Loader2 className="size-3.5 animate-spin" />
-          正在读取 EXIF...
+          {t('template.exifCard.loading')}
         </p>
       ) : visibleRows.length === 0 ? (
         <p className="text-xs leading-5 text-muted-foreground">
-          {currentPhoto ? '当前图片未读取到 EXIF 信息。' : '导入图片后在这里查看拍摄参数。'}
+          {currentPhoto ? t('template.exifCard.noExif') : t('template.exifCard.empty')}
         </p>
       ) : (
         <div className="space-y-1.5 text-xs">

@@ -21,15 +21,25 @@ const watermarkFields = [
   {
     key: 'text',
     label: '水印文字',
+    labelKey: 'template.meta.watermark.option.text.label',
     description: '支持 {Model} 这类 EXIF 变量，留空即不绘制水印层。',
+    descriptionKey: 'template.meta.watermark.option.text.description',
     type: 'text',
     default: '@柯灰',
   },
-  { key: 'textColor', label: '文字颜色', type: 'color', default: '#ffffff' },
+  {
+    key: 'textColor',
+    label: '文字颜色',
+    labelKey: 'template.meta.watermark.option.textColor.label',
+    type: 'color',
+    default: '#ffffff',
+  },
   {
     key: 'textOpacity',
     label: '文字不透明度',
+    labelKey: 'template.meta.watermark.option.textOpacity.label',
     description: '0 为完全透明、1 为完全不透明，与文字颜色分开调整。',
+    descriptionKey: 'template.meta.watermark.option.textOpacity.description',
     type: 'number',
     default: 0.5,
     min: 0,
@@ -39,7 +49,9 @@ const watermarkFields = [
   {
     key: 'rotate',
     label: '文字角度',
+    labelKey: 'template.meta.watermark.option.rotate.label',
     description: '单位为度，直接填角度；-45 与旧版 3.15×100 的倾斜方向一致。',
+    descriptionKey: 'template.meta.watermark.option.rotate.description',
     type: 'number',
     default: -45,
     min: -180,
@@ -49,7 +61,9 @@ const watermarkFields = [
   {
     key: 'fontSize',
     label: '文字大小',
+    labelKey: 'template.meta.watermark.option.fontSize.label',
     description: '相对瓦片宽度的比例，0.2 即约占瓦片宽度的 20%。',
+    descriptionKey: 'template.meta.watermark.option.fontSize.description',
     type: 'number',
     default: 0.2,
     min: 0.02,
@@ -59,7 +73,9 @@ const watermarkFields = [
   {
     key: 'tileWidth',
     label: '瓦片宽度',
+    labelKey: 'template.meta.watermark.option.tileWidth.label',
     description: '相对画布宽度的比例，0.15 约等于旧版的 1rem 瓦片。',
+    descriptionKey: 'template.meta.watermark.option.tileWidth.description',
     type: 'number',
     default: 0.15,
     min: 0.01,
@@ -69,7 +85,9 @@ const watermarkFields = [
   {
     key: 'tileHeight',
     label: '瓦片高度',
+    labelKey: 'template.meta.watermark.option.tileHeight.label',
     description: '相对画布宽度的比例，与瓦片宽度共同决定平铺密度。',
+    descriptionKey: 'template.meta.watermark.option.tileHeight.description',
     type: 'number',
     default: 0.15,
     min: 0.01,
@@ -194,8 +212,11 @@ export const WATERMARK_TEMPLATE: RegisteredTemplate = defineTemplate({
   meta: {
     id: 'watermark',
     name: '平铺水印',
+    nameKey: 'template.meta.watermark.name',
     description: '整图铺满画布，叠加一层可调角度与透明度的平铺水印。',
+    descriptionKey: 'template.meta.watermark.description',
     tags: ['水印', '平铺'],
+    tagKeys: ['template.meta.watermark.tag.watermark', 'template.meta.watermark.tag.tiled'],
   },
   fields: watermarkFields,
   // 模板自带整图，默认不再叠加外框背景

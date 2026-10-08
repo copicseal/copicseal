@@ -11,18 +11,21 @@ export const TEMPLATE_BACKGROUND_FIELDS = [
   {
     key: 'mode',
     label: '背景模式',
+    labelKey: 'template.background.mode.label',
     description: '无背景时画框贴合模板；有背景时画框等于目标尺寸，模板内嵌其中。',
+    descriptionKey: 'template.background.mode.description',
     type: 'select',
     default: 'none',
     options: [
-      { label: '无背景', value: 'none' },
-      { label: '纯色背景', value: 'color' },
-      { label: '照片模糊', value: 'image' },
+      { label: '无背景', labelKey: 'template.background.mode.option.none', value: 'none' },
+      { label: '纯色背景', labelKey: 'template.background.mode.option.color', value: 'color' },
+      { label: '照片模糊', labelKey: 'template.background.mode.option.image', value: 'image' },
     ],
   },
   {
     key: 'color',
     label: '背景颜色',
+    labelKey: 'template.background.color.label',
     type: 'color',
     default: '#ffffff',
     visibleWhen: { key: 'mode', equals: ['color'] },
@@ -30,7 +33,9 @@ export const TEMPLATE_BACKGROUND_FIELDS = [
   {
     key: 'blur',
     label: '模糊强度',
+    labelKey: 'template.background.blur.label',
     description: '相对画框宽度的比例。',
+    descriptionKey: 'template.background.blur.description',
     type: 'number',
     default: 0.02,
     min: 0,
@@ -41,6 +46,7 @@ export const TEMPLATE_BACKGROUND_FIELDS = [
   {
     key: 'brightness',
     label: '模糊图亮度',
+    labelKey: 'template.background.brightness.label',
     type: 'number',
     default: 1,
     min: 0,
@@ -51,7 +57,9 @@ export const TEMPLATE_BACKGROUND_FIELDS = [
   {
     key: 'paddingHorizontal',
     label: '水平内边距',
+    labelKey: 'template.background.paddingHorizontal.label',
     description: '相对画框宽度的比例。',
+    descriptionKey: 'template.background.paddingHorizontal.description',
     type: 'number',
     default: 0.05,
     min: 0,
@@ -62,7 +70,9 @@ export const TEMPLATE_BACKGROUND_FIELDS = [
   {
     key: 'paddingVertical',
     label: '垂直内边距',
+    labelKey: 'template.background.paddingVertical.label',
     description: '同样以画框宽度为基准，因此不依赖画框高度。',
+    descriptionKey: 'template.background.paddingVertical.description',
     type: 'number',
     default: 0.05,
     min: 0,

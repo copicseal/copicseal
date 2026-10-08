@@ -1,4 +1,5 @@
 import type { OutputPreset } from '@/platform/contracts';
+import { translate } from '@/shared/i18n';
 import type { ExportPreset } from '@/shared/types/export';
 
 /** 新建档位的默认目标尺寸 */
@@ -103,7 +104,11 @@ export function resolvePresetFileName(preset: ExportPreset, baseName: string): s
     return baseName;
   }
 
-  return `${baseName}@${preset.width}x${preset.height}`;
+  return translate('templateExport.fileName.auto', {
+    base: baseName,
+    width: preset.width,
+    height: preset.height,
+  });
 }
 
 /** 参数是否可用于解算：两轴都必须是正数。 */

@@ -11,6 +11,7 @@ const {
   toggleMaximizeWindow,
 } = platformRuntime;
 
+import { useTranslate } from '@/shared/i18n';
 import { cn } from '@/shared/lib/utils';
 import { useWindowStyle } from '@/shared/providers/window-style-provider';
 
@@ -22,9 +23,11 @@ interface CoWindowHeaderProps {
 }
 
 function RestoreWindowIcon() {
+  const t = useTranslate();
+
   return (
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" className="size-4">
-      <title>还原窗口</title>
+      <title>{t('common.window.restore')}</title>
       <path d="M5.5 4.5H11.5V10.5H5.5z" />
       <path d="M4.5 6.5H3.5V12.5H9.5V11.5" />
     </svg>
@@ -32,6 +35,7 @@ function RestoreWindowIcon() {
 }
 
 export function CoWindowHeader({ icon: Icon, title, description, actions }: CoWindowHeaderProps) {
+  const t = useTranslate();
   const { variant, frameMode } = useWindowStyle();
   const [isMaximized, setIsMaximized] = useState(false);
   const showCustomWindowControls =
@@ -119,7 +123,7 @@ export function CoWindowHeader({ icon: Icon, title, description, actions }: CoWi
           >
             <button
               type="button"
-              aria-label="最小化窗口"
+              aria-label={t('common.window.minimize')}
               className="flex w-11 items-center justify-center text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
               onClick={() => void runWindowAction(minimizeWindow)}
             >
@@ -127,7 +131,7 @@ export function CoWindowHeader({ icon: Icon, title, description, actions }: CoWi
             </button>
             <button
               type="button"
-              aria-label={isMaximized ? '还原窗口' : '最大化窗口'}
+              aria-label={isMaximized ? t('common.window.restore') : t('common.window.maximize')}
               className="flex w-11 items-center justify-center text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
               onClick={() => void runWindowAction(toggleMaximizeWindow)}
             >
@@ -135,7 +139,7 @@ export function CoWindowHeader({ icon: Icon, title, description, actions }: CoWi
             </button>
             <button
               type="button"
-              aria-label="关闭窗口"
+              aria-label={t('common.window.close')}
               className="flex w-11 items-center justify-center text-muted-foreground transition-colors hover:bg-[#e81123] hover:text-white"
               onClick={() => void runWindowAction(closeWindow)}
             >

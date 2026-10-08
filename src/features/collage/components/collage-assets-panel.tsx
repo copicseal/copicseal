@@ -5,6 +5,7 @@ import { useCollageAssetDrag } from '@/features/collage/store/use-asset-drag-sto
 import { useCollageStore } from '@/features/collage/store/use-collage-store';
 import { CoDropZone } from '@/shared/components/co-drop-zone';
 import { usePhotos } from '@/shared/hooks/use-photos';
+import { useTranslate } from '@/shared/i18n';
 import {
   BusinessWorkbenchAssetsPane,
   type BusinessWorkbenchAssetsRenderProps,
@@ -26,14 +27,18 @@ function ImportProgressPanel({
   total: number;
   currentName: string | null;
 }) {
+  const t = useTranslate();
   const progress = total > 0 ? Math.min((current / total) * 100, 100) : 0;
 
   return (
     <div className="border-b border-border/80 bg-muted/20 px-4 py-2">
       <div className="flex items-center justify-between gap-3">
         <p className="min-w-0 truncate text-[11px] text-muted-foreground">
-          {total > 0 ? `正在导入 ${current} / ${total}` : '正在准备导入…'}
-          {currentName ? ` · ${currentName}` : ''}
+          {total > 0
+            ? currentName
+              ? t('collage.assets.importingWithName', { current, total, name: currentName })
+              : t('collage.assets.importing', { current, total })
+            : t('collage.assets.preparing')}
         </p>
         <p className="shrink-0 text-[11px] font-medium text-muted-foreground">
           {Math.round(progress)}%
@@ -79,6 +84,7 @@ function CollageAssetDragGhost() {
 }
 
 export function CollageAssetsPanel({ collapsed, toggleCollapsed }: CollageAssetsPanelProps) {
+  const t = useTranslate();
   const {
     photos,
     currentIndex,
@@ -261,14 +267,14 @@ export function CollageAssetsPanel({ collapsed, toggleCollapsed }: CollageAssets
                 size="icon"
                 aria-expanded={!collapsed}
                 aria-controls="collage-assets-content"
-                aria-label={collapsed ? '展开素材面板' : '收起素材面板'}
+                aria-label={collapsed ? t('collage.assets.expand') : t('collage.assets.collapse')}
                 onClick={toggleCollapsed}
               >
                 {collapsed ? <ChevronUp /> : <ChevronDown />}
               </Button>
             </TooltipTrigger>
             <TooltipContent side="top" sideOffset={6}>
-              {collapsed ? '展开素材面板' : '收起素材面板'}
+              {collapsed ? t('collage.assets.expand') : t('collage.assets.collapse')}
             </TooltipContent>
           </Tooltip>
         </div>
@@ -278,7 +284,7 @@ export function CollageAssetsPanel({ collapsed, toggleCollapsed }: CollageAssets
             <div className="flex h-full items-center gap-2 px-4 pt-3 text-xs text-muted-foreground">
               <ImageIcon className="size-3.5" />
               <span>
-                拼图素材 {photos.length} 张 · 已放入 {filledCount} 格
+                {t('collage.assets.summary', { total: photos.length, placed: filledCount })}
               </span>
             </div>
           ) : (
@@ -286,15 +292,16 @@ export function CollageAssetsPanel({ collapsed, toggleCollapsed }: CollageAssets
               <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/80 px-4 py-3">
                 <div className="min-w-0">
                   <h2 className="text-xs font-semibold text-foreground">
-                    拼图素材 <span className="text-muted-foreground">({photos.length})</span>
+                    {t('collage.assets.title')}{' '}
+                    <span className="text-muted-foreground">({photos.length})</span>
                   </h2>
                   <p className="truncate text-[11px] text-muted-foreground">
-                    按住素材拖到画布任意一格放入；双击素材放进第一个空格子。
+                    {t('collage.assets.hint')}
                   </p>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => void importViaDialog()}>
                   <ImageIcon data-icon="inline-start" />
-                  导入图片
+                  {t('collage.assets.import')}
                 </Button>
               </div>
 
@@ -315,12 +322,14 @@ export function CollageAssetsPanel({ collapsed, toggleCollapsed }: CollageAssets
                     <div className="flex flex-col items-center justify-center gap-2 text-center text-muted-foreground">
                       <ImageIcon className="size-5" />
                       <p className="text-xs font-medium">
-                        {importState.active ? '图片正在导入中…' : '拖入图片开始拼图'}
+                        {importState.active
+                          ? t('collage.empty.importing')
+                          : t('collage.empty.dropHint')}
                       </p>
                       <p className="text-[11px]">
                         {importState.active
-                          ? '导入过程中会逐步生成缩略图'
-                          : '或点击右上角「导入图片」从本地选择'}
+                          ? t('collage.empty.importProgressHint')
+                          : t('collage.empty.importHint')}
                       </p>
                     </div>
                   </CoDropZone>
@@ -368,12 +377,12 @@ export function CollageAssetsPanel({ collapsed, toggleCollapsed }: CollageAssets
                                 />
                               ) : (
                                 <span className="px-2 text-center text-[11px] text-muted-foreground">
-                                  正在生成缩略图
+                                  {t('collage.assets.thumbnailPending')}
                                 </span>
                               )}
                               {slotIndex !== undefined ? (
                                 <span className="absolute top-1 left-1 bg-foreground/75 px-1.5 py-0.5 text-[10px] text-background">
-                                  第 {slotIndex + 1} 格
+                                  {t('collage.assets.slotBadge', { index: slotIndex + 1 })}
                                 </span>
                               ) : null}
                             </button>
@@ -387,7 +396,7 @@ export function CollageAssetsPanel({ collapsed, toggleCollapsed }: CollageAssets
                                 <span className="flex items-center gap-1.5">
                                   <button
                                     type="button"
-                                    title="替换为其它图片"
+                                    title={t('collage.assets.replaceTooltip')}
                                     className="hover:text-foreground"
                                     onClick={() => void handleReplace(photo.id)}
                                   >
@@ -395,7 +404,7 @@ export function CollageAssetsPanel({ collapsed, toggleCollapsed }: CollageAssets
                                   </button>
                                   <button
                                     type="button"
-                                    title="从素材区移除"
+                                    title={t('collage.assets.removeTooltip')}
                                     className="hover:text-foreground"
                                     onClick={() => {
                                       removePhotoReferences(photo.id);

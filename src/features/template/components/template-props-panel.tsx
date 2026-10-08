@@ -2,8 +2,12 @@ import type { ReactNode } from 'react';
 import {
   isTemplateFieldVisible,
   normalizeFieldValue,
+  resolveFieldDescription,
+  resolveFieldLabel,
+  resolveOptionLabel,
 } from '@/features/template/runtime/template-registry';
 import type { TemplateField, TemplateSchema } from '@/features/template/templates';
+import { useTranslate } from '@/shared/i18n';
 import { Input } from '@/shared/ui/input';
 import {
   Select,
@@ -43,15 +47,18 @@ function readString(value: unknown, fallback: string): string {
 
 /** 单个参数的控件；控件形态完全由字段自己的 `type` 决定。 */
 function TemplateFieldControl({ field, value, onChange, extra }: TemplateFieldControlProps) {
+  const t = useTranslate();
   // 原生取色器只接受 #rrggbb，非法输入时用黑色占位，右侧文本框仍展示用户原值。
   const colorText = field.type === 'color' ? readString(value, field.default) : '';
   const pickerColor = HEX_COLOR_PATTERN.test(colorText) ? colorText : '#000000';
 
   return (
     <div className="space-y-1.5">
-      <span className="text-xs font-medium text-foreground">{field.label}</span>
+      <span className="text-xs font-medium text-foreground">{resolveFieldLabel(field, t)}</span>
       {field.description ? (
-        <p className="text-[10px] leading-4 text-muted-foreground">{field.description}</p>
+        <p className="text-[10px] leading-4 text-muted-foreground">
+          {resolveFieldDescription(field, t)}
+        </p>
       ) : null}
 
       {field.type === 'select' ? (
@@ -66,7 +73,7 @@ function TemplateFieldControl({ field, value, onChange, extra }: TemplateFieldCo
             <SelectGroup>
               {field.options.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
-                  {option.label}
+                  {resolveOptionLabel(option, t)}
                 </SelectItem>
               ))}
             </SelectGroup>
@@ -111,7 +118,7 @@ function TemplateFieldControl({ field, value, onChange, extra }: TemplateFieldCo
       {field.type === 'boolean' ? (
         <div className="flex items-center justify-between gap-2">
           <span className="text-[10px] text-muted-foreground">
-            {value === true ? '开启' : '关闭'}
+            {value === true ? t('template.propsPanel.on') : t('template.propsPanel.off')}
           </span>
           <Switch
             checked={value === true}

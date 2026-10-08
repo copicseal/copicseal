@@ -522,7 +522,7 @@ function TemplatePropertiesPanel({
       <BusinessWorkbenchPropertiesPane>
         <ScrollArea className="min-h-0 min-w-0 flex-1" viewportClassName="[&>div]:!block">
           <div className="px-3 py-3">
-            <section className="border border-border/80 bg-background/70 px-4 py-4 text-xs leading-6 text-muted-foreground shadow-sm">
+            <section className="rounded-lg border border-border/80 bg-background/70 px-4 py-4 text-xs leading-6 text-muted-foreground shadow-sm">
               {t('template.empty.properties')}
             </section>
           </div>

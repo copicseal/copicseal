@@ -102,7 +102,7 @@ function TemplateFieldControl({ field, value, onChange, extra }: TemplateFieldCo
             type="color"
             value={pickerColor}
             onChange={(event) => onChange(field.key, event.target.value)}
-            className="h-9 w-12 border border-border bg-background p-1"
+            className="h-9 w-12 rounded-md border border-border bg-background p-1"
           />
           <Input value={colorText} onChange={(event) => onChange(field.key, event.target.value)} />
         </div>

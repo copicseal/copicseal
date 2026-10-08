@@ -78,7 +78,7 @@ function ExportPresetCard({
   const extension = `.${preset.format === 'jpeg' ? 'jpg' : preset.format}`;
 
   return (
-    <div className="space-y-2 border border-border/70 bg-background/60 p-3">
+    <div className="space-y-2 rounded-lg border border-border/70 bg-background/60 p-3">
       <div className="flex items-center gap-2">
         <div className="relative min-w-0 flex-1">
           <Input

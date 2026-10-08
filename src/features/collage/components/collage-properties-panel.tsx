@@ -189,7 +189,7 @@ export function CollagePropertiesPanel({
           description={t('collage.properties.slotSection.description')}
         >
           {!slot || slotIndex === null ? (
-            <p className="border border-border/80 bg-background/70 px-4 py-4 text-center text-xs leading-6 text-muted-foreground shadow-sm">
+            <p className="rounded-lg border border-border/80 bg-background/70 px-4 py-4 text-center text-xs leading-6 text-muted-foreground shadow-sm">
               {t('collage.properties.slotSection.empty')}
             </p>
           ) : (
@@ -595,7 +595,7 @@ export function CollagePropertiesPanel({
                   type="color"
                   value={present.canvas.backgroundColor}
                   onChange={(event) => updateCanvas({ backgroundColor: event.target.value })}
-                  className="h-9 w-12 border border-border bg-background p-1"
+                  className="h-9 w-12 rounded-md border border-border bg-background p-1"
                 />
                 <Input
                   value={present.canvas.backgroundColor}

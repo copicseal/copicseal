@@ -35,7 +35,7 @@ export function CoPanelSection({
   return (
     <Collapsible
       defaultOpen={defaultOpen}
-      className="group/panel border border-border/80 bg-background/70 shadow-sm"
+      className="group/panel rounded-lg border border-border/80 bg-background/70 shadow-sm"
     >
       <div className="flex items-start gap-2 px-4 py-4">
         <CollapsibleTrigger className="flex min-w-0 flex-1 flex-col items-start text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/30">

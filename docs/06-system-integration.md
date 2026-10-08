@@ -75,6 +75,19 @@ src/
 
 ---
 
+### 设计 Token 约定（圆角 / 主题）
+
+- 圆角只有 `--radius`（`src/app/app.css`，默认 `0.625rem`）一个可调变量，档位由它派生：
+  `sm 0.6×`（小标签）、`md 0.8×`（输入框、按钮、菜单项）、`lg 1×`（**卡片、面板、弹层**）、
+  `xl 1.4×`（外层容器）、`2xl 1.8×`（导航项等大圆角块）
+- 应用外壳与卡片一律用上面的 token：**卡片 `rounded-lg`、控件 `rounded-md`**；
+  禁止裸 `rounded`（4px）与 `rounded-[Npx]`，否则调 `--radius` 时这些地方不会跟着变
+- 「内容」的圆角不受 UI token 影响：模板画布与拼图画布的圆角是各自的设计值
+  （拼图取画布设置里的圆角 × 预览缩放，导出时按同一比例换算），改 UI 主题不会影响导出结果
+- 主题：`config.theme` 为 `system` / `light` / `dark`，由 `ThemeProvider` 在 `<html>` 上加 `dark` class
+  并设置 `color-scheme`；新增配色请走 `:root` / `.dark` 里的语义 token，不要在组件里写死浅色
+  （深色下会白底白字）
+
 ## 6.3 Feature 独立原则
 
 Collage 与 Template 完全独立，禁止：

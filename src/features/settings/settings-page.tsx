@@ -193,7 +193,7 @@ function FieldGroup({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border border-border/80 bg-card px-5 py-5 shadow-sm">
+    <section className="rounded-lg border border-border/80 bg-card px-5 py-5 shadow-sm">
       <div className="max-w-2xl">
         <h3 className="text-sm font-semibold">{title}</h3>
         <p className="mt-1 text-xs leading-6 text-muted-foreground">{description}</p>
@@ -553,7 +553,10 @@ function TemplatePresetsTab({ onGoToTemplate }: { onGoToTemplate: () => void }) 
                   preset.templateName ?? t('settings.templatePresets.saved.templateMissing');
 
                 return (
-                  <li key={preset.id} className="border border-border/70 bg-background/60">
+                  <li
+                    key={preset.id}
+                    className="rounded-lg border border-border/70 bg-background/60"
+                  >
                     <div className="flex items-center gap-1.5 px-2 py-1.5">
                       <Button
                         type="button"
@@ -718,7 +721,7 @@ function TemplateExportDefaultsTab({
                 return (
                   <li
                     key={preset.id ?? `${preset.type}-${preset.width}x${preset.height}`}
-                    className="flex items-center gap-3 border border-border/70 bg-background/60 px-3 py-1.5"
+                    className="flex items-center gap-3 rounded-lg border border-border/70 bg-background/60 px-3 py-1.5"
                   >
                     <span className="shrink-0 border border-border px-1.5 py-0.5 text-[10px] font-medium text-foreground">
                       {presetType}
@@ -1072,7 +1075,7 @@ function CollageDefaultsTab({
               type="color"
               value={config.background_color}
               onChange={(event) => onChange({ background_color: event.target.value })}
-              className="h-9 w-12 border border-border bg-background p-1"
+              className="h-9 w-12 rounded-md border border-border bg-background p-1"
             />
             <Input
               className="max-w-40"
@@ -1497,7 +1500,7 @@ function AboutTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4 border border-border/80 bg-card px-5 py-4 shadow-sm">
+      <div className="flex items-center gap-4 rounded-lg border border-border/80 bg-card px-5 py-4 shadow-sm">
         <img
           src={appLogoUrl}
           alt=""
@@ -2145,7 +2148,7 @@ export function SettingsPage() {
       >
         <TabsList
           variant="line"
-          className="w-56 shrink-0 gap-0 border border-border/80 bg-card p-3"
+          className="w-56 shrink-0 gap-0 rounded-lg border border-border/80 bg-card p-3 data-[variant=line]:rounded-lg"
         >
           {TAB_GROUPS.map((group, index) => {
             const GroupIcon = group.icon;

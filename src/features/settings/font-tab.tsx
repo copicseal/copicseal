@@ -84,7 +84,7 @@ function FontRow({
   return (
     <li
       data-font-family={family}
-      className="flex items-center gap-3 border border-border/70 bg-background/60 px-3 py-2"
+      className="flex items-center gap-3 rounded-lg border border-border/70 bg-background/60 px-3 py-2"
     >
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
@@ -679,7 +679,7 @@ export function FontLibraryTab() {
       </div>
 
       {mode === 'available' ? (
-        <section className="flex min-h-0 flex-1 flex-col border border-border/80 bg-card px-5 py-4 shadow-sm">
+        <section className="flex min-h-0 flex-1 flex-col rounded-lg border border-border/80 bg-card px-5 py-4 shadow-sm">
           <div className="shrink-0">
             <h3 className="text-sm font-semibold">{t('settings.fonts.importFonts.title')}</h3>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
@@ -740,7 +740,7 @@ export function FontLibraryTab() {
           </div>
         </section>
       ) : (
-        <section className="flex min-h-0 flex-1 flex-col border border-border/80 bg-card px-5 py-4 shadow-sm">
+        <section className="flex min-h-0 flex-1 flex-col rounded-lg border border-border/80 bg-card px-5 py-4 shadow-sm">
           <h3 className="flex shrink-0 items-center gap-2 text-sm font-semibold">
             <Type className="size-4" />
             {t('settings.fonts.modes.introduced', { count: library.entries.length })}

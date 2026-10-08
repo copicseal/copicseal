@@ -236,8 +236,8 @@ function StorageSummary({ overview }: { overview: CacheOverview | null }) {
       count: overview?.image_count ?? 0,
       bytes: overview?.image_bytes ?? 0,
       color: 'bg-sky-400',
-      tint: 'bg-sky-50',
-      ring: 'ring-sky-200',
+      tint: 'bg-sky-50 dark:bg-sky-500/10',
+      ring: 'ring-sky-200 dark:ring-sky-500/20',
     },
     {
       key: 'previews',
@@ -245,8 +245,8 @@ function StorageSummary({ overview }: { overview: CacheOverview | null }) {
       count: overview?.preview_count ?? 0,
       bytes: overview?.preview_bytes ?? 0,
       color: 'bg-emerald-400',
-      tint: 'bg-emerald-50',
-      ring: 'ring-emerald-200',
+      tint: 'bg-emerald-50 dark:bg-emerald-500/10',
+      ring: 'ring-emerald-200 dark:ring-emerald-500/20',
     },
     {
       key: 'thumbnails',
@@ -254,8 +254,8 @@ function StorageSummary({ overview }: { overview: CacheOverview | null }) {
       count: overview?.thumbnail_count ?? 0,
       bytes: overview?.thumbnail_bytes ?? 0,
       color: 'bg-amber-400',
-      tint: 'bg-amber-50',
-      ring: 'ring-amber-200',
+      tint: 'bg-amber-50 dark:bg-amber-500/10',
+      ring: 'ring-amber-200 dark:ring-amber-500/20',
     },
   ];
 

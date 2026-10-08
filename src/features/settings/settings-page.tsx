@@ -72,9 +72,11 @@ import {
   useI18n,
   useTranslate,
 } from '@/shared/i18n';
+import { THEME_OPTIONS, type Theme } from '@/shared/lib/theme';
 import { cn } from '@/shared/lib/utils';
 import { useAppNavigation } from '@/shared/providers/navigation-provider';
 import { usePageActive } from '@/shared/providers/page-activity-provider';
+import { useTheme } from '@/shared/providers/theme-provider';
 import { useWindowStyle } from '@/shared/providers/window-style-provider';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
@@ -327,19 +329,29 @@ function describeOutputPreset(preset: OutputPreset, t: Translate): string {
   return parts.join(' · ');
 }
 
+/** 主题档位 → 文案 key：key 由字典推导，这里显式列出，避免动态拼 key 失去类型保护 */
+const THEME_LABEL_KEYS: Record<Theme, MessageKey> = {
+  system: 'settings.general.theme.system',
+  light: 'settings.general.theme.light',
+  dark: 'settings.general.theme.dark',
+};
+
 function GeneralTab({
   config,
   onSelectWorkspaceDirectory,
   onOpenWorkspaceDirectory,
   onLanguageChange,
+  onThemeChange,
 }: {
   config: AppConfig;
   onSelectWorkspaceDirectory: () => Promise<void>;
   onOpenWorkspaceDirectory: () => Promise<void>;
   onLanguageChange: (language: Language) => void;
+  onThemeChange: (theme: Theme) => void;
 }) {
   const t = useTranslate();
   const { language } = useI18n();
+  const { theme } = useTheme();
   const { frameMode, frameModePending, setFrameMode } = useWindowStyle();
 
   return (
@@ -385,6 +397,26 @@ function GeneralTab({
                 : t('settings.general.windowStyle.nativeHint')}
             </p>
           </div>
+        </SettingField>
+
+        <SettingField
+          label={t('settings.general.theme.label')}
+          description={t('settings.general.theme.description')}
+        >
+          <Select value={theme} onValueChange={(value) => onThemeChange(value as Theme)}>
+            <SelectTrigger className="w-full max-w-[240px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {THEME_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {t(THEME_LABEL_KEYS[option.value])}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
         </SettingField>
 
         <SettingField
@@ -1632,6 +1664,7 @@ export function SettingsPage() {
   const [tab, setTab] = useState('general');
   const [config, setConfig] = useState<AppConfig | null>(null);
   const { setLanguage } = useI18n();
+  const { setTheme } = useTheme();
   const [overview, setOverview] = useState<CacheOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [cacheActionPending, setCacheActionPending] = useState(false);
@@ -1841,6 +1874,15 @@ export function SettingsPage() {
   const collageConfig = useMemo<CollageConfig>(
     () => ({ ...DEFAULT_COLLAGE_CONFIG, ...(config?.collage ?? {}) }),
     [config?.collage],
+  );
+
+  /** 切主题：同样先立即生效，再走 patchConfig 落库 */
+  const handleThemeChange = useCallback(
+    (next: Theme) => {
+      setTheme(next);
+      void patchConfig((current) => ({ ...current, theme: next }));
+    },
+    [patchConfig, setTheme],
   );
 
   /**
@@ -2184,6 +2226,7 @@ export function SettingsPage() {
               <GeneralTab
                 config={config}
                 onLanguageChange={handleLanguageChange}
+                onThemeChange={handleThemeChange}
                 onSelectWorkspaceDirectory={handleSelectWorkspaceDirectory}
                 onOpenWorkspaceDirectory={handleOpenWorkspaceDirectory}
               />

@@ -36,6 +36,13 @@ export const settings = {
   general: {
     title: '通用',
     description: '控制应用的全局行为与默认保存位置。',
+    theme: {
+      label: '主题',
+      description: '浅色 / 深色 / 跟随系统，切换后立即生效。',
+      system: '跟随系统',
+      light: '浅色',
+      dark: '深色',
+    },
     language: {
       label: '语言',
       description: '切换后立即生效；「跟随系统」会按系统语言选择界面文案。',

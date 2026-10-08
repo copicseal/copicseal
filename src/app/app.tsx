@@ -12,6 +12,7 @@ import { cn } from '@/shared/lib/utils';
 import { NavigationProvider } from '@/shared/providers/navigation-provider';
 import { PageActivityProvider } from '@/shared/providers/page-activity-provider';
 import { PhotoProvider } from '@/shared/providers/photo-provider';
+import { ThemeProvider } from '@/shared/providers/theme-provider';
 import { useWindowStyle, WindowStyleProvider } from '@/shared/providers/window-style-provider';
 import { Toaster } from '@/shared/ui/toaster';
 import './app.css';
@@ -134,11 +135,13 @@ function AppContent() {
 
 function App() {
   return (
-    // I18nProvider 放最外层：toast、侧栏、窗口外壳里的文案都要能取到当前语言
+    // I18nProvider / ThemeProvider 放最外层：toast、侧栏、窗口外壳都要能取到当前语言与外观
     <I18nProvider>
-      <WindowStyleProvider>
-        <AppContent />
-      </WindowStyleProvider>
+      <ThemeProvider>
+        <WindowStyleProvider>
+          <AppContent />
+        </WindowStyleProvider>
+      </ThemeProvider>
     </I18nProvider>
   );
 }

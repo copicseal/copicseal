@@ -197,8 +197,8 @@ Collage 页面的当前工作状态：
 
 | 字段 | 说明 |
 |------|------|
-| theme | 主题 |
-| language | 语言 |
+| theme | 外观：`system`（默认，跟随系统）/ `light` / `dark`。设置 → 通用 →「主题」写入；`ThemeProvider` 在 `<html>` 上加 `dark` class 并设置 `color-scheme`，跟随系统时监听 `prefers-color-scheme` 变化 |
+| language | 界面语言：`system`（默认，按 `navigator.language` 解析，认不出回落简中）/ `zh-CN` / `en-US`，详见 `src/shared/i18n/README.md` |
 | startupPage | 启动页 |
 | defaultExportDir | 默认导出目录；仅在当前平台支持目录写入时生效 |
 | autoUpdate | 自动更新；仅桌面端生效 |

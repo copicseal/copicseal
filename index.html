@@ -8,6 +8,23 @@
   </head>
 
   <body>
+    <script>
+      // 配置在数据库里、读出来是异步的：先按上次的外观缓存（没有就看系统）上色，
+      // 否则深色模式下会先白闪一帧。ThemeProvider 拿到配置后会校正。
+      (function () {
+        try {
+          var cached = localStorage.getItem('copicseal-theme');
+          var dark =
+            cached === 'dark' ||
+            (cached !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          var root = document.documentElement;
+          root.classList.toggle('dark', dark);
+          root.style.colorScheme = dark ? 'dark' : 'light';
+        } catch (error) {
+          /* 读不到就按默认浅色 */
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

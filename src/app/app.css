@@ -49,6 +49,11 @@
 }
 
 :root {
+  /* 原生控件（滚动条、下拉、日期选择）跟随外观 */
+  color-scheme: light;
+  /* 工作台舞台顶部的高光：浅色下靠混白提亮，深色下只混一点点，
+     否则会变成横在画布上方的一条亮带 */
+  --stage-highlight: color-mix(in oklch, var(--background), white 55%);
   --background: oklch(1 0 0);
   --foreground: oklch(0.22 0.01 250);
   --card: oklch(1 0 0);
@@ -84,6 +89,8 @@
 }
 
 .dark {
+  color-scheme: dark;
+  --stage-highlight: color-mix(in oklch, var(--background), white 5%);
   --background: oklch(0.18 0.008 250);
   --foreground: oklch(0.985 0.005 250);
   --card: oklch(0.22 0.008 250);

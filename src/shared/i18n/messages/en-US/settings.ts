@@ -35,6 +35,13 @@ export const settings: Messages['settings'] = {
   general: {
     title: 'General',
     description: 'Global behaviour and where files are saved by default.',
+    theme: {
+      label: 'Theme',
+      description: 'Light, dark, or follow the system. Applies immediately.',
+      system: 'Follow system',
+      light: 'Light',
+      dark: 'Dark',
+    },
     language: {
       label: 'Language',
       description: 'Applies immediately. “Follow system” picks copy based on your system language.',

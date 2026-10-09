@@ -15,6 +15,11 @@ dist-ssr
 # 旧版实现（Vue/Electron）的只读对照目录，仅供迁移比对，不参与构建与提交
 .legacy/
 
+# 远程模板 SDK 实验室的构建产物：可用 packages/template-sdk 里的脚本重新生成，不入库
+# （模板包产物落在 template-sdk/dist/，已由上面的通用 `dist` 规则覆盖）
+packages/template-sdk/preview-dist/
+packages/template-sdk/preview/public/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

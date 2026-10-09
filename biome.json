@@ -7,7 +7,7 @@
     "defaultBranch": "main"
   },
   "files": {
-    "includes": ["src/**", "*.{ts,tsx,js,jsx,json,css}"],
+    "includes": ["src/**", "packages/**", "*.{ts,tsx,js,jsx,json,css}"],
     "ignoreUnknown": true
   },
   "formatter": {

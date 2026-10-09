@@ -1,0 +1,10 @@
+{
+  "id": "stamp",
+  "name": "复古邮票",
+  "version": "1.0.0",
+  "description": "白边相框 + 齿孔 + 邮戳。覆盖 number / color / select / boolean / text 五种字段、品牌标志与静态资源打包。",
+  "author": "Copicseal",
+  "license": "MIT",
+  "tags": ["相框", "复古", "测试模板"],
+  "abi": 1
+}

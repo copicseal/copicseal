@@ -9,13 +9,13 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "sync:version": "node scripts/sync-version.mjs",
-    "format": "biome format --write src/",
+    "format": "biome format --write src/ packages/",
     "format:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml",
-    "lint": "biome lint src/",
+    "lint": "biome lint src/ packages/",
     "lint:rust": "cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings",
-    "check": "biome check --write src/",
+    "check": "biome check --write src/ packages/",
     "check:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml --check && cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings",
-    "ci": "biome ci src/"
+    "ci": "biome ci src/ packages/"
   },
   "dependencies": {
     "@6over3/zeroperl-ts": "^1.0.10",

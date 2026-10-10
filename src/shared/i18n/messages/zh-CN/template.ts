@@ -65,15 +65,15 @@ export const template = {
     failed: '未能提取照片主题色，可直接手动选择颜色。',
     applyAria: '应用主题色 {color}',
   },
+  exifFields: {
+    hint: '模板用到的字段，可直接改写；点右侧箭头恢复为照片原值。',
+    emptyTemplate: '当前模板没有用到 EXIF 变量。',
+    emptyPhoto: '选中一张照片后，可以在这里改写模板用到的 EXIF 字段。',
+    resetAll: '全部还原',
+    resetField: '恢复为照片原值',
+    resetFieldAria: '恢复「{name}」为照片原值',
+  },
   exifCard: {
-    used: {
-      hint: '模板用到的字段，可直接改写；点右侧箭头恢复为照片原值。',
-      emptyTemplate: '当前模板没有用到 EXIF 变量。',
-      emptyPhoto: '选中一张照片后，可以在这里改写模板用到的 EXIF 字段。',
-      resetAll: '全部还原',
-      resetField: '恢复为照片原值',
-      resetFieldAria: '恢复「{name}」为照片原值',
-    },
     loading: '正在读取 EXIF...',
     noExif: '当前图片未读取到 EXIF 信息。',
     empty: '导入图片后在这里查看拍摄参数。',
@@ -102,6 +102,10 @@ export const template = {
       title: '导出',
       description:
         '每个档位保存一组尺寸和画质设置。没有背景时按比例套用目标尺寸，正方形画面配 1280×720 会导出 720×720；有背景时成片尺寸就是设定的宽高。存为默认档位后，之后导入的图片会自动套用这组档位。',
+    },
+    exifFields: {
+      title: 'EXIF 字段',
+      description: '模板文案里用到的拍摄参数，可以直接改写；留空即按你所填渲染。',
     },
     exif: {
       title: 'EXIF 信息',

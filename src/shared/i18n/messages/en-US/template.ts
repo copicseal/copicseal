@@ -68,15 +68,15 @@ export const template: Messages['template'] = {
     failed: 'Could not extract a palette from this photo; pick a color manually instead.',
     applyAria: 'Apply theme color {color}',
   },
+  exifFields: {
+    hint: 'Fields this template uses. Edit them directly, or use the arrow to restore the photo value.',
+    emptyTemplate: 'This template does not use any EXIF variable.',
+    emptyPhoto: 'Select a photo to edit the EXIF fields this template uses.',
+    resetAll: 'Restore all',
+    resetField: 'Restore photo value',
+    resetFieldAria: 'Restore “{name}” to the photo value',
+  },
   exifCard: {
-    used: {
-      hint: 'Fields this template uses. Edit them directly, or use the arrow to restore the photo value.',
-      emptyTemplate: 'This template does not use any EXIF variable.',
-      emptyPhoto: 'Select a photo to edit the EXIF fields this template uses.',
-      resetAll: 'Restore all',
-      resetField: 'Restore photo value',
-      resetFieldAria: 'Restore “{name}” to the photo value',
-    },
     loading: 'Reading EXIF...',
     noExif: 'No EXIF data found for this photo.',
     empty: 'Import a photo to see its shooting data here.',
@@ -106,6 +106,11 @@ export const template: Messages['template'] = {
       title: 'Export',
       description:
         'Each preset stores one set of dimensions and quality options. Without a background the target size is applied proportionally, so a square canvas with 1280×720 exports as 720×720; with a background the output is exactly the size you set. Once saved as the default, photos imported later use these presets.',
+    },
+    exifFields: {
+      title: 'EXIF fields',
+      description:
+        'Shooting parameters used by this template. Edit them directly; what you type is what renders.',
     },
     exif: {
       title: 'EXIF',

@@ -60,6 +60,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shar
 import {
   PhotoPalettePicker,
   TemplateExifCard,
+  TemplateExifFieldsCard,
   TemplateExportPanel,
   TemplatePresetMenu,
   TemplatePreview,
@@ -567,6 +568,13 @@ function TemplatePropertiesPanel({
               </div>
             </CoPanelSection>
           ) : null}
+          {/* 紧跟在模板参数下面：模板用到的 EXIF 变量可以直接改写 */}
+          <CoPanelSection
+            title={t('template.panel.exifFields.title')}
+            description={t('template.panel.exifFields.description')}
+          >
+            <TemplateExifFieldsCard />
+          </CoPanelSection>
           <CoPanelSection
             title={t('template.panel.background.title')}
             description={t('template.panel.background.description')}
@@ -623,8 +631,7 @@ function TemplatePropertiesPanel({
               ) : null}
             </div>
           </CoPanelSection>
-          {/* EXIF 字段可以直接改写，默认展开当编辑入口 */}
-          <CoPanelSection title={t('template.panel.exif.title')} defaultOpen>
+          <CoPanelSection title={t('template.panel.exif.title')} defaultOpen={false}>
             <TemplateExifCard />
           </CoPanelSection>
         </div>

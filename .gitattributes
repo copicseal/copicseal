@@ -1,0 +1,6 @@
+# Keep checkout line endings consistent with Biome and rustfmt on all platforms.
+* text=auto eol=lf
+
+# Windows command scripts require native line endings.
+*.bat text eol=crlf
+*.cmd text eol=crlf

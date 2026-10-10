@@ -17,6 +17,7 @@ import { useTranslate } from '@/shared/i18n';
 import { Button } from '@/shared/ui/button';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { usePhotoExif } from '../hooks/use-photo-exif';
+import { trackExifReads } from '../lib/used-exif-fields';
 import { useTemplatePhotoConfig } from '../store/use-template-store';
 import { resolveOutputExif } from '../templates/format-exif-text';
 import { TemplateBackgroundFrame } from './template-background-frame';
@@ -67,6 +68,11 @@ export function TemplatePreview({
   const modifiedExif = useTemplatePhotoConfig(currentPhoto?.id ?? null).modifiedExif;
   // 与旧版一致：改动值覆盖解析值，模板与导出都看这一份
   const outputExif = useMemo(() => resolveOutputExif(exif, modifiedExif), [exif, modifiedExif]);
+  // 给渲染用的对象包一层代理：模板读了哪些 EXIF 字段会被自动登记（含品牌 logo 这类结构性读取）
+  const trackedExif = useMemo(
+    () => trackExifReads(outputExif, templateId),
+    [outputExif, templateId],
+  );
   const [zoomMode, setZoomMode] = useState<TemplateZoomMode>('fit');
   // 照片加载完成的纪元：推进它即可让自适应重算一次
   const [imageEpoch, setImageEpoch] = useState(0);
@@ -202,7 +208,7 @@ export function TemplatePreview({
                   <TemplateRuntime
                     templateId={templateId}
                     photoUrl={currentPhoto.previewUrl}
-                    exif={outputExif}
+                    exif={trackedExif}
                     params={params}
                     font={font}
                   />

@@ -61,6 +61,7 @@ import {
   PhotoPalettePicker,
   TemplateExifCard,
   TemplateExifFieldsCard,
+  TemplateExifFieldsResetAction,
   TemplateExportPanel,
   TemplatePresetMenu,
   TemplatePreview,
@@ -572,6 +573,8 @@ function TemplatePropertiesPanel({
           <CoPanelSection
             title={t('template.panel.exifFields.title')}
             description={t('template.panel.exifFields.description')}
+            defaultOpen={false}
+            actions={<TemplateExifFieldsResetAction />}
           >
             <TemplateExifFieldsCard />
           </CoPanelSection>

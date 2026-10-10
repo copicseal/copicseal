@@ -106,7 +106,12 @@ export function resolveOutputExif(
   return { ...(exif ?? EMPTY_EXIF), ...overrides };
 }
 
-/** 模板参数里实际用到了哪些 EXIF 变量（按变量表顺序返回，便于界面稳定排列）。 */
+/**
+ * 模板参数值里写到了哪些 EXIF 变量（按变量表顺序返回，便于界面稳定排列）。
+ *
+ * 只处理文案变量这条来源：模板**结构上**直读 EXIF 的情况（品牌 logo 取 Make/Model）
+ * 由 `lib/used-exif-fields.ts` 的运行时探测负责，两处结果在卡片里取并集。
+ */
 export function collectUsedExifTokens(params: Record<string, unknown>): string[] {
   const used = new Set<string>();
 

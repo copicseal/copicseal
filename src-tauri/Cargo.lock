@@ -13,6 +13,7 @@ dependencies = [
  "font-kit",
  "image",
  "kamadak-exif",
+ "log",
  "rusqlite",
  "serde",
  "serde_json",

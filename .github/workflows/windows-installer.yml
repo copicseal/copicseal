@@ -1,0 +1,26 @@
+name: Windows Installer Test
+
+on:
+  # 新工作流尚未进入默认分支时，首次推送也能触发测试打包。
+  push:
+    branches:
+      - test/windows-installer
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-installer-test-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Windows x64 NSIS
+    uses: ./.github/workflows/build.yml
+    with:
+      label: windows-x64-test
+      platform: windows-2025
+      target: x86_64-pc-windows-msvc
+      bundles: nsis
+    # 不传入签名密钥：复用构建流程的无签名安装包分支，不生成更新包。

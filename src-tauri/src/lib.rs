@@ -7,10 +7,41 @@ mod fs;
 mod system;
 mod window;
 
+use tauri::Manager;
+
+struct StartupLogger;
+
+impl log::Log for StartupLogger {
+    fn enabled(&self, metadata: &log::Metadata<'_>) -> bool {
+        metadata.level() <= log::Level::Warn
+    }
+
+    fn log(&self, record: &log::Record<'_>) {
+        if self.enabled(record.metadata()) {
+            eprintln!(
+                "[{}] {}: {}",
+                record.level(),
+                record.target(),
+                record.args()
+            );
+        }
+    }
+
+    fn flush(&self) {}
+}
+
+static STARTUP_LOGGER: StartupLogger = StartupLogger;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    if log::set_logger(&STARTUP_LOGGER).is_ok() {
+        log::set_max_level(log::LevelFilter::Warn);
+    }
+    println!("[startup] Initializing thumbnail scheduler");
     let thumbnail_scheduler = fs::create_thumbnail_scheduler();
 
+    println!("[startup] Initializing Tauri and main webview");
+    let context = tauri::generate_context!();
     tauri::Builder::default()
         .manage(thumbnail_scheduler)
         .plugin(
@@ -19,6 +50,12 @@ pub fn run() {
                 .build(),
         )
         .setup(|app| {
+            let window = app
+                .get_webview_window("main")
+                .ok_or_else(|| std::io::Error::other("主窗口不存在"))?;
+            // Runtime 可能保留创建失败的逻辑句柄；查询原生窗口以避免无窗口进程空跑。
+            let visible = window.is_visible()?;
+            println!("[startup] Main window created; visible={visible}; loading configuration");
             let config = config::get_config(app.handle().clone()).unwrap_or_default();
             if config.cache.auto_cleanup_on_startup {
                 let _ = fs::auto_cleanup_cache(&config.cache.directory, config.cache.max_age_days);
@@ -28,6 +65,7 @@ pub fn run() {
             let _ = std::fs::create_dir_all(&config.output.default_path);
             window::apply_main_window_frame_mode(app.handle(), &config.window_frame_mode)?;
 
+            println!("[startup] Application setup complete");
             Ok(())
         })
         .plugin(tauri_plugin_opener::init())
@@ -65,6 +103,6 @@ pub fn run() {
             system::get_app_info,
             system::open_external,
         ])
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("error while running tauri application");
 }

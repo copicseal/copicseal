@@ -26,7 +26,9 @@ pub fn apply_main_window_frame_mode(app: &AppHandle, mode: &str) -> Result<(), S
     apply_frame_mode(&window, WindowFrameMode::from_str(mode))
 }
 
-fn apply_frame_mode(window: &WebviewWindow, mode: WindowFrameMode) -> Result<(), String> {
+fn apply_frame_mode(window: &WebviewWindow, _mode: WindowFrameMode) -> Result<(), String> {
+    // 临时诊断：忽略保存的无边框设置及前端切换请求，统一使用原生窗口装饰。
+    let mode = WindowFrameMode::Native;
     match mode {
         WindowFrameMode::Native => {
             #[cfg(target_os = "macos")]

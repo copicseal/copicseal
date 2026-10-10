@@ -42,6 +42,7 @@ import {
   notifyExportFailed,
 } from '@/shared/components/co-open-directory-link';
 import { CoPanelSection } from '@/shared/components/co-panel-section';
+import { PhotoContextMenu } from '@/shared/components/co-photo-context-menu';
 import { CoWindowHeader } from '@/shared/components/co-window-header';
 import { usePhotos } from '@/shared/hooks/use-photos';
 import { type MessageKey, useTranslate } from '@/shared/i18n';
@@ -364,64 +365,65 @@ function TemplateAssetsPanel({
                           const active = index === currentIndex;
 
                           return (
-                            <div
-                              key={photo.id}
-                              className={cn(
-                                'group relative size-32 shrink-0 overflow-hidden border bg-card transition-colors',
-                                active
-                                  ? 'border-primary ring-1 ring-primary/20'
-                                  : 'border-border hover:border-primary/40',
-                              )}
-                            >
-                              <button
-                                type="button"
-                                onClick={() => setCurrentIndex(index)}
-                                className="flex h-full w-full min-h-0 flex-col text-left"
+                            <PhotoContextMenu key={photo.id} index={index}>
+                              <div
+                                className={cn(
+                                  'group relative size-32 shrink-0 overflow-hidden border bg-card transition-colors',
+                                  active
+                                    ? 'border-primary ring-1 ring-primary/20'
+                                    : 'border-border hover:border-primary/40',
+                                )}
                               >
-                                <div className="relative flex min-h-8 flex-1 items-center justify-center overflow-hidden bg-background/80">
-                                  {photo.thumbnailReady ? (
-                                    <img
-                                      src={photo.thumbnailUrl}
-                                      alt={photo.name}
-                                      className="h-full w-full object-cover"
-                                    />
-                                  ) : (
-                                    <div className="flex h-full w-full items-center justify-center bg-muted/40 px-2 text-center">
-                                      <span className="text-[9px] text-muted-foreground">
-                                        {t('template.assets.generatingThumbnail')}
-                                      </span>
-                                    </div>
-                                  )}
-                                  {active ? (
-                                    <div className="pointer-events-none absolute inset-0 ring-2 ring-primary/60" />
-                                  ) : null}
-                                </div>
-                                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-popover/90 px-2 py-1.5 opacity-0 backdrop-blur-sm transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
-                                  <p className="truncate text-[10px] font-medium text-popover-foreground">
-                                    {photo.name}
-                                  </p>
-                                </div>
-                              </button>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    type="button"
-                                    variant="default"
-                                    size="icon-sm"
-                                    className="absolute top-1.5 right-1.5 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"
-                                    aria-label={t('template.assets.removeAria', {
-                                      name: photo.name,
-                                    })}
-                                    onClick={() => removePhoto(photo.id)}
-                                  >
-                                    <Trash2 />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top" sideOffset={6}>
-                                  {t('template.assets.remove')}
-                                </TooltipContent>
-                              </Tooltip>
-                            </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setCurrentIndex(index)}
+                                  className="flex h-full w-full min-h-0 flex-col text-left"
+                                >
+                                  <div className="relative flex min-h-8 flex-1 items-center justify-center overflow-hidden bg-background/80">
+                                    {photo.thumbnailReady ? (
+                                      <img
+                                        src={photo.thumbnailUrl}
+                                        alt={photo.name}
+                                        className="h-full w-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="flex h-full w-full items-center justify-center bg-muted/40 px-2 text-center">
+                                        <span className="text-[9px] text-muted-foreground">
+                                          {t('template.assets.generatingThumbnail')}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {active ? (
+                                      <div className="pointer-events-none absolute inset-0 ring-2 ring-primary/60" />
+                                    ) : null}
+                                  </div>
+                                  <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-popover/90 px-2 py-1.5 opacity-0 backdrop-blur-sm transition-opacity group-focus-within:opacity-100 group-hover:opacity-100">
+                                    <p className="truncate text-[10px] font-medium text-popover-foreground">
+                                      {photo.name}
+                                    </p>
+                                  </div>
+                                </button>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      type="button"
+                                      variant="default"
+                                      size="icon-sm"
+                                      className="absolute top-1.5 right-1.5 opacity-0 group-focus-within:opacity-100 group-hover:opacity-100"
+                                      aria-label={t('template.assets.removeAria', {
+                                        name: photo.name,
+                                      })}
+                                      onClick={() => removePhoto(photo.id)}
+                                    >
+                                      <Trash2 />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" sideOffset={6}>
+                                    {t('template.assets.remove')}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </PhotoContextMenu>
                           );
                         })}
                       </div>

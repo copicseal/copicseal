@@ -4,6 +4,7 @@ import { findSlotIndexAtPoint } from '@/features/collage/lib/dom';
 import { useCollageAssetDrag } from '@/features/collage/store/use-asset-drag-store';
 import { useCollageStore } from '@/features/collage/store/use-collage-store';
 import { CoDropZone } from '@/shared/components/co-drop-zone';
+import { PhotoContextMenu } from '@/shared/components/co-photo-context-menu';
 import { usePhotos } from '@/shared/hooks/use-photos';
 import { useTranslate } from '@/shared/i18n';
 import {
@@ -349,74 +350,75 @@ export function CollageAssetsPanel({ collapsed, toggleCollapsed }: CollageAssets
                         const slotIndex = slotIndexOf.get(photo.id);
 
                         return (
-                          <li
-                            key={photo.id}
-                            onPointerDown={(event) => handleCardPointerDown(event, photo)}
-                            className={cn(
-                              'group flex h-full w-36 shrink-0 cursor-grab select-none flex-col border bg-background transition-colors active:cursor-grabbing',
-                              active ? 'border-primary ring-1 ring-primary/20' : 'border-border',
-                            )}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (suppressClickRef.current) {
-                                  return;
-                                }
-                                setCurrentIndex(index);
-                              }}
-                              onDoubleClick={() => handlePutIntoSlot(photo.id)}
-                              className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-muted/20"
-                            >
-                              {photo.thumbnailReady ? (
-                                <img
-                                  src={photo.thumbnailUrl}
-                                  alt={photo.name}
-                                  draggable={false}
-                                  className="h-full w-full object-cover"
-                                />
-                              ) : (
-                                <span className="px-2 text-center text-[11px] text-muted-foreground">
-                                  {t('collage.assets.thumbnailPending')}
-                                </span>
+                          <PhotoContextMenu key={photo.id} index={index}>
+                            <li
+                              onPointerDown={(event) => handleCardPointerDown(event, photo)}
+                              className={cn(
+                                'group flex h-full w-36 shrink-0 cursor-grab select-none flex-col border bg-background transition-colors active:cursor-grabbing',
+                                active ? 'border-primary ring-1 ring-primary/20' : 'border-border',
                               )}
-                              {slotIndex !== undefined ? (
-                                <span className="absolute top-1 left-1 bg-foreground/75 px-1.5 py-0.5 text-[10px] text-background">
-                                  {t('collage.assets.slotBadge', { index: slotIndex + 1 })}
-                                </span>
-                              ) : null}
-                            </button>
+                            >
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (suppressClickRef.current) {
+                                    return;
+                                  }
+                                  setCurrentIndex(index);
+                                }}
+                                onDoubleClick={() => handlePutIntoSlot(photo.id)}
+                                className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-muted/20"
+                              >
+                                {photo.thumbnailReady ? (
+                                  <img
+                                    src={photo.thumbnailUrl}
+                                    alt={photo.name}
+                                    draggable={false}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  <span className="px-2 text-center text-[11px] text-muted-foreground">
+                                    {t('collage.assets.thumbnailPending')}
+                                  </span>
+                                )}
+                                {slotIndex !== undefined ? (
+                                  <span className="absolute top-1 left-1 bg-foreground/75 px-1.5 py-0.5 text-[10px] text-background">
+                                    {t('collage.assets.slotBadge', { index: slotIndex + 1 })}
+                                  </span>
+                                ) : null}
+                              </button>
 
-                            <div className="shrink-0 border-t border-border/80 px-2 py-1.5">
-                              <p className="truncate text-[11px] font-medium text-foreground">
-                                {photo.name}
-                              </p>
-                              <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
-                                <span>{(photo.size / 1024 / 1024).toFixed(1)} MB</span>
-                                <span className="flex items-center gap-1.5">
-                                  <button
-                                    type="button"
-                                    title={t('collage.assets.replaceTooltip')}
-                                    className="hover:text-foreground"
-                                    onClick={() => void handleReplace(photo.id)}
-                                  >
-                                    <Upload className="size-3" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    title={t('collage.assets.removeTooltip')}
-                                    className="hover:text-foreground"
-                                    onClick={() => {
-                                      removePhotoReferences(photo.id);
-                                      removePhoto(photo.id);
-                                    }}
-                                  >
-                                    <X className="size-3" />
-                                  </button>
-                                </span>
+                              <div className="shrink-0 border-t border-border/80 px-2 py-1.5">
+                                <p className="truncate text-[11px] font-medium text-foreground">
+                                  {photo.name}
+                                </p>
+                                <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
+                                  <span>{(photo.size / 1024 / 1024).toFixed(1)} MB</span>
+                                  <span className="flex items-center gap-1.5">
+                                    <button
+                                      type="button"
+                                      title={t('collage.assets.replaceTooltip')}
+                                      className="hover:text-foreground"
+                                      onClick={() => void handleReplace(photo.id)}
+                                    >
+                                      <Upload className="size-3" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      title={t('collage.assets.removeTooltip')}
+                                      className="hover:text-foreground"
+                                      onClick={() => {
+                                        removePhotoReferences(photo.id);
+                                        removePhoto(photo.id);
+                                      }}
+                                    >
+                                      <X className="size-3" />
+                                    </button>
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          </li>
+                            </li>
+                          </PhotoContextMenu>
                         );
                       })}
                     </ul>

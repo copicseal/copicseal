@@ -40,6 +40,12 @@ export const common: Messages['common'] = {
     done: 'Export complete',
     failed: 'Export failed. Check that the save folder set in Settings is available.',
   },
+  photo: {
+    close: 'Close',
+    closeOthers: 'Close others',
+    closeLeft: 'Close to the left',
+    closeRight: 'Close to the right',
+  },
   dialog: {
     /** File type filter name in the native “open images” dialog */
     imageFilter: 'Images',

@@ -39,6 +39,12 @@ export const common = {
     done: '导出完成',
     failed: '导出失败，请检查设置里的保存目录是否可用',
   },
+  photo: {
+    close: '关闭',
+    closeOthers: '关闭其他',
+    closeLeft: '关闭左边',
+    closeRight: '关闭右边',
+  },
   dialog: {
     /** 原生「打开图片」对话框里的文件类型筛选名 */
     imageFilter: '图片',

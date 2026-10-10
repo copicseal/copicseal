@@ -41,6 +41,8 @@ interface PhotoContextValue {
   importState: PhotoImportState;
   addPhotos: (photos: ImportedPhoto[]) => void;
   removePhoto: (id: string) => void;
+  /** 一次移除多张（右键菜单的批量关闭） */
+  removePhotos: (ids: readonly string[]) => void;
   replacePhoto: (id: string, nextPhoto: ImportedPhoto) => void;
   setCurrentIndex: (index: number) => void;
   importViaDialog: () => Promise<void>;
@@ -104,16 +106,31 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
     );
   }, []);
 
-  const removePhoto = useCallback((id: string) => {
+  /** 批量移除（素材库右键的「关闭其他 / 关闭左边 / 关闭右边」）：一次更新，避免逐张触发重渲染。 */
+  const removePhotos = useCallback((ids: readonly string[]) => {
+    if (ids.length === 0) {
+      return;
+    }
+
+    const removing = new Set(ids);
     setPhotos((prev) => {
-      const idx = prev.findIndex((p) => p.id === id);
-      const next = prev.filter((p) => p.id !== id);
-      if (idx !== -1 && next.length > 0) {
-        setCurrentIndex(Math.min(idx, next.length - 1));
+      const firstIndex = prev.findIndex((photo) => removing.has(photo.id));
+      const next = prev.filter((photo) => !removing.has(photo.id));
+      if (firstIndex !== -1 && next.length > 0) {
+        setCurrentIndex(Math.min(firstIndex, next.length - 1));
+      } else if (next.length === 0) {
+        setCurrentIndex(0);
       }
       return next;
     });
   }, []);
+
+  const removePhoto = useCallback(
+    (id: string) => {
+      removePhotos([id]);
+    },
+    [removePhotos],
+  );
 
   const replacePhoto = useCallback((id: string, nextPhoto: ImportedPhoto) => {
     setPhotos((prev) =>
@@ -273,6 +290,7 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
         importState,
         addPhotos,
         removePhoto,
+        removePhotos,
         replacePhoto,
         setCurrentIndex,
         importViaDialog,

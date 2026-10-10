@@ -74,6 +74,7 @@ import {
   useTemplatePhotoConfig,
   useTemplateStore,
 } from '../store/use-template-store';
+import { resolveOutputExif } from '../templates/format-exif-text';
 
 function ImportProgressPanel({
   current,
@@ -622,7 +623,8 @@ function TemplatePropertiesPanel({
               ) : null}
             </div>
           </CoPanelSection>
-          <CoPanelSection title={t('template.panel.exif.title')} defaultOpen={false}>
+          {/* EXIF 字段可以直接改写，默认展开当编辑入口 */}
+          <CoPanelSection title={t('template.panel.exif.title')} defaultOpen>
             <TemplateExifCard />
           </CoPanelSection>
         </div>
@@ -848,7 +850,8 @@ export function TemplatePage() {
             const paramText = Object.values(photoConfig.params)
               .filter((value) => typeof value === 'string')
               .join(' ');
-            const exifText = Object.values(exif ?? {})
+            // 子集化要覆盖「改动后的值」，否则用户手填的字可能不在子集里
+            const exifText = Object.values(resolveOutputExif(exif, photoConfig.modifiedExif) ?? {})
               .filter((value) => typeof value === 'string' || typeof value === 'number')
               .join(' ');
             return `${paramText} ${exifText}`;

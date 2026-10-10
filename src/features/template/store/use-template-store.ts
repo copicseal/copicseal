@@ -11,6 +11,7 @@ import {
   resolveBuiltinTemplate,
 } from '../runtime/template-registry';
 import { DEFAULT_TEMPLATE_ID } from '../templates';
+import type { ExifOverrideField, ExifOverrides } from '../templates/format-exif-text';
 
 /**
  * 单张照片的模板配置。
@@ -25,6 +26,13 @@ export interface TemplatePhotoConfig {
   /** 字体族名；空串表示跟随模板自带的字体栈 */
   font: string;
   presets: ExportPreset[];
+  /**
+   * 用户改写的 EXIF 值，键是 ExifData 的字段名。
+   *
+   * 与旧版一致：解析到的 EXIF 是底稿，这里只放「用户动过」的字段；
+   * 渲染与导出都取 `解析值 ⊕ 改动值`，清空某项即回落到照片本身的 EXIF。
+   */
+  modifiedExif: ExifOverrides;
 }
 
 /** 一键应用的范围：参数脱离所属模板没有意义，因此模板与参数必须一起复制。 */
@@ -39,6 +47,7 @@ function createDefaultConfig(presets?: ExportPreset[], font?: string): TemplateP
     background: resolveTemplateBackground(template.backgroundDefaults),
     font: font ?? '',
     presets: presets ?? [createExportPreset()],
+    modifiedExif: {},
   };
 }
 
@@ -61,6 +70,10 @@ interface TemplateStoreState {
   defaultConfig: TemplatePhotoConfig;
   /** 切换模板：参数与背景一起重置为新模板的默认值，导出档位保持不变。 */
   setTemplate: (photoId: string, templateId: string) => void;
+  /** 改写某个 EXIF 字段（空串表示「就是要留空」，要恢复照片原值请用 resetModifiedExif） */
+  setModifiedExif: (photoId: string, field: ExifOverrideField, value: string) => void;
+  /** 清空改动值：全部字段回落到照片自身的 EXIF */
+  resetModifiedExif: (photoId: string) => void;
   setParams: (photoId: string, params: Record<string, unknown>) => void;
   setBackground: (photoId: string, background: TemplateBackground) => void;
   setPresets: (photoId: string, presets: ExportPreset[]) => void;
@@ -125,6 +138,35 @@ export const useTemplateStore = create<TemplateStoreState>()((set) => ({
         },
       },
     }));
+  },
+
+  setModifiedExif: (photoId, field, value) => {
+    set((state) => {
+      const current = configFor(state.configs, state.defaultConfig, photoId);
+
+      return {
+        configs: {
+          ...state.configs,
+          [photoId]: {
+            ...current,
+            modifiedExif: { ...current.modifiedExif, [field]: value },
+          },
+        },
+      };
+    });
+  },
+
+  resetModifiedExif: (photoId) => {
+    set((state) => {
+      const current = configFor(state.configs, state.defaultConfig, photoId);
+
+      return {
+        configs: {
+          ...state.configs,
+          [photoId]: { ...current, modifiedExif: {} },
+        },
+      };
+    });
   },
 
   setParams: (photoId, params) => {

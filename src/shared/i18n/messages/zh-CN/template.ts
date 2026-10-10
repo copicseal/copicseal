@@ -66,6 +66,14 @@ export const template = {
     applyAria: '应用主题色 {color}',
   },
   exifCard: {
+    used: {
+      hint: '模板用到的字段，可直接改写；点右侧箭头恢复为照片原值。',
+      emptyTemplate: '当前模板没有用到 EXIF 变量。',
+      emptyPhoto: '选中一张照片后，可以在这里改写模板用到的 EXIF 字段。',
+      resetAll: '全部还原',
+      resetField: '恢复为照片原值',
+      resetFieldAria: '恢复「{name}」为照片原值',
+    },
     loading: '正在读取 EXIF...',
     noExif: '当前图片未读取到 EXIF 信息。',
     empty: '导入图片后在这里查看拍摄参数。',

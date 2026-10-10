@@ -69,6 +69,14 @@ export const template: Messages['template'] = {
     applyAria: 'Apply theme color {color}',
   },
   exifCard: {
+    used: {
+      hint: 'Fields this template uses. Edit them directly, or use the arrow to restore the photo value.',
+      emptyTemplate: 'This template does not use any EXIF variable.',
+      emptyPhoto: 'Select a photo to edit the EXIF fields this template uses.',
+      resetAll: 'Restore all',
+      resetField: 'Restore photo value',
+      resetFieldAria: 'Restore “{name}” to the photo value',
+    },
     loading: 'Reading EXIF...',
     noExif: 'No EXIF data found for this photo.',
     empty: 'Import a photo to see its shooting data here.',

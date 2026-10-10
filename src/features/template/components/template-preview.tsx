@@ -1,5 +1,5 @@
 import { ImageIcon, LayoutTemplate, Loader2 } from 'lucide-react';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { TemplateBackground } from '@/features/template/background';
 import {
   applyRenderSize,
@@ -17,6 +17,8 @@ import { useTranslate } from '@/shared/i18n';
 import { Button } from '@/shared/ui/button';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { usePhotoExif } from '../hooks/use-photo-exif';
+import { useTemplatePhotoConfig } from '../store/use-template-store';
+import { resolveOutputExif } from '../templates/format-exif-text';
 import { TemplateBackgroundFrame } from './template-background-frame';
 
 type TemplateZoomMode = 'fit' | 50 | 100 | 200;
@@ -62,6 +64,9 @@ export function TemplatePreview({
   const t = useTranslate();
   const { currentPhoto } = usePhotos();
   const { exif } = usePhotoExif(currentPhoto);
+  const modifiedExif = useTemplatePhotoConfig(currentPhoto?.id ?? null).modifiedExif;
+  // 与旧版一致：改动值覆盖解析值，模板与导出都看这一份
+  const outputExif = useMemo(() => resolveOutputExif(exif, modifiedExif), [exif, modifiedExif]);
   const [zoomMode, setZoomMode] = useState<TemplateZoomMode>('fit');
   // 照片加载完成的纪元：推进它即可让自适应重算一次
   const [imageEpoch, setImageEpoch] = useState(0);
@@ -197,7 +202,7 @@ export function TemplatePreview({
                   <TemplateRuntime
                     templateId={templateId}
                     photoUrl={currentPhoto.previewUrl}
-                    exif={exif}
+                    exif={outputExif}
                     params={params}
                     font={font}
                   />

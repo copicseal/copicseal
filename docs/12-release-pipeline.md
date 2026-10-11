@@ -170,6 +170,18 @@ sudo xattr -rd com.apple.quarantine /Applications/Copicseal.app
   --screenshot=src-tauri/dmg/background.png "file://$PWD/src-tauri/dmg/background.html"
 ```
 
+**CI 上必须显式开启排版**：背景图和图标落点不是配置直接生效的，而是打包时由 Finder 通过 AppleScript
+写进镜像里的 `.DS_Store`。Tauri 一旦检测到 `CI=true` 就默认跳过这一步（`--skip-jenkins`），产出的
+DMG 里 `.background/background.png` 照样存在，但没有任何记录引用它——用户看到的就是一个白底窗口、
+两个图标挤在左上角。因此 `.github/workflows/build.yml` 里设置了
+`TAURI_BUNDLER_DMG_IGNORE_CI: "true"`，让 CI 也执行这段 AppleScript。
+
+这条路径依赖运行器有完整 GUI 会话：GitHub 托管的 `macos-15` / `macos-15-intel` 可以；无头运行器
+（Depot 等）会卡在 `Running AppleScript to make Finder stuff pretty` 或直接失败，遇到那种情况只能
+删掉这个环境变量，改为在发布页与 README 里给提示。验证方法：挂载 DMG 后同时看到 `.DS_Store` 与
+`.background/background.png` 才算排版生效，只有 `.background` 就是被跳过了（本地
+`pnpm tauri build --bundles dmg` 一直会执行这一步，可用它做对照）。
+
 注意背景图里的命令**不能复制**，所以同样的解法也要放在发布页 / README 里供用户复制。
 
 如果用户反馈下载后提示"已损坏、无法打开"，可以在 `bundle.macOS.signingIdentity` 填 `"-"` 做 ad-hoc 签名——这不需要开发者账号，能缓解 Apple Silicon 上的"已损坏"判定；但 Tauri 有一个已知问题提到 ad-hoc 签名可能让 arm64 程序在 Rosetta 下运行，且此处未做实测，建议先按未签名发布，遇到问题再改。

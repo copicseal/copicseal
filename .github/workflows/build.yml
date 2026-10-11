@@ -31,6 +31,12 @@ jobs:
     name: ${{ inputs.label }}
     runs-on: ${{ inputs.platform }}
     timeout-minutes: 90
+    # DMG 安装窗口的背景图与图标落点不是配置文件直接生效的：打包时由 Finder 用 AppleScript
+    # 写进镜像里的 .DS_Store。Tauri 检测到 CI=true 会默认跳过这步（--skip-jenkins），
+    # 产出的 DMG 只剩一个白底窗口（.background/background.png 还在，但没人引用它）。
+    # GitHub 托管的 macOS 运行器有完整 GUI 会话，可以正常执行，因此显式要求不要跳过。
+    env:
+      TAURI_BUNDLER_DMG_IGNORE_CI: "true"
     steps:
       - name: 检出仓库代码
         uses: actions/checkout@v4

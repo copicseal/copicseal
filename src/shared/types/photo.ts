@@ -27,6 +27,13 @@ export interface ImportedPhoto {
   originalPath?: string;
   /** 前端预览 URL */
   previewUrl: string;
+  /**
+   * 预览文件的本地路径（桌面端才有）。
+   *
+   * HEIC/HIF 的 EXIF 在 ISO-BMFF 容器里，Rust 侧的 `exif` crate 只认 JPEG/TIFF 读不到，
+   * 而导入时生成的预览是 JPEG 且保留了完整 EXIF，所以这类格式的 EXIF 改从这里读。
+   */
+  previewPath?: string;
   /** 素材列表使用的缩略图 URL */
   thumbnailUrl: string;
   /** 缂╃暐鍥炬槸鍚﹀凡缁忓氨缁? */

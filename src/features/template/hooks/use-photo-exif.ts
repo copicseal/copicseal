@@ -9,6 +9,21 @@ interface PhotoExifState {
 }
 
 /**
+ * EXIF 的读取源。
+ *
+ * - Web：直接用原始 File（exiftool 支持 HEIC/HIF）；
+ * - 桌面：默认读缓存副本，但 HEIC/HIF 的 EXIF 在 ISO-BMFF 容器里，Rust 侧只认 JPEG/TIFF，
+ *   所以这类格式改读导入时生成的预览（全分辨率 JPEG，EXIF 完整）。
+ */
+function resolveExifSource(photo: ImportedPhoto): string | File | undefined {
+  if (photo.sourceFile) {
+    return photo.sourceFile;
+  }
+
+  return photo.isHeic && photo.previewPath ? photo.previewPath : photo.path;
+}
+
+/**
  * 会话级 EXIF 缓存：预览水印与右侧 EXIF 信息卡片共用同一份读取结果，
  * 避免对同一张图片重复解析（Web 端 ExifTool WASM 解析开销较大）。
  */
@@ -37,7 +52,7 @@ function resolveExif(photoId: string, source: string | File): Promise<ExifData |
  * 会渲染成空值；因此每张抓图前都要过这一关。结果复用同一份会话缓存。
  */
 export function ensurePhotoExif(photo: ImportedPhoto): Promise<ExifData | null> {
-  const source = photo.sourceFile ?? photo.path;
+  const source = resolveExifSource(photo);
   if (source === undefined || source === '') {
     return Promise.resolve(null);
   }
@@ -49,7 +64,7 @@ export function ensurePhotoExif(photo: ImportedPhoto): Promise<ExifData | null> 
 export function usePhotoExif(photo: ImportedPhoto | null): PhotoExifState {
   const [state, setState] = useState<PhotoExifState>({ exif: null, loading: false });
   const photoId = photo?.id;
-  const source = photo?.sourceFile ?? photo?.path;
+  const source = photo ? resolveExifSource(photo) : undefined;
 
   useEffect(() => {
     if (!photoId || source === undefined || source === '') {

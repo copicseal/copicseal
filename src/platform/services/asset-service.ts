@@ -58,6 +58,7 @@ function toImportedPhoto(meta: CachedImageMeta): ImportedPhoto {
     size: meta.size,
     mimeType: meta.mime_type,
     previewUrl,
+    previewPath: meta.preview_path,
     thumbnailUrl,
     thumbnailReady: meta.thumbnail_ready,
     isHeic: meta.ext === 'heic' || meta.ext === 'heif' || meta.ext === 'hif',

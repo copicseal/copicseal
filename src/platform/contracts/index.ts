@@ -46,6 +46,17 @@ export interface ExifData {
   longitude: number | null;
   image_width: number | null;
   image_height: number | null;
+  orientation: number | null;
+  exposure_program: number | null;
+  flash: number | null;
+  focal_length_35mm: number | null;
+  max_aperture: string | null;
+  software: string | null;
+  artist: string | null;
+  copyright: string | null;
+  body_serial: string | null;
+  lens_serial: string | null;
+  gps_altitude: number | null;
 }
 
 export interface FontInfo {

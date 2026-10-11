@@ -11,7 +11,10 @@ export type ExifOverrideField =
   | 'aperture'
   | 'shutter_speed'
   | 'iso'
-  | 'date_taken';
+  | 'date_taken'
+  // GPS：ExifData 里是 number，改动值仍按字符串存（用户输入），合并时再转数值
+  | 'latitude'
+  | 'longitude';
 
 export interface ExifVariable {
   token: string;
@@ -61,6 +64,18 @@ export const EXIF_TEXT_VARIABLES: readonly ExifVariable[] = [
   },
   { token: '{ISO}', field: 'iso', label: '感光度', labelKey: 'template.meta.exifVariable.iso' },
   {
+    token: '{Latitude}',
+    field: 'latitude',
+    label: '纬度',
+    labelKey: 'template.meta.exifVariable.latitude',
+  },
+  {
+    token: '{Longitude}',
+    field: 'longitude',
+    label: '经度',
+    labelKey: 'template.meta.exifVariable.longitude',
+  },
+  {
     token: '{DateTaken}',
     field: 'date_taken',
     label: '拍摄时间',
@@ -87,6 +102,17 @@ const EMPTY_EXIF: ExifData = {
   longitude: null,
   image_width: null,
   image_height: null,
+  orientation: null,
+  exposure_program: null,
+  flash: null,
+  focal_length_35mm: null,
+  max_aperture: null,
+  software: null,
+  artist: null,
+  copyright: null,
+  body_serial: null,
+  lens_serial: null,
+  gps_altitude: null,
 };
 
 /**
@@ -103,7 +129,28 @@ export function resolveOutputExif(
     return exif;
   }
 
-  return { ...(exif ?? EMPTY_EXIF), ...overrides };
+  const next: ExifData = { ...(exif ?? EMPTY_EXIF) };
+
+  for (const variable of EXIF_TEXT_VARIABLES) {
+    const raw = overrides[variable.field];
+    if (raw === undefined) {
+      continue;
+    }
+
+    switch (variable.field) {
+      case 'latitude':
+      case 'longitude': {
+        // 数值字段：用户填的字符串在这里转回 number，空串或非法输入按「清空」处理
+        const parsed = Number(raw.trim());
+        next[variable.field] = raw.trim() !== '' && Number.isFinite(parsed) ? parsed : null;
+        break;
+      }
+      default:
+        next[variable.field] = raw;
+    }
+  }
+
+  return next;
 }
 
 /**
@@ -150,8 +197,24 @@ const KNOWN_TOKENS = new Set<string>(EXIF_TEXT_VARIABLES.map((variable) => varia
 /** 读取单个变量对应的 EXIF 值，未知变量返回 null。 */
 function resolveToken(token: string, exif: ExifData): string | null {
   const variable = EXIF_TEXT_VARIABLES.find((item) => item.token === token);
+  if (!variable) {
+    return null;
+  }
 
-  return variable ? exif[variable.field] : null;
+  const value = exif[variable.field];
+  if (typeof value !== 'number') {
+    return value;
+  }
+
+  // GPS 经纬度：小数 + 半球字母（N/S、E/W），与「EXIF 信息」卡片同一口径
+  if (variable.field === 'latitude') {
+    return `${Math.abs(value).toFixed(6)}°${value >= 0 ? 'N' : 'S'}`;
+  }
+  if (variable.field === 'longitude') {
+    return `${Math.abs(value).toFixed(6)}°${value >= 0 ? 'E' : 'W'}`;
+  }
+
+  return value.toFixed(6);
 }
 
 /**

@@ -132,7 +132,7 @@ const whiteFrameFields = [
     label: '行程文案',
     labelKey: 'template.meta.whiteframe.option.text1.label',
     type: 'text',
-    default: '{FocalLength}  {FNumber}  {ExposureTime}  ISO {ISO}',
+    default: '{FocalLength}  {FNumber}  {ExposureTime}  ISO{ISO}',
   },
   {
     key: 'text2',

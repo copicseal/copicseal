@@ -65,7 +65,7 @@ const filmFields = [
     label: '底栏文案',
     labelKey: 'template.meta.film.option.caption.label',
     type: 'text',
-    default: '{FocalLength}  {FNumber}  {ExposureTime}  ISO {ISO}',
+    default: '{FocalLength}  {FNumber}  {ExposureTime}  ISO{ISO}',
   },
 ] as const satisfies readonly TemplateField[];
 

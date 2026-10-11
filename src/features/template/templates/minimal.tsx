@@ -71,7 +71,7 @@ const minimalFields = [
     label: '文案 2',
     labelKey: 'template.meta.minimal.option.textLine2.label',
     type: 'text',
-    default: '{FocalLength}  {FNumber}  {ExposureTime}  ISO {ISO}',
+    default: '{FocalLength}  {FNumber}  {ExposureTime}  ISO{ISO}',
   },
 ] as const satisfies readonly TemplateField[];
 

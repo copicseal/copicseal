@@ -20,6 +20,20 @@ pub struct ExifData {
     pub longitude: Option<f64>,
     pub image_width: Option<u32>,
     pub image_height: Option<u32>,
+    /// 方向（1 = 正常，3 = 旋转 180°，6 = 顺时针 90°，8 = 逆时针 90° …）
+    pub orientation: Option<u32>,
+    /// 曝光程序（1 = 手动，2 = 程序自动，3 = 光圈优先，4 = 快门优先 …）
+    pub exposure_program: Option<u32>,
+    /// 闪光灯（EXIF 位掩码：0 = 未闪光，1 = 闪光，5 = 闪光但未检测到回光 …）
+    pub flash: Option<u32>,
+    pub focal_length_35mm: Option<u32>,
+    pub max_aperture: Option<String>,
+    pub software: Option<String>,
+    pub artist: Option<String>,
+    pub copyright: Option<String>,
+    pub body_serial: Option<String>,
+    pub lens_serial: Option<String>,
+    pub gps_altitude: Option<f64>,
 }
 
 fn aperture_display(fnumber: f64) -> String {
@@ -130,6 +144,11 @@ pub fn read_exif(path: String) -> Result<ExifData, String> {
         .map_err(|e| format!("EXIF 解析失败: {}", e))?;
 
     let mut data = ExifData::default();
+    // GPS 的「值」与「参考方向（N/S、E/W）」是两个字段，遍历顺序不保证，所以先收集、循环后再定符号
+    let mut gps_latitude: Option<f64> = None;
+    let mut gps_latitude_ref: Option<bool> = None;
+    let mut gps_longitude: Option<f64> = None;
+    let mut gps_longitude_ref: Option<bool> = None;
 
     for field in exif.fields() {
         match field.tag {
@@ -138,7 +157,12 @@ pub fn read_exif(path: String) -> Result<ExifData, String> {
             | exif::Tag::LensModel
             | exif::Tag::DateTimeOriginal
             | exif::Tag::WhiteBalance
-            | exif::Tag::MeteringMode => {
+            | exif::Tag::MeteringMode
+            | exif::Tag::Software
+            | exif::Tag::Artist
+            | exif::Tag::Copyright
+            | exif::Tag::BodySerialNumber
+            | exif::Tag::LensSerialNumber => {
                 let val = clean_display(&field.display_value().to_string());
                 if !val.is_empty() {
                     match field.tag {
@@ -148,6 +172,11 @@ pub fn read_exif(path: String) -> Result<ExifData, String> {
                         exif::Tag::DateTimeOriginal => data.date_taken = Some(val),
                         exif::Tag::WhiteBalance => data.white_balance = Some(val),
                         exif::Tag::MeteringMode => data.metering_mode = Some(val),
+                        exif::Tag::Software => data.software = Some(val),
+                        exif::Tag::Artist => data.artist = Some(val),
+                        exif::Tag::Copyright => data.copyright = Some(val),
+                        exif::Tag::BodySerialNumber => data.body_serial = Some(val),
+                        exif::Tag::LensSerialNumber => data.lens_serial = Some(val),
                         _ => {}
                     }
                 }
@@ -202,11 +231,97 @@ pub fn read_exif(path: String) -> Result<ExifData, String> {
                     }
                 }
             }
+            exif::Tag::Orientation => {
+                if let exif::Value::Short(v) = &field.value {
+                    data.orientation = v.first().map(|val| u32::from(*val));
+                }
+            }
+            exif::Tag::ExposureProgram => {
+                if let exif::Value::Short(v) = &field.value {
+                    data.exposure_program = v.first().map(|val| u32::from(*val));
+                }
+            }
+            exif::Tag::Flash => {
+                if let exif::Value::Short(v) = &field.value {
+                    data.flash = v.first().map(|val| u32::from(*val));
+                }
+            }
+            exif::Tag::FocalLengthIn35mmFilm => {
+                if let exif::Value::Short(v) = &field.value {
+                    data.focal_length_35mm = v.first().map(|val| u32::from(*val));
+                }
+            }
+            exif::Tag::MaxApertureValue => {
+                // 同样是 APEX 值：f = 2^(APEX/2)
+                let apex = match &field.value {
+                    exif::Value::Rational(v) => v.first().map(rational_to_f64),
+                    exif::Value::SRational(v) => v.first().map(srational_to_f64),
+                    _ => None,
+                };
+                if let Some(apex) = apex {
+                    data.max_aperture = Some(aperture_display(2f64.powf(apex / 2.0)));
+                }
+            }
+            exif::Tag::GPSLatitude => {
+                gps_latitude = gps_dms_to_decimal(&field.value);
+            }
+            exif::Tag::GPSLatitudeRef => {
+                gps_latitude_ref = gps_ref_is_north(&field.value);
+            }
+            exif::Tag::GPSLongitude => {
+                gps_longitude = gps_dms_to_decimal(&field.value);
+            }
+            exif::Tag::GPSLongitudeRef => {
+                gps_longitude_ref = gps_ref_is_north(&field.value);
+            }
+            exif::Tag::GPSAltitude => {
+                if let exif::Value::Rational(v) = &field.value {
+                    data.gps_altitude = v.first().map(rational_to_f64);
+                }
+            }
             _ => {}
         }
     }
 
+    data.latitude = match (gps_latitude, gps_latitude_ref) {
+        (Some(value), Some(is_north)) => Some(if is_north { value } else { -value }),
+        _ => None,
+    };
+    data.longitude = match (gps_longitude, gps_longitude_ref) {
+        (Some(value), Some(is_east)) => Some(if is_east { value } else { -value }),
+        _ => None,
+    };
+
     Ok(data)
+}
+
+/// 度分秒（三个 Rational）换算成十进制度数。
+fn gps_dms_to_decimal(value: &exif::Value) -> Option<f64> {
+    let parts = match value {
+        exif::Value::Rational(v) => v,
+        _ => return None,
+    };
+
+    let mut iter = parts.iter();
+    let degrees = rational_to_f64(iter.next()?);
+    let minutes = iter.next().map(rational_to_f64).unwrap_or(0.0);
+    let seconds = iter.next().map(rational_to_f64).unwrap_or(0.0);
+
+    Some(degrees + minutes / 60.0 + seconds / 3600.0)
+}
+
+/// 参考方向是 ASCII：N/E 为正，S/W 为负（大小写不敏感）。
+fn gps_ref_is_north(value: &exif::Value) -> Option<bool> {
+    let text = match value {
+        exif::Value::Ascii(v) => v.first().map(|bytes| {
+            String::from_utf8_lossy(bytes)
+                .trim_matches(|c: char| c == '\0' || c.is_whitespace())
+                .to_uppercase()
+        }),
+        _ => None,
+    }?;
+
+    Some(text.starts_with('N') || text.starts_with('E'))
 }
 
 #[tauri::command]

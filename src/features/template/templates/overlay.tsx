@@ -214,7 +214,7 @@ const overlayFields = [
     description: '机型下方的参数文案，支持 {变量} 占位。',
     descriptionKey: 'template.meta.overlay.option.text1.description',
     type: 'text',
-    default: '{FocalLength}  {FNumber}  {ExposureTime}  ISO {ISO}',
+    default: '{FocalLength}  {FNumber}  {ExposureTime}  ISO{ISO}',
   },
   {
     key: 'text2',

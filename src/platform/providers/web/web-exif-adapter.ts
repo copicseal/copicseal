@@ -124,6 +124,21 @@ export class WebExifAdapter {
       image_height: asNumber(
         firstMetadataValue(metadata, 'ExifImageHeight', 'ImageHeight', 'ImageHeightSensor'),
       ),
+      orientation: asNumber(firstMetadataValue(metadata, 'Orientation')),
+      exposure_program: asNumber(firstMetadataValue(metadata, 'ExposureProgram')),
+      flash: asNumber(firstMetadataValue(metadata, 'Flash')),
+      focal_length_35mm: asNumber(
+        firstMetadataValue(metadata, 'FocalLengthIn35mmFormat', 'FocalLengthIn35mmFilm'),
+      ),
+      // exiftool 对 MaxApertureValue 已经做过 ValueConv，`-n` 拿到的是 f 值而不是 APEX，
+      // 这里不能再按 2^(apex/2) 换算（会双重换算）。Rust 侧用的是原始 APEX，那里才需要换算。
+      max_aperture: formatAperture(firstMetadataValue(metadata, 'MaxApertureValue')),
+      software: asString(firstMetadataValue(metadata, 'Software')),
+      artist: asString(firstMetadataValue(metadata, 'Artist')),
+      copyright: asString(firstMetadataValue(metadata, 'Copyright')),
+      body_serial: asString(firstMetadataValue(metadata, 'BodySerialNumber', 'SerialNumber')),
+      lens_serial: asString(firstMetadataValue(metadata, 'LensSerialNumber')),
+      gps_altitude: asNumber(firstMetadataValue(metadata, 'GPSAltitude')),
     };
   }
 

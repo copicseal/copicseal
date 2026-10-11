@@ -1,0 +1,33 @@
+# 统一行尾：仓库内与 checkout 出来的文本文件一律 LF。
+#
+# 背景：Git for Windows 默认 core.autocrlf=true，checkout 会把文本文件写成 CRLF；
+# 而 biome 按 LF 校验，于是在 Windows 上 `pnpm run ci` 几乎对每个文件都报
+# "File content differs from formatting output"。这里显式声明 text + eol=lf，
+# clone / checkout 一律得到 LF，Windows 上也能直接通过 CI，无需依赖各机器的 git 配置。
+#
+# 注意：老 clone 的工作区若已经是 CRLF，拉取本文件后执行一次
+#     git add --renormalize .
+# 即可把行尾统一回 LF（内容不变，只改行尾）。
+* text=auto eol=lf
+
+# 明确标记二进制，避免被当作文本处理
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.icns  binary
+*.ttf   binary
+*.otf   binary
+*.woff  binary
+*.woff2 binary
+*.wasm  binary
+*.zip   binary
+*.pdf   binary
+*.hif   binary
+*.heic  binary
+
+# Windows 批处理需要 CRLF 才能被 cmd.exe 正确解析
+*.bat text eol=crlf
+*.cmd text eol=crlf

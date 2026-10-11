@@ -153,6 +153,25 @@ export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="<密码>"
 
 未配置时产物未签名：用户首次打开需在"隐私与安全性"中放行，更新包替换 `.app` 后同样受 Gatekeeper 约束。
 
+**DMG 安装窗口里的提示**：Tauri 的 `dmg` 配置只能设置背景图（没有文本字段），所以安装提示画在
+`src-tauri/dmg/background.png` 上，由 `tauri.conf.json` 的 `bundle.macOS.dmg` 引用
+（窗口 660×400，图标落点与背景上的箭头对齐：app (180,170) / 应用程序 (480,170)）。
+背景图里写明了未签名产物被 Gatekeeper 拦截时的解法：
+
+```bash
+sudo xattr -rd com.apple.quarantine /Applications/Copicseal.app
+```
+
+背景图的源文件是同目录的 `background.html`（可读可改），重新生成：
+
+```bash
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --disable-gpu \
+  --hide-scrollbars --window-size=660,400 \
+  --screenshot=src-tauri/dmg/background.png "file://$PWD/src-tauri/dmg/background.html"
+```
+
+注意背景图里的命令**不能复制**，所以同样的解法也要放在发布页 / README 里供用户复制。
+
 如果用户反馈下载后提示"已损坏、无法打开"，可以在 `bundle.macOS.signingIdentity` 填 `"-"` 做 ad-hoc 签名——这不需要开发者账号，能缓解 Apple Silicon 上的"已损坏"判定；但 Tauri 有一个已知问题提到 ad-hoc 签名可能让 arm64 程序在 Rosetta 下运行，且此处未做实测，建议先按未签名发布，遇到问题再改。
 
 **Windows**（消除 SmartScreen 警告）：需要 OV/EV 代码签名证书，与更新签名密钥无关，当前流水线未配置。

@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Copicseal DMG background</title>
+    <style>
+      /*
+       * macOS 安装窗口（拖到「应用程序」）的背景图源文件。
+       *
+       * Tauri 的 dmg 配置只能设置背景图，没有文本字段，所以安装提示必须画进这张图里。
+       * 画布尺寸与 tauri.conf.json 里的 dmg.windowSize 一致（660×400），图标落点也一致：
+       *   appPosition = (180, 170)  ·  applicationFolderPosition = (480, 170)
+       * 重新生成：
+       *   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new \
+       *     --disable-gpu --hide-scrollbars --window-size=660,400 \
+       *     --screenshot=src-tauri/dmg/background.png \
+       *     file://$PWD/src-tauri/dmg/background.html
+       */
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 660px;
+        height: 400px;
+        overflow: hidden;
+        font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+        color: #1f2430;
+      }
+      body {
+        background: linear-gradient(180deg, #fbfcfe 0%, #eef1f7 100%);
+      }
+      .frame {
+        position: absolute;
+        inset: 0;
+        border: 1px solid rgba(31, 36, 48, 0.08);
+      }
+      .title {
+        position: absolute;
+        top: 26px;
+        width: 100%;
+        text-align: center;
+        font-size: 19px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+      .subtitle {
+        position: absolute;
+        top: 54px;
+        width: 100%;
+        text-align: center;
+        font-size: 12.5px;
+        color: #6b7280;
+      }
+      .arrow {
+        position: absolute;
+        left: 250px;
+        top: 152px;
+      }
+      .arrow-label {
+        position: absolute;
+        top: 196px;
+        width: 100%;
+        text-align: center;
+        font-size: 12px;
+        color: #6b7280;
+      }
+      .hint {
+        position: absolute;
+        left: 40px;
+        right: 40px;
+        top: 248px;
+        padding: 12px 16px 14px;
+        border: 1px solid rgba(31, 36, 48, 0.1);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.72);
+      }
+      .hint-title {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #374151;
+      }
+      .hint-cmd {
+        margin-top: 7px;
+        padding: 7px 10px;
+        border-radius: 6px;
+        background: rgba(31, 36, 48, 0.06);
+        font-family: "SF Mono", Menlo, monospace;
+        font-size: 11.5px;
+        color: #111827;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .hint-en {
+        margin-top: 6px;
+        font-size: 11px;
+        color: #8b93a1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame"></div>
+    <div class="title">可图匠 Copicseal</div>
+    <div class="subtitle">把左侧图标拖到右侧「应用程序」文件夹即可安装</div>
+
+    <svg class="arrow" width="160" height="40" viewBox="0 0 160 40" fill="none">
+      <path
+        d="M4 20 H126"
+        stroke="#9aa3b2"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-dasharray="7 7"
+      />
+      <path d="M124 8 L146 20 L124 32" stroke="#9aa3b2" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+    <div class="arrow-label">拖到这里安装</div>
+
+    <div class="hint">
+      <div class="hint-title">首次打开若提示「已损坏」或「未识别开发者」，请在「终端」执行：</div>
+      <div class="hint-cmd">sudo xattr -rd com.apple.quarantine /Applications/Copicseal.app</div>
+      <div class="hint-en">If macOS blocks the first launch, run the command above in Terminal.</div>
+    </div>
+  </body>
+</html>

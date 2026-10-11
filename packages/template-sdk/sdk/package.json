@@ -1,0 +1,22 @@
+{
+  "name": "@copicseal/template-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Copicseal 远程模板作者 SDK：运行时垫片 + 类型。不含 React —— React 由宿主在运行时注入。",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./runtime.mjs"
+    },
+    "./jsx-runtime": {
+      "types": "./jsx-runtime.d.ts",
+      "default": "./jsx-runtime.mjs"
+    },
+    "./host-validate": {
+      "types": "./host-validate.d.mts",
+      "default": "./host-validate.mjs"
+    },
+    "./package.json": "./package.json"
+  }
+}

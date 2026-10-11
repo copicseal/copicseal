@@ -1,0 +1,10 @@
+{
+  "id": "filmstrip",
+  "name": "胶片条",
+  "version": "0.2.0",
+  "description": "照片 + 底部信息条，附带可选九宫格。用来演示 visibleWhen 条件字段与 boolean 开关。",
+  "author": "Copicseal",
+  "license": "MIT",
+  "tags": ["信息条", "测试模板"],
+  "abi": 1
+}

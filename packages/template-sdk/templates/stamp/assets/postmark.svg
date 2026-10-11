@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <!-- 单色邮戳：整体纯黑，宿主用 mask + backgroundColor 上色 -->
+  <circle cx="100" cy="100" r="92" fill="none" stroke="#000" stroke-width="5"/>
+  <circle cx="100" cy="100" r="72" fill="none" stroke="#000" stroke-width="2.5"/>
+  <circle cx="100" cy="100" r="20" fill="none" stroke="#000" stroke-width="2.5"/>
+  <path d="M40 100h120M100 30v18M100 152v18" stroke="#000" stroke-width="3" stroke-linecap="round"/>
+  <path d="M60 82c8-10 20-14 30-10 12 5 14 20 26 24 12 4 24-2 30-12" fill="none" stroke="#000" stroke-width="4" stroke-linecap="round"/>
+  <text x="100" y="66" text-anchor="middle" font-family="monospace" font-size="17" fill="#000">COPICSEAL</text>
+  <text x="100" y="146" text-anchor="middle" font-family="monospace" font-size="15" fill="#000">2026 · POST</text>
+</svg>

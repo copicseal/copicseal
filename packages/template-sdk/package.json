@@ -1,0 +1,15 @@
+{
+  "name": "copicseal-template-sdk-lab",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Copicseal 远程模板 SDK 实验室：SDK 核心 + 测试模板 + 打包后的模板预览",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "verify": "node scripts/verify.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "preview": "node scripts/build-preview.mjs",
+    "serve": "node scripts/serve.mjs",
+    "all": "node scripts/build.mjs && node scripts/build-preview.mjs && node scripts/smoke.mjs"
+  }
+}

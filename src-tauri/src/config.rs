@@ -17,8 +17,34 @@ pub struct AppConfig {
     pub template_list: TemplateListConfig,
     /// 拼图模块的默认值：新建拼图用哪套画布样式与导出参数
     pub collage: CollageConfig,
+    /// 插件下载源：默认内置官方源，用户可追加自己的镜像
+    pub plugins: PluginConfig,
     pub user_devices: Vec<UserDevice>,
     pub device_id: String,
+}
+
+/// 插件下载源配置。
+///
+/// 源 = 一个「基础路径」，插件在它下面按 `<源>/<插件 id>/manifest.json` 与
+/// `<源>/<插件 id>/<资产名>` 组织（镜像只要复刻同样的目录结构即可）。按列表顺序尝试，
+/// 第一个能拿到清单的源胜出，同一个源再用于下载资产。
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(default)]
+pub struct PluginConfig {
+    pub sources: Vec<String>,
+}
+
+impl Default for PluginConfig {
+    fn default() -> Self {
+        Self {
+            sources: default_plugin_sources(),
+        }
+    }
+}
+
+/// 官方源：静态仓库 `main` 分支的原始文件地址。
+pub fn default_plugin_sources() -> Vec<String> {
+    vec!["https://raw.githubusercontent.com/copicseal/copicseal-static/main".to_string()]
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -250,6 +276,7 @@ impl Default for AppConfig {
             template_presets: Vec::new(),
             template_list: TemplateListConfig::default(),
             collage: CollageConfig::default(),
+            plugins: PluginConfig::default(),
             user_devices: Vec::new(),
             device_id: String::new(),
         }
@@ -430,6 +457,7 @@ fn load_from_db(app: &tauri::AppHandle) -> Result<AppConfig, String> {
             .unwrap_or(defaults.template_presets),
         template_list: read_json_value(&conn, "template_list")?.unwrap_or(defaults.template_list),
         collage: read_json_value(&conn, "collage")?.unwrap_or(defaults.collage),
+        plugins: read_json_value(&conn, "plugins")?.unwrap_or(defaults.plugins),
         user_devices: read_json_value(&conn, "user_devices")?.unwrap_or(defaults.user_devices),
         device_id: read_json_value(&conn, "device_id")?.unwrap_or_default(),
     };
@@ -477,6 +505,7 @@ fn save_to_db(app: &tauri::AppHandle, config: &AppConfig) -> Result<(), String> 
     write_json_value(&tx, "template_presets", &config.template_presets)?;
     write_json_value(&tx, "template_list", &config.template_list)?;
     write_json_value(&tx, "collage", &config.collage)?;
+    write_json_value(&tx, "plugins", &config.plugins)?;
     write_json_value(&tx, "user_devices", &config.user_devices)?;
     write_json_value(&tx, "device_id", &config.device_id)?;
 

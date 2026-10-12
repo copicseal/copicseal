@@ -90,6 +90,83 @@ export interface InlineFont {
   data_url: string;
 }
 
+/** 插件目录里声明的「某平台对应哪个资产文件」 */
+export interface PluginAssetRef {
+  /** 平台标识，如 `windows-x86_64` */
+  platform: string;
+  file: string;
+}
+
+/** 远端清单里的资产：下载地址由清单地址推导，这里带上大小与摘要用于校验 */
+export interface PluginManifestAsset {
+  name: string;
+  size: number;
+  sha256: string;
+}
+
+/** 远端清单：`<插件目录>/manifest.json` */
+export interface PluginManifest {
+  id: string;
+  version: string;
+  notes?: string | null;
+  assets: PluginManifestAsset[];
+}
+
+export interface InstalledPlugin {
+  version: string;
+  path: string;
+  /** 占用空间（字节） */
+  size: number;
+  /** 安装时间（秒级时间戳字符串），用于排序 */
+  installed_at: string | null;
+}
+
+/** 拉到的远端清单 + 实际生效的源（多源按顺序尝试，界面要显示是哪个源给的） */
+export interface PluginManifestResult {
+  manifest: PluginManifest;
+  source: string;
+}
+
+/** 安装结果：新状态 + 资产来自哪个源 */
+export interface PluginInstallOutcome {
+  state: PluginState;
+  source: string;
+}
+
+/** 某个插件在当前机器上的状态：目录信息 + 磁盘上实际安装的版本 */
+export interface PluginState {
+  id: string;
+  name: string;
+  description: string;
+  homepage: string;
+  /** 当前平台是否有可用资产；macOS 为 false（系统已内置 HEIC 支持） */
+  supported: boolean;
+  platform: string;
+  asset: PluginAssetRef | null;
+  installed: InstalledPlugin[];
+  active_version: string | null;
+  /** 插件根目录（供「打开目录」） */
+  directory: string;
+}
+
+export interface PluginInstallProgress {
+  id: string;
+  downloaded: number;
+  /** 服务端未给长度时为 null */
+  total: number | null;
+  percent: number | null;
+}
+
+/**
+ * 插件下载源。
+ *
+ * 源 = 一个基础路径，插件在其中按 `<源>/<插件 id>/manifest.json` 组织，镜像只要复刻同样的
+ * 目录结构即可；按列表顺序尝试，第一个能拿到清单的胜出，资产也从同一个源下载。
+ */
+export interface PluginConfig {
+  sources: string[];
+}
+
 export interface ImageFileMeta {
   name: string;
   path: string;
@@ -219,6 +296,8 @@ export interface AppConfig {
   template_list: TemplateListConfig;
   /** 拼图模块的默认值 */
   collage: CollageConfig;
+  /** 插件下载源（默认官方源，可加镜像） */
+  plugins: PluginConfig;
   user_devices: UserDevice[];
   device_id: string;
 }

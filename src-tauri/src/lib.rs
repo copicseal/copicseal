@@ -4,6 +4,7 @@ mod db;
 mod exif;
 mod font;
 mod fs;
+mod plugin;
 mod system;
 mod window;
 
@@ -50,6 +51,10 @@ pub fn run() {
             config::get_device_id,
             window::apply_window_frame_mode,
             window::open_devtools,
+            plugin::list_plugins,
+            plugin::fetch_plugin_manifest,
+            plugin::install_plugin,
+            plugin::remove_plugin,
             comark::list_comark_templates,
             comark::upsert_comark_template,
             comark::remove_comark_template,

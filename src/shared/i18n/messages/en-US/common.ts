@@ -41,6 +41,8 @@ export const common: Messages['common'] = {
     failedMany: '{count} photos could not be imported — skipped',
     failedMore: 'and {count} more',
     failedAborted: 'Import failed: {reason}',
+    /** Shown when HEIC decoding is unavailable: jumps to Settings → Plugins */
+    installPlugin: 'Install the plugin',
   },
   export: {
     done: 'Export complete',
@@ -62,5 +64,6 @@ export const common: Messages['common'] = {
       importFonts: 'The web build has no workspace folder, so font files cannot be imported.',
       deleteFonts: 'The web build has no workspace folder, so font files cannot be deleted.',
     },
+    webNoPlugins: 'Plugins are not supported in the web build.',
   },
 };

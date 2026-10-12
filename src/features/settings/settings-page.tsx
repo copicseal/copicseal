@@ -14,6 +14,7 @@ import {
   Palette,
   Pencil,
   Plus,
+  Puzzle,
   RefreshCw,
   Settings2,
   Trash2,
@@ -26,6 +27,7 @@ import appLogoUrl from '@/assets/logo.svg';
 import { COLLAGE_LAYOUT_GROUPS } from '@/features/collage/layouts';
 import { COLLAGE_RATIO_OPTIONS } from '@/features/collage/lib';
 import { useFontLibrary } from '@/features/fonts/use-font-library';
+import { PluginsTab } from '@/features/settings/plugins-tab';
 import { THIRD_PARTY_NOTICES } from '@/features/settings/third-party-notices';
 import { useTemplatePresets } from '@/features/template/hooks/use-template-presets';
 import { parseDefaultPresets } from '@/features/template/lib/export-preset';
@@ -136,6 +138,7 @@ const TAB_GROUPS: SettingsTabGroup[] = [
     ],
   },
   { items: [{ id: 'fonts', labelKey: 'settings.tabs.fonts', icon: Type }] },
+  { items: [{ id: 'plugins', labelKey: 'settings.tabs.plugins', icon: Puzzle }] },
   { items: [{ id: 'export', labelKey: 'settings.tabs.exportTab', icon: Download }] },
   { items: [{ id: 'cache', labelKey: 'settings.tabs.cache', icon: Database }] },
   { items: [{ id: 'about', labelKey: 'settings.tabs.about', icon: Info }] },
@@ -156,6 +159,8 @@ function defaultCacheDirectory(saveDirectory: string): string {
  */
 const ANCHOR_TABS: Record<string, string> = {
   'export-directory': 'export',
+  // 导入 HEIC 失败时的提示会跳到「插件」页
+  'plugins-section': 'plugins',
 };
 
 /** 组件里取到的翻译函数：模块级的小工具（摘要、后缀）也复用它，才能跟着语言切换 */
@@ -1964,6 +1969,17 @@ export function SettingsPage() {
     [patchConfig],
   );
 
+  /** 插件下载源：列表顺序即优先级；留空时 Rust 侧回落到官方默认源 */
+  const handleChangePluginSources = useCallback(
+    (sources: string[]) => {
+      void patchConfig((current) => ({
+        ...current,
+        plugins: { ...current.plugins, sources },
+      }));
+    },
+    [patchConfig],
+  );
+
   const handleChangeExportSizes = useCallback(
     async (sizes: OutputSize[]) => {
       if (!config) {
@@ -2344,6 +2360,12 @@ export function SettingsPage() {
             </TabsContent>
             <TabsContent value="about" className="mt-0">
               <AboutTab />
+            </TabsContent>
+            <TabsContent value="plugins" className="mt-0">
+              <PluginsTab
+                sources={config.plugins.sources}
+                onChangeSources={handleChangePluginSources}
+              />
             </TabsContent>
           </div>
         </ScrollArea>

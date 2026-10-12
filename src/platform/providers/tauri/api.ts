@@ -1,4 +1,5 @@
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { check, type Update } from '@tauri-apps/plugin-updater';
@@ -17,6 +18,10 @@ import type {
   ImageFileMeta,
   ImportedFont,
   InlineFont,
+  PluginInstallOutcome,
+  PluginInstallProgress,
+  PluginManifestResult,
+  PluginState,
   UpsertComarkTemplatePayload,
   WindowFrameMode,
 } from '@/platform/contracts';
@@ -182,6 +187,28 @@ export function extractJpegExif(path: string): Promise<number[]> {
 }
 export function insertJpegExif(jpegData: number[], exifSegment: number[]): Promise<number[]> {
   return invoke('insert_jpeg_exif', { jpegData, exifSegment });
+}
+
+/** 插件安装进度事件名，与 Rust 侧 `plugin.rs` 保持一致 */
+const PLUGIN_PROGRESS_EVENT = 'plugin://install-progress';
+
+export function listPlugins(): Promise<PluginState[]> {
+  return invoke('list_plugins');
+}
+/** 按配置里的源顺序尝试，返回清单与实际生效的源 */
+export function fetchPluginManifest(id: string, sources: string[]): Promise<PluginManifestResult> {
+  return invoke('fetch_plugin_manifest', { id, sources });
+}
+export function installPlugin(id: string, sources: string[]): Promise<PluginInstallOutcome> {
+  return invoke('install_plugin', { id, sources });
+}
+export function removePlugin(id: string): Promise<void> {
+  return invoke('remove_plugin', { id });
+}
+/** 订阅插件安装进度；返回取消订阅函数 */
+export function onPluginInstallProgress(handler: (progress: PluginInstallProgress) => void) {
+  if (!isNativeWindowAvailable()) return Promise.resolve(() => undefined);
+  return listen<PluginInstallProgress>(PLUGIN_PROGRESS_EVENT, (event) => handler(event.payload));
 }
 
 export function onNativeFileDrop(

@@ -14,6 +14,7 @@ const defaultConfig = {
   fonts: { favorites: [], default_font: '' },
   template_presets: [],
   template_list: { enabled: [], remote_registry: [] },
+  plugins: { sources: [] },
   user_devices: [],
   device_id: 'web-device',
 };
@@ -111,6 +112,18 @@ const webRuntime = {
   extractJpegExif: async () => [],
   insertJpegExif: async (jpegData: number[]) => jpegData,
   openImageDialog: async () => null,
+  // 插件是桌面端能力：网页端没有本地可执行组件，列表为空、操作直接拒绝
+  listPlugins: async () => [],
+  fetchPluginManifest: async () => {
+    throw new Error(translate('common.error.webNoPlugins'));
+  },
+  installPlugin: async () => {
+    throw new Error(translate('common.error.webNoPlugins'));
+  },
+  removePlugin: async () => {
+    throw new Error(translate('common.error.webNoPlugins'));
+  },
+  onPluginInstallProgress: async () => () => undefined,
 } as typeof tauriApi;
 
 /** The only host switch in the application. Services consume this runtime facade. */

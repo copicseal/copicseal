@@ -131,15 +131,36 @@ pub async fn write_file(path: String, contents: Vec<u8>) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn convert_heic_to_jpeg(input: String) -> Result<String, String> {
+pub async fn convert_heic_to_jpeg(app: tauri::AppHandle, input: String) -> Result<String, String> {
     let input_path = Path::new(&input);
     let output_path = input_path.with_extension("jpg");
-    convert_heic_to_jpeg_path(input_path, &output_path)?;
-    Ok(output_path.to_string_lossy().to_string())
+    let heif_dec = crate::plugin::heif_dec_path(&app);
+
+    #[cfg(target_os = "windows")]
+    {
+        if let Some(exe) = heif_dec.as_deref() {
+            if convert_heic_with_heif_dec(exe, input_path, &output_path).is_ok() {
+                return Ok(output_path.to_string_lossy().to_string());
+            }
+        }
+
+        match convert_heic_to_jpeg_path(input_path, &output_path) {
+            Ok(()) => Ok(output_path.to_string_lossy().to_string()),
+            Err(wic_error) => Err(heic_decoder_missing_error(wic_error)),
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = heif_dec;
+        convert_heic_to_jpeg_path(input_path, &output_path)?;
+        Ok(output_path.to_string_lossy().to_string())
+    }
 }
 
 #[tauri::command]
 pub async fn import_image_to_cache(
+    app: tauri::AppHandle,
     path: String,
     cache_dir: String,
     scheduler: State<'_, ThumbnailTaskScheduler>,
@@ -168,12 +189,14 @@ pub async fn import_image_to_cache(
         read_started_at.elapsed().as_millis()
     );
 
+    let heif_dec = crate::plugin::heif_dec_path(&app);
     let meta = import_bytes_to_cache_impl(
         file_name,
         bytes,
         &cache_dir,
         Some(original_path),
         &scheduler,
+        heif_dec.as_deref(),
     )?;
     println!(
         "[thumbnail][import] import complete file={} ext={} total_elapsed_ms={}",
@@ -186,12 +209,21 @@ pub async fn import_image_to_cache(
 
 #[tauri::command]
 pub async fn import_image_bytes_to_cache(
+    app: tauri::AppHandle,
     name: String,
     contents: Vec<u8>,
     cache_dir: String,
     scheduler: State<'_, ThumbnailTaskScheduler>,
 ) -> Result<CachedImageMeta, String> {
-    import_bytes_to_cache_impl(&name, contents, &cache_dir, None, &scheduler)
+    let heif_dec = crate::plugin::heif_dec_path(&app);
+    import_bytes_to_cache_impl(
+        &name,
+        contents,
+        &cache_dir,
+        None,
+        &scheduler,
+        heif_dec.as_deref(),
+    )
 }
 
 #[tauri::command]
@@ -348,6 +380,7 @@ fn import_bytes_to_cache_impl(
     cache_dir: &str,
     original_path: Option<String>,
     scheduler: &ThumbnailTaskScheduler,
+    heif_dec: Option<&Path>,
 ) -> Result<CachedImageMeta, String> {
     let started_at = Instant::now();
     let ext = extension_from_name(original_name)?;
@@ -364,8 +397,12 @@ fn import_bytes_to_cache_impl(
     );
 
     let preview_started_at = Instant::now();
-    let preview_path =
-        create_preview_asset(&cache_paths.image_path, &cache_paths.preview_path, &ext)?;
+    let preview_path = create_preview_asset(
+        &cache_paths.image_path,
+        &cache_paths.preview_path,
+        &ext,
+        heif_dec,
+    )?;
     println!(
         "[thumbnail][import] create preview file={} ext={} preview={} elapsed_ms={}",
         cache_paths.image_path.display(),
@@ -557,10 +594,34 @@ fn cleanup_cache_impl(
     })
 }
 
+/// HEIC/HEIF 缺少解码能力（系统解不了、插件也没装）。
+///
+/// 错误串会带上这个标记：`[[co:heic-decoder-missing]] 文案`，前端剥掉标记后据它决定
+/// 要不要给「去安装插件」按钮（见 `src/platform/errors.ts`）。
+const HEIC_DECODER_MISSING_CODE: &str = "heic-decoder-missing";
+/// 装了插件但转码失败：不再引导用户去安装
+const HEIC_PLUGIN_FAILED_CODE: &str = "heic-plugin-failed";
+
+/// 给错误串加机器可读标记，前端按码决定交互，不靠匹配文案。
+fn coded_error(code: &str, message: String) -> String {
+    format!("[[co:{code}]] {message}")
+}
+
+#[cfg(target_os = "windows")]
+fn heic_decoder_missing_error(detail: String) -> String {
+    coded_error(
+        HEIC_DECODER_MISSING_CODE,
+        format!(
+            "Windows 无法解码 HEIC/HEIF 图片：可在「设置 → 插件」安装 libheif 转码插件，或从 Microsoft Store 安装“HEIF 图像扩展”（HEVC 编码还需“HEVC 视频扩展”）。{detail}"
+        ),
+    )
+}
+
 fn create_preview_asset(
     image_path: &Path,
     preview_path: &Path,
     ext: &str,
+    heif_dec: Option<&Path>,
 ) -> Result<PathBuf, String> {
     if !matches!(ext, "heic" | "heif" | "hif") {
         return Ok(image_path.to_path_buf());
@@ -568,21 +629,79 @@ fn create_preview_asset(
 
     #[cfg(target_os = "macos")]
     {
+        let _ = heif_dec;
         convert_heic_to_jpeg_path(image_path, preview_path)?;
         Ok(preview_path.to_path_buf())
     }
 
     #[cfg(target_os = "windows")]
     {
-        convert_heic_to_jpeg_path(image_path, preview_path)?;
-        Ok(preview_path.to_path_buf())
+        // 插件优先：系统没装 HEIF 扩展时，libheif 自带的 heif-dec 也能转
+        if let Some(exe) = heif_dec {
+            return match convert_heic_with_heif_dec(exe, image_path, preview_path) {
+                Ok(()) => Ok(preview_path.to_path_buf()),
+                Err(plugin_error) => match convert_heic_to_jpeg_path(image_path, preview_path) {
+                    // 插件坏了但系统能解，照常出预览
+                    Ok(()) => Ok(preview_path.to_path_buf()),
+                    Err(wic_error) => Err(coded_error(
+                        HEIC_PLUGIN_FAILED_CODE,
+                        format!(
+                            "libheif 插件转码失败（{plugin_error}），系统解码也不可用（{wic_error}）"
+                        ),
+                    )),
+                },
+            };
+        }
+
+        match convert_heic_to_jpeg_path(image_path, preview_path) {
+            Ok(()) => Ok(preview_path.to_path_buf()),
+            Err(wic_error) => Err(heic_decoder_missing_error(wic_error)),
+        }
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     {
-        let _ = preview_path;
+        let _ = (preview_path, heif_dec);
         Ok(image_path.to_path_buf())
     }
+}
+
+/// 用插件里的 `heif-dec.exe` 把 HEIC/HEIF 转成 JPEG 预览。
+///
+/// 与 macOS 的 `sips` 同一路子：调外部程序、检查退出码与产物，失败就回落到 WIC。
+#[cfg(target_os = "windows")]
+fn convert_heic_with_heif_dec(
+    exe: &Path,
+    input_path: &Path,
+    output_path: &Path,
+) -> Result<(), String> {
+    use std::os::windows::process::CommandExt;
+
+    /// 不给子进程分配控制台窗口，否则每次转码都会闪一下黑框
+    const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+
+    let started_at = Instant::now();
+    let status = std::process::Command::new(exe)
+        .arg("-q")
+        .arg(PREVIEW_JPEG_QUALITY.to_string())
+        .arg(input_path)
+        .arg(output_path)
+        .creation_flags(CREATE_NO_WINDOW)
+        .status()
+        .map_err(|e| format!("执行 heif-dec 失败: {e}"))?;
+
+    if !status.success() || !output_path.is_file() {
+        return Err(format!("heif-dec 转码失败（退出码 {:?}）", status.code()));
+    }
+
+    println!(
+        "[thumbnail][heic] plugin heif-dec source={} output={} elapsed_ms={}",
+        input_path.display(),
+        output_path.display(),
+        started_at.elapsed().as_millis()
+    );
+
+    Ok(())
 }
 
 fn create_thumbnail_asset(source_path: &Path, thumbnail_path: &Path) -> Result<(), String> {
@@ -797,11 +916,9 @@ fn convert_heic_to_jpeg_path(input_path: &Path, output_path: &Path) -> Result<()
     #[cfg(target_os = "windows")]
     {
         let started_at = Instant::now();
-        let image = decode_image_with_wic(input_path).map_err(|error| {
-            format!(
-                "Windows 无法解码 HEIC/HEIF 图片。请从 Microsoft Store 安装“HEIF 图像扩展”；若图片使用 HEVC 编码，还需安装“HEVC 视频扩展”。WIC 错误: {error}"
-            )
-        })?;
+        // 只给诊断信息：可操作的引导与错误码由调用方（create_preview_asset / 命令）补
+        let image = decode_image_with_wic(input_path)
+            .map_err(|error| format!("系统解码 HEIC/HEIF 失败（WIC 错误: {error}）"))?;
         let file = File::create(output_path).map_err(|e| format!("创建 JPEG 预览失败: {e}"))?;
         let mut encoder = JpegEncoder::new_with_quality(file, PREVIEW_JPEG_QUALITY);
         encoder
@@ -1339,4 +1456,70 @@ struct CachePaths {
     image_path: PathBuf,
     preview_path: PathBuf,
     thumbnail_path: PathBuf,
+}
+
+#[cfg(all(test, target_os = "windows"))]
+mod tests {
+    use super::*;
+
+    /// 每次跑都在 target 下开一个干净的探测目录（不放 %TEMP%：某些受限环境会拒绝在那儿建目录）。
+    fn probe_dir(tag: &str) -> PathBuf {
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join(format!("heic-probe-{tag}"));
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    /// 没装插件、系统也解不开时，错误串必须带机器可读标记：
+    /// 前端据此在「导入失败」提示里给一个直达插件面板的按钮。
+    #[test]
+    fn heic_failure_without_plugin_carries_code() {
+        let dir = probe_dir("missing");
+        let input = dir.join("broken.heic");
+        fs::write(&input, b"not a heic at all").unwrap();
+        let preview = dir.join("broken.jpg");
+
+        let error = create_preview_asset(&input, &preview, "heic", None).unwrap_err();
+
+        let _ = fs::remove_dir_all(&dir);
+        assert!(
+            error.starts_with(&format!("[[co:{HEIC_DECODER_MISSING_CODE}]]")),
+            "错误串应带解码缺失标记，实际: {error}"
+        );
+        assert!(error.contains("设置 → 插件"), "文案里应引导到插件面板");
+    }
+
+    /// 装了插件但那份 exe 不可用（这里用假路径模拟）时，不应该再引导去安装。
+    #[test]
+    fn heic_failure_with_broken_plugin_uses_plugin_code() {
+        let dir = probe_dir("broken-plugin");
+        let input = dir.join("broken.heic");
+        fs::write(&input, b"not a heic at all").unwrap();
+        let preview = dir.join("broken.jpg");
+        let fake_exe = dir.join("heif-dec.exe");
+
+        let error = create_preview_asset(&input, &preview, "heic", Some(&fake_exe)).unwrap_err();
+
+        let _ = fs::remove_dir_all(&dir);
+        assert!(
+            error.starts_with(&format!("[[co:{HEIC_PLUGIN_FAILED_CODE}]]")),
+            "错误串应带插件失败标记，实际: {error}"
+        );
+    }
+
+    /// 非 HEIC 扩展名不进入解码分支。
+    #[test]
+    fn non_heic_extension_returns_original() {
+        let dir = probe_dir("plain");
+        let input = dir.join("photo.jpg");
+        fs::write(&input, b"jpeg-ish").unwrap();
+        let preview = dir.join("photo.preview.jpg");
+
+        let result = create_preview_asset(&input, &preview, "jpg", None).unwrap();
+
+        let _ = fs::remove_dir_all(&dir);
+        assert_eq!(result, input);
+    }
 }

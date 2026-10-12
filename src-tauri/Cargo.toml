@@ -37,6 +37,16 @@ zune-jpeg = "0.5"
 base64 = "0.23.1"
 # flate2_rust：纯 Rust 解压后端，避免 libz-sys 在 Windows 打包机上引入 C 工具链依赖
 allsorts = { version = "0.17.0", default-features = false, features = ["flate2_rust"] }
+# 插件系统：下载/校验/解压（reqwest / sha2 / zip 都已在锁文件里，此处只是提升为直接依赖）
+# system-proxy：Clash 这类工具只写 Windows 系统代理、不设环境变量，GUI 进程因此拿不到
+# HTTP_PROXY；打开这个特性才能沿用系统代理下载
+reqwest = { version = "0.12", default-features = false, features = [
+  "rustls-tls",
+  "gzip",
+  "system-proxy",
+] }
+sha2 = "0.10"
+zip = { version = "2", default-features = false, features = ["deflate"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.61", features = [

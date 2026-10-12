@@ -40,6 +40,8 @@ export const common = {
     failedMany: '{count} 张图片导入失败，已跳过',
     failedMore: '等 {count} 张',
     failedAborted: '导入失败：{reason}',
+    /** 缺 HEIC 解码能力时，提示里的按钮：跳到设置 → 插件 */
+    installPlugin: '去安装插件',
   },
   export: {
     done: '导出完成',
@@ -61,5 +63,6 @@ export const common = {
       importFonts: '网页端没有工作区目录，无法导入字体文件',
       deleteFonts: '网页端没有工作区目录，无法删除字体文件',
     },
+    webNoPlugins: '网页端不支持插件',
   },
 };

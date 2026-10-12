@@ -14,6 +14,7 @@ import {
 import { useElementSize } from '@/shared/hooks/use-element-size';
 import { usePhotos } from '@/shared/hooks/use-photos';
 import { useTranslate } from '@/shared/i18n';
+import { formatFileSize } from '@/shared/lib/file-size';
 import { Button } from '@/shared/ui/button';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { usePhotoExif } from '../hooks/use-photo-exif';
@@ -233,7 +234,7 @@ export function TemplatePreview({
       <div className="flex w-full items-center justify-between gap-4 border-t border-border/80 px-4 py-2 text-xs text-muted-foreground">
         <div className="min-w-0">
           <p className="truncate font-medium text-foreground">{currentPhoto.name}</p>
-          <p>{(currentPhoto.size / 1024 / 1024).toFixed(1)} MB</p>
+          <p>{formatFileSize(currentPhoto.size)}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {ZOOM_OPTIONS.map((option) => {

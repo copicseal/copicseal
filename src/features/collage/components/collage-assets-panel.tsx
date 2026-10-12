@@ -11,6 +11,7 @@ import {
   BusinessWorkbenchAssetsPane,
   type BusinessWorkbenchAssetsRenderProps,
 } from '@/shared/layouts/business-workbench';
+import { formatFileSize } from '@/shared/lib/file-size';
 import {
   importWithFailureFeedback,
   notifyImportAborted,
@@ -401,7 +402,7 @@ export function CollageAssetsPanel({ collapsed, toggleCollapsed }: CollageAssets
                                   {photo.name}
                                 </p>
                                 <div className="mt-1 flex items-center justify-between text-[10px] text-muted-foreground">
-                                  <span>{(photo.size / 1024 / 1024).toFixed(1)} MB</span>
+                                  <span>{formatFileSize(photo.size)}</span>
                                   <span className="flex items-center gap-1.5">
                                     <button
                                       type="button"

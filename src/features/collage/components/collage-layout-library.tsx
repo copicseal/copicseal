@@ -7,6 +7,7 @@ import { usePhotos } from '@/shared/hooks/use-photos';
 import { type MessageKey, useTranslate } from '@/shared/i18n';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
+import { Input } from '@/shared/ui/input';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import {
   Select,
@@ -16,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/select';
-import { Slider } from '@/shared/ui/slider';
 import type { CollageLayout, CollageLayoutMode, CollageLongAlign } from '../types';
 
 const MODE_TABS: Array<{ id: CollageLayoutMode; labelKey: MessageKey; icon: typeof LayoutGrid }> = [
@@ -26,6 +26,9 @@ const MODE_TABS: Array<{ id: CollageLayoutMode; labelKey: MessageKey; icon: type
 ];
 
 const LONG_SIZE_PRESETS = [720, 1080, 1440, 2048];
+/** 与属性面板里导出尺寸的夹取范围一致（64 ~ 12000），保证两边能表达的像素范围相同 */
+const LONG_SIZE_MIN = 64;
+const LONG_SIZE_MAX = 12000;
 
 const VERTICAL_ALIGN: Array<{ id: CollageLongAlign; labelKey: MessageKey }> = [
   { id: 'start', labelKey: 'collage.layoutLibrary.alignLeft' },
@@ -67,16 +70,26 @@ function SegmentedControl<T extends string>({
   options,
   onChange,
   className,
+  size = 'md',
 }: {
   value: T;
   options: Array<{ id: T; labelKey: MessageKey; icon?: typeof LayoutGrid }>;
   onChange: (value: T) => void;
   className?: string;
+  /** sm 给长图那种下级选项用，比顶部的模式 tab 小一档 */
+  size?: 'md' | 'sm';
 }) {
   const t = useTranslate();
+  const compact = size === 'sm';
 
   return (
-    <div className={cn('flex min-w-0 items-center gap-1 rounded-lg bg-muted/50 p-1', className)}>
+    <div
+      className={cn(
+        'flex min-w-0 items-center rounded-lg bg-muted/50',
+        compact ? 'gap-0.5 p-0.5' : 'gap-1 p-1',
+        className,
+      )}
+    >
       {options.map((option) => {
         const Icon = option.icon;
         const active = option.id === value;
@@ -87,13 +100,14 @@ function SegmentedControl<T extends string>({
             type="button"
             onClick={() => onChange(option.id)}
             className={cn(
-              'flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
+              'flex min-w-0 flex-1 items-center justify-center rounded-md font-medium transition-colors',
+              compact ? 'gap-1 px-1.5 py-1 text-[11px]' : 'gap-1.5 px-2 py-1.5 text-xs',
               active
                 ? 'bg-background text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',
             )}
           >
-            {Icon ? <Icon className="size-3.5 shrink-0" /> : null}
+            {Icon ? <Icon className={cn('shrink-0', compact ? 'size-3' : 'size-3.5')} /> : null}
             <span className="truncate">{t(option.labelKey)}</span>
           </button>
         );
@@ -107,6 +121,21 @@ function LongLayoutControls() {
   const t = useTranslate();
   const { present, updateCanvas } = useCollageStore();
   const { longDirection, longAlign, longSize } = present.canvas;
+  // 输入框用草稿，避免边打字边被夹到区间边界把光标顶掉
+  const [sizeText, setSizeText] = useState(String(longSize));
+
+  useEffect(() => {
+    setSizeText(String(longSize));
+  }, [longSize]);
+
+  const commitSize = () => {
+    const parsed = Number.parseInt(sizeText, 10);
+    const next = Number.isFinite(parsed)
+      ? Math.min(LONG_SIZE_MAX, Math.max(LONG_SIZE_MIN, parsed))
+      : longSize;
+    setSizeText(String(next));
+    if (next !== longSize) updateCanvas({ longSize: next });
+  };
   const alignOptions = longDirection === 'vertical' ? VERTICAL_ALIGN : HORIZONTAL_ALIGN;
   const crossLabel =
     longDirection === 'vertical'
@@ -122,6 +151,7 @@ function LongLayoutControls() {
         <SegmentedControl
           value={longDirection}
           onChange={(value) => updateCanvas({ longDirection: value })}
+          size="sm"
           options={[
             { id: 'vertical', labelKey: 'collage.layoutLibrary.directionVertical' },
             { id: 'horizontal', labelKey: 'collage.layoutLibrary.directionHorizontal' },
@@ -136,6 +166,7 @@ function LongLayoutControls() {
         <SegmentedControl
           value={longAlign}
           onChange={(value) => updateCanvas({ longAlign: value })}
+          size="sm"
           options={alignOptions}
         />
         <p className="text-[11px] leading-5 text-muted-foreground">
@@ -146,17 +177,23 @@ function LongLayoutControls() {
       </div>
 
       <div className="space-y-2">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>{crossLabel}</span>
-          <span>{longSize}px</span>
+        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span className="shrink-0">{crossLabel}</span>
+          <div className="flex shrink-0 items-center gap-1">
+            <Input
+              value={sizeText}
+              inputMode="numeric"
+              aria-label={crossLabel}
+              onChange={(event) => setSizeText(event.target.value)}
+              onBlur={commitSize}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') event.currentTarget.blur();
+              }}
+              className="h-6 w-16 px-1.5 text-right text-xs"
+            />
+            <span>px</span>
+          </div>
         </div>
-        <Slider
-          value={[longSize]}
-          min={320}
-          max={2048}
-          step={20}
-          onValueChange={([value]) => updateCanvas({ longSize: value })}
-        />
         <div className="flex flex-wrap gap-1.5">
           {LONG_SIZE_PRESETS.map((preset) => (
             <button

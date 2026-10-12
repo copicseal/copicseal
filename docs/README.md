@@ -163,6 +163,8 @@ src/
 | 11 | [平台能力抽象与 Provider 改造方案](./11-platform-abstraction.md) | Web-first 平台边界、Provider 链与迁移计划 |
 | 12 | [发布流水线](./12-release-pipeline.md) | 打包目标、版本号同步、更新签名密钥与自动更新 |
 | 13 | [旧版对齐清单](./13-parity-checklist.md) | 与旧版桌面应用的差异盘点、成本与排期建议 |
+| 14 | [远程模板注册表](./14-remote-template-registry.md) | 远程模板的注册、下载、信任边界与打包规范 |
+| 15 | [插件系统](./15-plugin-system.md) | 插件目录、清单格式、安装校验流程与首个插件 libheif |
 | TODO | [总开发待办](./TODO.md) | 从零落地的整体实施计划 |
 | i18n | [多语言](../src/shared/i18n/README.md) | 语言偏好、命名空间归属、文案写法与还没做的部分 |
 ---

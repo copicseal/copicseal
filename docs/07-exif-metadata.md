@@ -40,6 +40,8 @@
 - **HEIC / HIF**：这类文件的 EXIF 在 ISO-BMFF 容器里，Rust 侧的 `exif` crate 只认 JPEG/TIFF
   （直接读会报 `Exif data too large`），所以**改读导入时生成的预览**——它是全分辨率 JPEG 且保留了
   完整 EXIF（实测一张 7008×4672 的索尼 HIF：预览可读出 68 个字段、副本一个都读不出）
+  - 这条链路依赖「预览能生成」：Windows 上若系统缺 HEIF 扩展，可在**设置 → 插件**安装
+    libheif 插件（`heif-dec` 转码），见 `docs/15-plugin-system.md`；macOS 走系统 `sips`
 - JPEG / TIFF：仍读缓存副本本身
 - Web 端：直接用原始 File（exiftool 支持 HEIC/HIF），不走上面的分支
 

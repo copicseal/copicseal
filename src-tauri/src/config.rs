@@ -17,10 +17,85 @@ pub struct AppConfig {
     pub template_list: TemplateListConfig,
     /// 拼图模块的默认值：新建拼图用哪套画布样式与导出参数
     pub collage: CollageConfig,
+    /// EXIF 的显示口径（导出开关在 `output.retain_exif`）
+    pub exif: ExifConfig,
     /// 插件下载源：默认内置官方源，用户可追加自己的镜像
     pub plugins: PluginConfig,
     pub user_devices: Vec<UserDevice>,
     pub device_id: String,
+}
+
+/// 一条 EXIF 显示映射：命中的原文片段替换成展示值（空串＝删除该片段）。
+///
+/// 匹配在渲染侧做：大小写不敏感、词边界优先的子串匹配，同一字段首个命中生效。
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
+pub struct ExifMapping {
+    /// 作用字段：make / model / lens_model
+    pub field: String,
+    pub r#match: String,
+    pub replace: String,
+}
+
+/// EXIF 显示口径：拍摄时间格式、经纬度写法、焦段是否用等效 35mm、显示映射表。
+///
+/// 只影响写进照片的文字与「EXIF 信息」卡片的展示；导出文件里的元数据是原图 EXIF
+/// 的搬运，不经过这里的映射与格式化。
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(default)]
+pub struct ExifConfig {
+    pub date_format: String,
+    /// letter = 度数+半球字母，chinese = 度数+中文（度分秒）
+    pub gps_format: String,
+    pub focal_length_35mm: bool,
+    /// 显示映射；默认值就是内置表（`default_exif_mappings()`），清空即不再映射
+    pub mappings: Vec<ExifMapping>,
+}
+
+impl Default for ExifConfig {
+    fn default() -> Self {
+        Self {
+            date_format: "YYYY-MM-DD HH:mm:ss".to_string(),
+            gps_format: "letter".to_string(),
+            focal_length_35mm: false,
+            mappings: default_exif_mappings(),
+        }
+    }
+}
+
+/// 内置显示映射：与旧版内置规则逐条对应，新装用户的 `exif.mappings` 默认就是它。
+///
+/// 前端同名的 `DEFAULT_EXIF_MAPPINGS`（`features/template/templates/exif-format.ts`）
+/// 必须与本表保持一致，两边改动要同步。
+pub fn default_exif_mappings() -> Vec<ExifMapping> {
+    let model = |m: &str, r: &str| ExifMapping {
+        field: "model".to_string(),
+        r#match: m.to_string(),
+        replace: r.to_string(),
+    };
+    let make = |m: &str, r: &str| ExifMapping {
+        field: "make".to_string(),
+        r#match: m.to_string(),
+        replace: r.to_string(),
+    };
+
+    vec![
+        model("ILCE-", "α"),
+        model("NIKON Z ", "ℤ"),
+        // 先匹配共享的那段（`Canon EOS` → `EOS`），再兜底删掉品牌词
+        model("Canon EOS", "EOS"),
+        model("Canon", ""),
+        model("Digital Camera", ""),
+        model("PENTAX", ""),
+        make("SONY", "Sony"),
+        make("LEICA", "Leica"),
+        make("OLYMPUS", "Olympus"),
+        make("OM", "Olympus"),
+        make("NIKON", "Nikon"),
+        make("PANASONIC", "Lumix"),
+        make("PENTAX", "PENTAX"),
+        make("RICOH", "RICOH"),
+    ]
 }
 
 /// 插件下载源配置。
@@ -276,6 +351,7 @@ impl Default for AppConfig {
             template_presets: Vec::new(),
             template_list: TemplateListConfig::default(),
             collage: CollageConfig::default(),
+            exif: ExifConfig::default(),
             plugins: PluginConfig::default(),
             user_devices: Vec::new(),
             device_id: String::new(),
@@ -457,6 +533,7 @@ fn load_from_db(app: &tauri::AppHandle) -> Result<AppConfig, String> {
             .unwrap_or(defaults.template_presets),
         template_list: read_json_value(&conn, "template_list")?.unwrap_or(defaults.template_list),
         collage: read_json_value(&conn, "collage")?.unwrap_or(defaults.collage),
+        exif: read_json_value(&conn, "exif")?.unwrap_or(defaults.exif),
         plugins: read_json_value(&conn, "plugins")?.unwrap_or(defaults.plugins),
         user_devices: read_json_value(&conn, "user_devices")?.unwrap_or(defaults.user_devices),
         device_id: read_json_value(&conn, "device_id")?.unwrap_or_default(),
@@ -489,6 +566,10 @@ fn migrate_legacy_defaults(config: &mut AppConfig) {
     }
 }
 
+/// 写入配置。
+///
+/// 键是一份显式清单：**新增配置段时这里与 `load_from_db` 的读取清单都要加**，
+/// 只加一边会出现「界面上改得动、离开页面又变回默认值」。
 fn save_to_db(app: &tauri::AppHandle, config: &AppConfig) -> Result<(), String> {
     let mut conn = db::open_database(app)?;
     let tx = conn
@@ -505,6 +586,7 @@ fn save_to_db(app: &tauri::AppHandle, config: &AppConfig) -> Result<(), String> 
     write_json_value(&tx, "template_presets", &config.template_presets)?;
     write_json_value(&tx, "template_list", &config.template_list)?;
     write_json_value(&tx, "collage", &config.collage)?;
+    write_json_value(&tx, "exif", &config.exif)?;
     write_json_value(&tx, "plugins", &config.plugins)?;
     write_json_value(&tx, "user_devices", &config.user_devices)?;
     write_json_value(&tx, "device_id", &config.device_id)?;
@@ -530,4 +612,65 @@ pub fn get_device_id(app: tauri::AppHandle) -> Result<String, String> {
         save_to_db(&app, &config)?;
     }
     Ok(config.device_id.clone())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// `exif` 段的线上字段名是前后端的约定，改名会让配置静默丢值。
+    ///
+    /// 前端 `platform/contracts` 里的 `ExifSettings` 必须逐字对应这份键名；
+    /// 对不上时 serde 会忽略未知字段并用默认值补齐，表现为「改完离开页面又变回默认」。
+    #[test]
+    fn exif_config_wire_keys_are_snake_case() {
+        let value = serde_json::to_value(ExifConfig::default()).unwrap();
+        let keys: Vec<&str> = value
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect();
+        assert_eq!(
+            keys,
+            vec!["date_format", "focal_length_35mm", "gps_format", "mappings"]
+        );
+
+        let mapping = serde_json::to_value(ExifMapping::default()).unwrap();
+        let mapping_keys: Vec<&str> = mapping
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect();
+        assert_eq!(mapping_keys, vec!["field", "match", "replace"]);
+    }
+
+    /// 前端的载荷（下划线键）要能原样读回来，不被 `#[serde(default)]` 吞掉。
+    #[test]
+    fn exif_config_accepts_the_frontend_payload() {
+        let payload = r#"{
+            "date_format": "YYYY/MM/DD",
+            "gps_format": "chinese",
+            "focal_length_35mm": true,
+            "mappings": [{ "field": "model", "match": "ILCE-", "replace": "α" }]
+        }"#;
+        let config: ExifConfig = serde_json::from_str(payload).unwrap();
+
+        assert_eq!(config.date_format, "YYYY/MM/DD");
+        assert_eq!(config.gps_format, "chinese");
+        assert!(config.focal_length_35mm);
+        assert_eq!(config.mappings.len(), 1);
+        assert_eq!(config.mappings[0].r#match, "ILCE-");
+    }
+
+    /// 新装用户的默认映射就是内置表（不是空表：空表是「不做映射」的意思）。
+    #[test]
+    fn default_exif_config_carries_the_builtin_mappings() {
+        let config = ExifConfig::default();
+        assert_eq!(config.mappings.len(), 14);
+        assert_eq!(config.date_format, "YYYY-MM-DD HH:mm:ss");
+        assert_eq!(config.gps_format, "letter");
+        assert!(!config.focal_length_35mm);
+    }
 }

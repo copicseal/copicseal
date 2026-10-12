@@ -19,6 +19,10 @@ import {
   toTemplateBackground,
 } from '@/features/template/background';
 import {
+  resolveExifSettings,
+  resolveRetainExifInExport,
+} from '@/features/template/lib/exif-settings';
+import {
   isValidPreset,
   parseDefaultPresets,
   toDefaultPresets,
@@ -667,6 +671,9 @@ export function TemplatePage() {
   const setDefaultFont = useTemplateStore((state) => state.setDefaultFont);
   const exportSizes = useTemplateStore((state) => state.exportSizes);
   const setExportSizes = useTemplateStore((state) => state.setExportSizes);
+  const setExifFormat = useTemplateStore((state) => state.setExifFormat);
+  const setRetainExifInExport = useTemplateStore((state) => state.setRetainExifInExport);
+  const retainExifInExport = useTemplateStore((state) => state.retainExifInExport);
   const defaultFont = useTemplateStore((state) => state.defaultConfig.font);
   const prune = useTemplateStore((state) => state.prune);
   // 导出期间挂起预览自适应，否则它会覆盖导出解算出的 --co-base
@@ -685,10 +692,12 @@ export function TemplatePage() {
     let cancelled = false;
 
     void (async () => {
-      const [presets, font, sizes] = await Promise.all([
+      const [presets, font, sizes, exifSettings, retainExif] = await Promise.all([
         resolveDefaultOutputPresets(),
         resolveDefaultFont(),
         resolveExportSizes(),
+        resolveExifSettings(),
+        resolveRetainExifInExport(),
       ]);
       if (cancelled) {
         return;
@@ -702,12 +711,14 @@ export function TemplatePage() {
         setDefaultFont(font);
       }
       setExportSizes(sizes);
+      setExifFormat(exifSettings);
+      setRetainExifInExport(retainExif);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [setDefaultFont, setDefaultPresets, setExportSizes]);
+  }, [setDefaultFont, setDefaultPresets, setExportSizes, setExifFormat, setRetainExifInExport]);
 
   // 素材被移除后回收它的配置；prune 在无变化时返回原 state，不会引起额外渲染
   useEffect(() => {
@@ -926,7 +937,8 @@ export function TemplatePage() {
   const buildExportOptions = (): ExportOptions => ({
     presets: config.presets,
     dpi: 72,
-    preserveExif: true,
+    // 「设置 → 边框水印 → EXIF → 导出携带原图 EXIF」；存储落在 output.retain_exif
+    preserveExif: retainExifInExport,
   });
 
   /** 顶栏导出入口：统一在这里组装档位参数并维护进行中的状态。 */

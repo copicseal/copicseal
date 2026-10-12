@@ -1,24 +1,11 @@
 import { Loader2 } from 'lucide-react';
+import { useMemo } from 'react';
+import { useTemplateStore } from '@/features/template/store/use-template-store';
+import { createExifFormatter } from '@/features/template/templates/format-exif-text';
 import type { ExifData } from '@/platform';
 import { usePhotos } from '@/shared/hooks/use-photos';
 import { type MessageKey, useTranslate } from '@/shared/i18n';
 import { usePhotoExif } from '../hooks/use-photo-exif';
-
-/** EXIF 拍摄时间形如 "2024:01:15 14:30:00"，转换为 "2024-01-15 14:30:00" 展示。 */
-function formatExifDate(value: string | null): string | null {
-  if (!value) return null;
-  return value.replace(/^(\d{4}):(\d{2}):(\d{2})/, '$1-$2-$3');
-}
-
-/** 经纬度：小数 + 半球字母（N/S、E/W），如 `31.230278°N, 121.473889°E`。 */
-function formatGps(exif: ExifData): string | null {
-  if (exif.latitude === null || exif.longitude === null) return null;
-
-  const latitude = `${Math.abs(exif.latitude).toFixed(6)}°${exif.latitude >= 0 ? 'N' : 'S'}`;
-  const longitude = `${Math.abs(exif.longitude).toFixed(6)}°${exif.longitude >= 0 ? 'E' : 'W'}`;
-
-  return `${latitude}, ${longitude}`;
-}
 
 function formatDimensions(exif: ExifData): string | null {
   if (exif.image_width === null || exif.image_height === null) return null;
@@ -85,8 +72,11 @@ export function TemplateExifCard() {
   const t = useTranslate();
   const { currentPhoto } = usePhotos();
   const { exif, loading } = usePhotoExif(currentPhoto);
+  // 卡片与照片上的文字共用同一份口径：时间格式、经纬度写法、机型/品牌映射都跟着设置走
+  const exifSettings = useTemplateStore((state) => state.exifFormat);
+  const formatter = useMemo(() => createExifFormatter(exifSettings, exif), [exifSettings, exif]);
 
-  const camera = [exif?.make, exif?.model].filter(Boolean).join(' ') || null;
+  const camera = [formatter.brand(), formatter.model()].filter(Boolean).join(' ') || null;
   const shootingParams =
     [exif?.focal_length, exif?.aperture, exif?.shutter_speed, exif?.iso ? `ISO ${exif.iso}` : null]
       .filter(Boolean)
@@ -96,12 +86,12 @@ export function TemplateExifCard() {
     [t('template.exifCard.field.camera'), camera],
     [t('template.exifCard.field.lens'), exif?.lens_model ?? null],
     [t('template.exifCard.field.shootingParams'), shootingParams],
-    [t('template.exifCard.field.dateTaken'), formatExifDate(exif?.date_taken ?? null)],
+    [t('template.exifCard.field.dateTaken'), formatter.date() || null],
     [t('template.exifCard.field.exposureCompensation'), exif?.exposure_compensation ?? null],
     [t('template.exifCard.field.whiteBalance'), exif?.white_balance ?? null],
     [t('template.exifCard.field.meteringMode'), exif?.metering_mode ?? null],
     [t('template.exifCard.field.dimensions'), exif ? formatDimensions(exif) : null],
-    [t('template.exifCard.field.gps'), exif ? formatGps(exif) : null],
+    [t('template.exifCard.field.gps'), formatter.gps()],
     [t('template.exifCard.field.gpsAltitude'), exif ? formatAltitude(exif.gps_altitude) : null],
     // 以下为补充的拍摄 / 图像信息，读不到就不占行
     [

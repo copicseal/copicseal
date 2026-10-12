@@ -19,6 +19,7 @@ export const settings: Messages['settings'] = {
     templateDefaults: 'Defaults',
     templatePresets: 'Template presets',
     templateExport: 'Export',
+    templateExif: 'EXIF',
     collageDefaults: 'Defaults',
     collageExport: 'Export',
     fonts: 'Fonts',
@@ -32,6 +33,55 @@ export const settings: Messages['settings'] = {
     },
     /** 二级 tab 的可访问名：分组标题对读屏隐藏，靠它把归属补回去 */
     itemAria: '{group} {tab}',
+  },
+  /** Settings → Watermark → EXIF */
+  templateExif: {
+    title: 'EXIF output and display',
+    description:
+      'Whether exported files carry the original EXIF, plus how capture time, coordinates and brand/model are written onto the photo.',
+    exportExif: {
+      label: 'Carry the original EXIF in exports',
+      description:
+        'Copies the original EXIF into the exported JPEG and rewrites its pixel dimensions and orientation to match the export (the original thumbnail is dropped). PNG exports stay metadata-free.',
+    },
+    focal35: {
+      label: 'Use the 35mm equivalent focal length',
+      description:
+        '{FocalLength} switches to the 35mm equivalent; falls back to the actual focal length when absent.',
+    },
+    dateFormat: {
+      label: 'Capture time format',
+      description: 'Common: YYYY MM DD HH mm ss; anything else is kept literally.',
+      example: 'Example: {value}',
+      invalid: 'Keep at least one placeholder; showing the raw value instead.',
+    },
+    gpsFormat: {
+      label: 'Coordinate format',
+      description:
+        'Affects the text on the photo and the EXIF info card only; metadata in exported files is untouched.',
+      letter: 'Degrees + letter',
+      chinese: 'Degrees + Chinese',
+      example: 'Example: {value}',
+    },
+    mappings: {
+      label: 'EXIF field mappings',
+      description:
+        'Rewrites a matched fragment per field: write only the shared part, not the whole model — ILCE- → α covers every Sony Alpha, Canon EOS → EOS covers every EOS body. Case-insensitive, first match per field wins; an empty replacement removes the fragment.',
+      field: 'Field',
+      match: 'Original',
+      replace: 'Display as',
+      empty: 'No mapping rules; fields are shown as read.',
+      add: 'Add a rule',
+      reset: 'Restore defaults',
+      remove: 'Remove this mapping',
+      matchPlaceholder: 'e.g. Canon EOS',
+      replacePlaceholder: 'Empty = remove it',
+      fieldNames: {
+        make: 'Brand',
+        model: 'Model',
+        lens: 'Lens',
+      },
+    },
   },
   general: {
     title: 'General',

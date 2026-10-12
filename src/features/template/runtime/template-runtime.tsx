@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { TemplateInjectedProps } from '@/features/template/templates';
-import type { ExifData } from '@/platform';
+import { createExifFormatter } from '@/features/template/templates/format-exif-text';
+import type { ExifData, ExifSettings } from '@/platform';
 import { DEFAULT_TEMPLATE_ID, getBuiltinTemplateById, normalizeParams } from './template-registry';
 
 interface TemplateRuntimeProps {
@@ -11,12 +12,14 @@ interface TemplateRuntimeProps {
   params?: Record<string, unknown>;
   /** 用户选择的字体族；空串表示跟随模板自带的字体栈 */
   font?: string;
+  /** 「设置 → 边框水印 → EXIF」里的显示口径 */
+  exifSettings?: ExifSettings | null;
 }
 
 /**
  * 模板运行入口。
  *
- * 只做三件事：注入框架输入（`photoUrl` / `exif` / `font`），按模板自己的
+ * 只做三件事：注入框架输入（`photoUrl` / `exif` / `font` / `exifFormat`），按模板自己的
  * schema 把用户参数兜底归一化，以及把最终字体挂在画布根上——模板里的
  * HTML 文本靠继承拿到它，不需要每个模板自己声明字体。
  */
@@ -26,6 +29,7 @@ export function TemplateRuntime({
   exif,
   params,
   font = '',
+  exifSettings,
 }: TemplateRuntimeProps) {
   const template =
     getBuiltinTemplateById(templateId ?? DEFAULT_TEMPLATE_ID) ??
@@ -35,6 +39,9 @@ export function TemplateRuntime({
     () => (template ? normalizeParams(template.schema, params) : {}),
     [template, params],
   );
+
+  // 格式化器按「设置 + 当前照片」构造一次：口径或照片变了自然重算
+  const exifFormat = useMemo(() => createExifFormatter(exifSettings, exif), [exifSettings, exif]);
 
   if (!template) {
     return null;
@@ -53,7 +60,7 @@ export function TemplateRuntime({
   const pick = font ? `"${font.replace(/"/g, '')}"` : resolvedFont;
   const canvasFont = pick ? `${pick}, sans-serif` : '';
   // 内联输入给原始族名：模板自己拼 SVG 时会写进属性，不能带引号与逗号
-  const injected: TemplateInjectedProps = { photoUrl, exif, font: resolvedFont };
+  const injected: TemplateInjectedProps = { photoUrl, exif, font: resolvedFont, exifFormat };
 
   // 画布盒子只作为稳定句柄，尺寸由模板根自己按 --co-base 决定
   return (

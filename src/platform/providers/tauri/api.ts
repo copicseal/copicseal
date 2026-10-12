@@ -185,8 +185,13 @@ export function setComarkTemplateEnabled(id: string, enabled: boolean): Promise<
 export function extractJpegExif(path: string): Promise<number[]> {
   return invoke('extract_jpeg_exif', { path });
 }
-export function insertJpegExif(jpegData: number[], exifSegment: number[]): Promise<number[]> {
-  return invoke('insert_jpeg_exif', { jpegData, exifSegment });
+/** 把 EXIF 段插进 JPEG；`alignDimensions` 会先把段里的宽高/朝向对齐到这张导出的画面。 */
+export function insertJpegExif(
+  jpegData: number[],
+  exifSegment: number[],
+  alignDimensions = false,
+): Promise<number[]> {
+  return invoke('insert_jpeg_exif', { jpegData, exifSegment, alignDimensions });
 }
 
 /** 插件安装进度事件名，与 Rust 侧 `plugin.rs` 保持一致 */

@@ -58,21 +58,36 @@
 
 ---
 
-## 7.2 相机品牌映射
+## 7.2 字段映射（机型 / 品牌显示名）
 
-不同品牌相机自动格式化显示并匹配 Logo：
+设置 → 边框水印 → EXIF →「EXIF 字段映射」维护一张「原文片段 → 显示值」的表，
+默认值就是内置表，用户可增删改（也可清空成「不做任何映射」）：
 
-| 品牌 | 原始型号示例 | 格式化显示 | Logo |
-|------|-------------|-----------|------|
-| Sony | ILCE-7M4 | α7M4 | α 符号 |
-| Nikon | NIKON Z 6 | ℤ 6 | ℤ 符号 |
-| Canon | Canon EOS R5 | Canon EOS R5 | Canon Logo |
-| Leica | LEICA Q2 | LEICA Q2 | Leica Logo |
-| Olympus | E-M1MarkII | E-M1MarkII | Olympus Logo |
-| Pentax | PENTAX K-1 | PENTAX K-1 | Pentax Logo |
-| RICOH | RICOH GR III | RICOH GR III | RICOH Logo |
+| 字段 | 原文 | 显示为 | 效果 |
+|------|------|--------|------|
+| 机型 | `ILCE-` | `α` | 所有索尼阿法共用一条，`ILCE-7M4` → `α7M4` |
+| 机型 | `NIKON Z ` | `ℤ` | `NIKON Z 6` → `ℤ6` |
+| 机型 | `Canon EOS` | `EOS` | 所有 EOS 机型共用一条（不写完整型号），`Canon EOS R5` → `EOS R5` |
+| 机型 | `Canon` / `Digital Camera` / `PENTAX` | （留空） | 兜底删掉这些冗余前缀（非 EOS 的佳能机型等），配合 logo 那行不会出现「Canon Canon」 |
+| 品牌 | `SONY` | `Sony` | |
+| 品牌 | `LEICA` / `OLYMPUS` / `OM` / `NIKON` / `PANASONIC` / `PENTAX` / `RICOH` | `Leica` / `Olympus` / `Olympus` / `Nikon` / `Lumix` / `PENTAX` / `RICOH` | |
+| 镜头 | —— | —— | 默认没有镜头映射 |
 
-Logo 提供 PNG 和 SVG 两种格式。
+匹配规则：大小写不敏感、词边界优先的子串匹配，同一字段首个命中生效，「显示为」留空表示删除该片段。
+替换只发生在命中的片段上、不改写其余字符，所以 `SONY CORPORATION` 会变成 `Sony CORPORATION`
+（桌面端读取时 Rust 已经做过一轮品牌规范化，带公司后缀的写法主要出现在 Web 端 ExifTool 的结果里）；
+`match` 里的空格是有意义的——内置的 `NIKON Z ` 就是靠末尾那个空格把 `NIKON Z 6` 收成 `ℤ6`。
+映射作用于**照片上的文字**（`{Make}` / `{Model}` / `{LensModel}` 变量，以及 logo 旁的品牌/机型名）；
+**不影响**导出文件里的元数据。
+
+注意两点：
+
+- 表是唯一口径：删掉某条内置映射，字段就恢复原样显示（`{Make}` 会重新输出 `SONY`）
+- **Logo 选图不受映射影响**：品牌规范化在代码里另有一张表（`templates/brand.ts` 的 `BRAND_ALIASES`），
+  把 Sony 的显示名改成「索尼」也仍会选到 `SONY.svg`；Logo 提供 PNG 与 SVG 两种格式
+
+内置表在两处定义、必须保持一致：Rust `config::default_exif_mappings()`（新装用户的配置默认值）
+与前端 `shared/lib/exif-defaults.ts` 的 `DEFAULT_EXIF_MAPPINGS`（老配置缺键时的回落）。
 
 ---
 
@@ -104,16 +119,23 @@ Logo 提供 PNG 和 SVG 两种格式。
 
 ## 7.5 EXIF 输出策略
 
-导出时的 EXIF 保留策略：
+开关在设置 → 边框水印 → EXIF →「导出携带原图 EXIF」（默认开，存储字段是 `output.retain_exif`），
+只对**模板导出**与 **JPEG** 生效：拼图导出不写元数据，PNG 也没有可写的 EXIF 段。
 
-| 保留 | 过滤 |
+打开时把原图的 APP1 EXIF 段整段搬到导出文件上，但会就地纠正三处，让元数据与画面自洽：
+
+| 处理 | 原因 |
 |------|------|
-| 相机参数（型号、参数） | 文件系统信息 |
-| 拍摄时间 | 缩略图数据 |
-| GPS 信息 | 方向信息 |
-| DPI 分辨率 | 内部尺寸字段 |
+| 宽高改成导出画面的实际像素（`ImageWidth` / `ImageLength` / `PixelXDimension` / `PixelYDimension`） | 原段里写的是原图尺寸，导出已经缩放/改了画幅 |
+| `Orientation` 归一为 1 | 导出的像素已经是正立的，再留「顺时针 90°」会让看图软件转错 |
+| IFD0 的 next-IFD 指针清零 | 指向的是**原图**的缩略图，尺寸与内容都对不上，白占十几 KB |
 
-用户可在设置中开关 "保留 EXIF" 选项，关闭后导出文件将不包含任何元数据。
+尺寸取自导出 JPEG 自身的 SOF 帧头（不是前端传参），所以导出倍率、尺寸适配器怎么算都不会错。
+段结构不认（缺 TIFF 头、类型不是 SHORT/LONG、标签不存在）时跳过对应处理，照常注入原段——
+EXIF 写入失败只报警告，不影响导出本身。
+
+Web 端走 exiftool-wasm 写回：拷贝原图标签后覆盖 `ExifImageWidth` / `ExifImageHeight` 与
+`Orientation`，与桌面端同一口径。
 
 ---
 
@@ -138,7 +160,16 @@ Logo 提供 PNG 和 SVG 两种格式。
 {Longitude}  →  121.473701°E
 ```
 
-小数后面带半球字母（N/S、E/W），与「EXIF 信息」卡片里的展示口径一致。
+小数后面带半球字母（N/S、E/W），与「EXIF 信息」卡片里的展示口径一致。三种口径由设置决定：
+
+| 设置 | 可选值 | 例子 |
+|------|--------|------|
+| 拍摄时间格式 | 默认 `YYYY-MM-DD HH:mm:ss`；占位符 `YYYY YY MM M DD D HH H mm m ss s`，其余字符原样保留 | `YYYY年MM月DD日 HH:mm` → `2024年01月15日 14:30` |
+| 经纬度格式 | 度数+字母 / 度数+中文（度分秒，秒四舍五入并处理进位） | `31.230278°N` / `北纬 31°13'49"` |
+| 焦段 | 实际焦距 / 等效 35mm | `{FocalLength}` → `122mm` / `88mm` |
+
+两个读取器给的时间写法不同（Rust 侧 `2024-01-15 14:30:00`，ExifTool `2024:01:15 14:30:00`），
+格式化时会先统一解析（容忍 `T` 分隔、子秒、时区后缀）；**解析不出来就原样输出**，不吞掉内容。
 
 它们与其它变量一样：既能写进模板文案、也能在「EXIF 字段」卡片里改写（改动值按字符串存，
 渲染时再转回数值，空串或非法输入按清空处理）。

@@ -87,6 +87,41 @@ function formatEnumLabel(value: unknown, labels: Record<string, string>): string
 /** 回写时必须剔除的只读伪标签，否则 ExifTool 会在 stderr 报警导致写入被判为失败。 */
 const NON_WRITABLE_TAG_KEYS = new Set(['SourceFile', 'Error', 'Warning']);
 
+/** 读出 JPEG 的实际像素尺寸（SOF 帧头），与 Rust 侧 `jpeg_frame_size` 同一套解析。 */
+function jpegFrameSize(data: Uint8Array): { width: number; height: number } | null {
+  if (data.length < 4 || data[0] !== 0xff || data[1] !== 0xd8) return null;
+
+  let pos = 2;
+  while (pos + 3 < data.length) {
+    if (data[pos] !== 0xff) return null;
+    const marker = data[pos + 1];
+    if (marker === 0xff) {
+      pos += 1;
+      continue;
+    }
+    if (marker === 0xd8 || (marker >= 0xd0 && marker <= 0xd7)) {
+      pos += 2;
+      continue;
+    }
+    if (marker === 0xda || marker === 0xd9) return null;
+
+    const length = (data[pos + 2] << 8) | data[pos + 3];
+    if (length < 2 || pos + 2 + length > data.length) return null;
+
+    const isFrameHeader =
+      marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc;
+    if (isFrameHeader) {
+      const height = (data[pos + 5] << 8) | data[pos + 6];
+      const width = (data[pos + 7] << 8) | data[pos + 8];
+      return { width, height };
+    }
+
+    pos += 2 + length;
+  }
+
+  return null;
+}
+
 export class WebExifAdapter {
   async read(file: File): Promise<ExifData> {
     const result = await parseMetadata<RawMetadata>(file, {
@@ -158,6 +193,13 @@ export class WebExifAdapter {
     // 新版 TS lib 要求 BlobPart 的 ArrayBufferView 以纯 ArrayBuffer 为背景，
     // 复制一份以兼容 ArrayBufferLike 背景的 Uint8Array 入参。
     const outputPart = new Uint8Array(output);
+    // 与桌面端一致：原图的尺寸/朝向对不上导出画面，写回前先按实际像素纠正
+    const frame = jpegFrameSize(outputPart);
+    if (frame) {
+      metadata.ExifImageWidth = frame.width;
+      metadata.ExifImageHeight = frame.height;
+    }
+    metadata.Orientation = 1;
     const written = await writeMetadata(
       new File([outputPart], outputName, { type: 'image/jpeg' }),
       metadata,

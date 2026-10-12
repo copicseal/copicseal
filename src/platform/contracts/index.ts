@@ -205,7 +205,54 @@ export interface OutputConfig {
   /** 导出面板「常用尺寸」下拉的快捷尺寸，可在设置里增删 */
   sizes: OutputSize[];
   default_path: string;
+  /**
+   * 导出时把原图 EXIF 搬进结果文件。
+   *
+   * 开关长在「设置 → 边框水印 → EXIF」，但字段留在 `output` 里：它描述的是导出行为，
+   * 而且从配置结构第一次落地起就在这个位置，挪动只会带来一次没有收益的迁移。
+   */
   retain_exif: boolean;
+}
+
+/** 映射作用的 EXIF 字段：只覆盖会显示在照片上的字符串字段。 */
+export type ExifMappingField = 'make' | 'model' | 'lens_model';
+
+/**
+ * 一条 EXIF 显示映射，如 `ILCE-` → `α`（于是 `ILCE-7M4` 显示成 `α7M4`）。
+ *
+ * 匹配与旧版一致：大小写不敏感、词边界优先的子串匹配，同一字段首个命中生效；
+ * `replace` 为空串表示把命中的片段删掉。
+ */
+export interface ExifFieldMapping {
+  field: ExifMappingField;
+  /** 命中的原文片段 */
+  match: string;
+  /** 替换后的显示值；空串＝删除命中片段 */
+  replace: string;
+}
+
+/** 经纬度显示口径：度数+半球字母（`31.230278°N`）或度数+中文（`北纬 31°13'49"`）。 */
+export type ExifGpsFormat = 'letter' | 'chinese';
+
+/**
+ * EXIF 的显示口径；设置 → 边框水印 → EXIF 写的就是这里。
+ *
+ * 只影响**写进照片的文字**（模板文案变量、logo 旁的品牌/机型）与「EXIF 信息」卡片的展示；
+ * 导出文件里的元数据是原图 EXIF 的搬运，不经过这里的映射与格式化。
+ */
+export interface ExifSettings {
+  /**
+   * 字段名与 Rust 侧 `config::ExifConfig` 一一对应（配置类结构体在本仓库统一用下划线，
+   * 直接照着 Rust 结构体写）。名字对不上的话 serde 会把未知字段忽略、再用
+   * `#[serde(default)]` 补成默认值，表现为「界面上改得动、离开页面又变回默认」。
+   */
+  /** 拍摄时间格式串，占位符见 `features/template/templates/exif-format.ts` */
+  date_format: string;
+  gps_format: ExifGpsFormat;
+  /** `{FocalLength}` 是否改用等效 35mm 焦段 */
+  focal_length_35mm: boolean;
+  /** 显示映射；默认值即内置表，显式的空数组表示不做任何映射 */
+  mappings: ExifFieldMapping[];
 }
 
 /**
@@ -296,6 +343,8 @@ export interface AppConfig {
   template_list: TemplateListConfig;
   /** 拼图模块的默认值 */
   collage: CollageConfig;
+  /** EXIF 的显示口径（导出开关在 `output.retain_exif`） */
+  exif: ExifSettings;
   /** 插件下载源（默认官方源，可加镜像） */
   plugins: PluginConfig;
   user_devices: UserDevice[];

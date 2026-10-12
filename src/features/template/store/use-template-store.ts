@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { OutputSize } from '@/platform/contracts';
+import type { ExifSettings, OutputSize } from '@/platform/contracts';
 import type { ExportPreset } from '@/shared/types/export';
 import { resolveTemplateBackground, type TemplateBackground } from '../background';
 import { createExportPreset } from '../lib/export-preset';
@@ -11,6 +11,7 @@ import {
   resolveBuiltinTemplate,
 } from '../runtime/template-registry';
 import { DEFAULT_TEMPLATE_ID } from '../templates';
+import { DEFAULT_EXIF_SETTINGS } from '../templates/exif-format';
 import type { ExifOverrideField, ExifOverrides } from '../templates/format-exif-text';
 
 /**
@@ -92,6 +93,22 @@ interface TemplateStoreState {
   exportSizes: OutputSize[];
   setExportSizes: (sizes: OutputSize[]) => void;
   /**
+   * 「设置 → 边框水印 → EXIF」的显示口径。
+   *
+   * 不放进 `defaultConfig`：那个字段是按图复制的，设置页改完只有新照片会跟着变；
+   * 这里是全局口径，两个常驻页面（模板页与设置页）靠它保持同步。
+   */
+  exifFormat: ExifSettings;
+  setExifFormat: (settings: ExifSettings) => void;
+  /**
+   * 导出时是否把原图 EXIF 写进结果文件。
+   *
+   * 存储落在 `output.retain_exif`（它描述的是导出行为），这里只是给两个常驻页面
+   * 一份同步的镜像，理由同 `exifFormat`。
+   */
+  retainExifInExport: boolean;
+  setRetainExifInExport: (value: boolean) => void;
+  /**
    * 把一条模板预设应用到若干张照片。
    *
    * 模板、参数、背景与字体一次性写入：它们共同构成「一套样式」，
@@ -115,14 +132,17 @@ interface TemplateStoreState {
  * Template 页的每图配置表。
  *
  * 每张照片的配置不做持久化：照片 id 是会话级的，跨会话恢复没有意义
- * （见 docs/05 存储原则）。来自设置、并在启动时由页面写入的有两样：
- * `defaultConfig` 里的档位与字体（「默认档位」「全局字体」），以及模板预设清单。
+ * （见 docs/05 存储原则）。来自设置、并在启动时由页面写入的有三样：
+ * `defaultConfig` 里的档位与字体（「默认档位」「全局字体」）、模板预设清单，
+ * 以及 EXIF 显示口径（`exifFormat`，设置页改动后两个常驻页面立刻同步）。
  * 字体库（引入的字体）由 `features/fonts` 自己维护。
  */
 export const useTemplateStore = create<TemplateStoreState>()((set) => ({
   configs: {},
   defaultConfig: createDefaultConfig(),
   templatePresets: [],
+  exifFormat: DEFAULT_EXIF_SETTINGS,
+  retainExifInExport: true,
 
   setTemplate: (photoId, templateId) => {
     const template = resolveBuiltinTemplate(templateId);
@@ -223,6 +243,14 @@ export const useTemplateStore = create<TemplateStoreState>()((set) => ({
 
   setExportSizes: (sizes) => {
     set({ exportSizes: structuredClone(sizes) });
+  },
+
+  setExifFormat: (settings) => {
+    set({ exifFormat: structuredClone(settings) });
+  },
+
+  setRetainExifInExport: (value) => {
+    set({ retainExifInExport: value });
   },
 
   setDefaultPresets: (presets) => {

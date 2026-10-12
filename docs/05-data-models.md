@@ -213,8 +213,9 @@ Collage 页面的当前工作状态：
 | notes | 字体备注（族名 + 备注文本），本机引用与导入字体共用 |
 | templatePresets | 模板预设清单，见下 |
 
-模板与参数的默认值尚未接线：默认模板、默认边框宽度、默认背景色、默认 EXIF 格式都还没有对应的配置字段，
-边框水印的「默认项」设置目前只有全局字体，其余参数仍按当前照片在模板页调整。
+模板与参数的默认值尚未接线：默认模板、默认边框宽度、默认背景色都还没有对应的配置字段，
+边框水印的「默认项」设置目前只有全局字体，其余参数仍按当前照片在模板页调整；
+EXIF 的显示口径是独立的一段配置，见下面的 EXIF 小节。
 
 ### Imported Font
 
@@ -268,6 +269,30 @@ Collage 页面的当前工作状态：
 - 读回时按模板 schema 归一参数、按背景字段收敛背景：模板已升级或字段越界都不会把脏值带进渲染
 - 预设引用的模板在当前版本里不存在时不可应用，但仍可覆盖或删除
 
+### EXIF
+
+设置 → 边框水印 → EXIF 写的就是这里；Rust 侧 `ExifConfig`，缺字段按 `Default` 补齐。
+**字段名必须与 Rust 结构体逐字一致**（配置类结构体在本仓库统一用下划线）：名字对不上时 serde 会
+忽略未知字段、再用 `#[serde(default)]` 补默认值，表现为「界面上改得动，离开页面又变回默认」。
+
+| 字段 | 默认 | 说明 |
+|------|------|------|
+| date_format | `YYYY-MM-DD HH:mm:ss` | 拍摄时间的输出格式；占位符 `YYYY YY MM M DD D HH H mm m ss s`，其余字符原样保留 |
+| gps_format | `letter` | `letter` = 度数+半球字母（`31.230278°N`）；`chinese` = 度数+中文（`北纬 31°13'49"`） |
+| focal_length_35mm | `false` | `{FocalLength}` 是否改用等效 35mm 焦段 |
+| mappings | 内置表 | 字段映射：`{ field, match, replace }`，field 为 `make` / `model` / `lens_model`。默认值是内置表（`config::default_exif_mappings()` ↔ 前端 `DEFAULT_EXIF_MAPPINGS`，两边必须同步）；**显式的空数组表示不做任何映射**，只有整个键缺失（老配置）才回落到内置表 |
+
+约束：
+
+- 只影响**写进照片的文字**（模板文案变量、logo 旁的品牌/机型）与「EXIF 信息」卡片的展示；
+  导出文件里的元数据是原图 EXIF 的搬运，不经过映射与格式化
+- 匹配规则：大小写不敏感、词边界优先的子串匹配，同一字段首个命中生效；`replace` 为空串表示删除该片段
+- Logo 选图不受映射影响：即使把 Sony 的显示名改成「索尼」，仍按内置品牌表选 `SONY.svg`
+- 模板页与设置页都是常驻页面，改动靠 `useTemplateStore.exifFormat` 同步，不重挂也要立刻生效
+
+「导出携带原图 EXIF」的开关落在 `output.retain_exif`（见 Export 一节）：它描述的是导出行为，
+所以留在 `output` 里，开关本身画在 EXIF 这一页。
+
 ### Collage
 
 设置 → 拼图（「默认项 / 导出」两页）写的就是这里；Rust 侧 `CollageConfig`，缺字段按 `Default` 补齐。
@@ -301,6 +326,7 @@ Collage 页面的当前工作状态：
 | defaultPath | 文件导出目录，边框水印与拼图共用 |
 | presets | 边框水印的默认档位（`ExportPreset[]`），由模板页「存为默认档位」写入 |
 | sizes | 导出面板「常用尺寸」下拉的快捷尺寸（`OutputSize[]`：name + width + height），在设置 → 边框水印 → 导出里增删；首次使用带一组内置尺寸，删空即没有快捷尺寸 |
+| retainExif | 导出时是否把原图 EXIF 搬进结果文件（默认开）；开关画在设置 → 边框水印 → EXIF，见上一节 |
 
 默认档位同时覆盖了格式、尺寸、倍率与质量，因此不再单独存 `defaultFormat` /
 `defaultScale` / `defaultQuality`：三者只是档位的字段，拆开存会出现互相矛盾的中间态。

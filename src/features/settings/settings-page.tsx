@@ -37,6 +37,13 @@ import {
 } from '@/features/template/lib/template-preset';
 import { useTemplateStore } from '@/features/template/store/use-template-store';
 import {
+  DEFAULT_EXIF_MAPPINGS,
+  EXIF_DATE_DEFAULT,
+  formatExifCoordinate,
+  formatExifDate,
+  normalizeExifSettings,
+} from '@/features/template/templates/exif-format';
+import {
   type AppConfig,
   type AppUpdateInfo,
   type AppVersion,
@@ -44,6 +51,10 @@ import {
   type CollageConfig,
   clearAssetCaches,
   DEFAULT_COLLAGE_CONFIG,
+  type ExifFieldMapping,
+  type ExifGpsFormat,
+  type ExifMappingField,
+  type ExifSettings,
   getInUseAssetPaths,
   type OutputPreset,
   type OutputSize,
@@ -127,6 +138,7 @@ const TAB_GROUPS: SettingsTabGroup[] = [
       { id: 'template', labelKey: 'settings.tabs.templateDefaults' },
       { id: 'template-preset', labelKey: 'settings.tabs.templatePresets' },
       { id: 'template-export', labelKey: 'settings.tabs.templateExport' },
+      { id: 'template-exif', labelKey: 'settings.tabs.templateExif' },
     ],
   },
   {
@@ -850,6 +862,245 @@ function TemplateExportDefaultsTab({
             >
               <Plus data-icon="inline-start" />
               {t('settings.templateExport.sizes.add')}
+            </Button>
+          </div>
+        </SettingField>
+      </FieldGroup>
+    </div>
+  );
+}
+
+/** 示例值：没有当前照片时也能量出格式串的效果，与真实照片走同一套格式化函数。 */
+const EXIF_SAMPLE_DATE = '2024-01-15 14:30:00';
+const EXIF_SAMPLE_LATITUDE = 31.230278;
+const EXIF_SAMPLE_LONGITUDE = 121.473889;
+
+const EXIF_MAPPING_FIELDS: Array<{ id: ExifMappingField; labelKey: MessageKey }> = [
+  { id: 'make', labelKey: 'settings.templateExif.mappings.fieldNames.make' },
+  { id: 'model', labelKey: 'settings.templateExif.mappings.fieldNames.model' },
+  { id: 'lens_model', labelKey: 'settings.templateExif.mappings.fieldNames.lens' },
+];
+
+const EXIF_GPS_OPTIONS: Array<{ id: ExifGpsFormat; labelKey: MessageKey }> = [
+  { id: 'letter', labelKey: 'settings.templateExif.gpsFormat.letter' },
+  { id: 'chinese', labelKey: 'settings.templateExif.gpsFormat.chinese' },
+];
+
+/**
+ * 边框水印 → EXIF：导出是否带元数据，以及照片上「时间 / 经纬度 / 品牌机型」的显示口径。
+ *
+ * 映射表用本地草稿：逐字输入时不写配置，失焦或增删改时一次性提交，避免每敲一个字都落盘。
+ */
+function TemplateExifTab({
+  settings,
+  retainExif,
+  onChange,
+  onRetainExifChange,
+}: {
+  settings: ExifSettings;
+  retainExif: boolean;
+  onChange: (patch: Partial<ExifSettings>) => void;
+  onRetainExifChange: (value: boolean) => void;
+}) {
+  const t = useTranslate();
+  const [draft, setDraft] = useState<ExifFieldMapping[]>(settings.mappings);
+  /**
+   * 最新草稿的同步副本。
+   *
+   * 失焦可能和最后一次输入落在同一批事件里，那时 `onBlur` 闭包捕获的还是上一轮的 state；
+   * 提交一律以这份 ref 为准。
+   */
+  const draftRef = useRef(draft);
+  // 用内容而不是数组引用做同步：父组件因别的原因重渲染时，正在输入的草稿不能被冲掉
+  const mappingsKey = settings.mappings
+    .map((row) => `${row.field}\u0000${row.match}\u0000${row.replace}`)
+    .join('\u0001');
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 只按内容变化重同步，settings 引用本身不参与
+  useEffect(() => {
+    draftRef.current = settings.mappings;
+    setDraft(settings.mappings);
+  }, [mappingsKey]);
+
+  const commitMappings = (next: ExifFieldMapping[]) => {
+    draftRef.current = next;
+    setDraft(next);
+    onChange({ mappings: next });
+  };
+
+  const patchRow = (index: number, patch: Partial<ExifFieldMapping>) => {
+    const next = draftRef.current.map((row, i) => (i === index ? { ...row, ...patch } : row));
+    draftRef.current = next;
+    setDraft(next);
+  };
+
+  const dateSample = formatExifDate(EXIF_SAMPLE_DATE, settings.date_format) || EXIF_SAMPLE_DATE;
+  const gpsSample = `${formatExifCoordinate(
+    EXIF_SAMPLE_LATITUDE,
+    'latitude',
+    settings.gps_format,
+  )}, ${formatExifCoordinate(EXIF_SAMPLE_LONGITUDE, 'longitude', settings.gps_format)}`;
+
+  return (
+    <div className="space-y-4">
+      <FieldGroup
+        title={t('settings.templateExif.title')}
+        description={t('settings.templateExif.description')}
+      >
+        <SettingField
+          id="template-exif-export"
+          label={t('settings.templateExif.exportExif.label')}
+          description={t('settings.templateExif.exportExif.description')}
+        >
+          <Switch checked={retainExif} onCheckedChange={onRetainExifChange} />
+        </SettingField>
+
+        <SettingField
+          id="template-exif-focal"
+          label={t('settings.templateExif.focal35.label')}
+          description={t('settings.templateExif.focal35.description')}
+        >
+          <Switch
+            checked={settings.focal_length_35mm}
+            onCheckedChange={(checked) => onChange({ focal_length_35mm: checked })}
+          />
+        </SettingField>
+
+        <SettingField
+          id="template-exif-date"
+          label={t('settings.templateExif.dateFormat.label')}
+          description={t('settings.templateExif.dateFormat.description')}
+        >
+          <Input
+            aria-label={t('settings.templateExif.dateFormat.label')}
+            className="w-64 font-mono"
+            value={settings.date_format}
+            onChange={(event) => onChange({ date_format: event.target.value })}
+            onBlur={(event) => {
+              // 清空或只剩纯文本时回落到默认格式，别把空串写进配置
+              if (event.target.value.trim() === '') {
+                onChange({ date_format: EXIF_DATE_DEFAULT });
+              }
+            }}
+          />
+          <p className="mt-2 text-xs text-muted-foreground">
+            {t('settings.templateExif.dateFormat.example', { value: dateSample })}
+          </p>
+        </SettingField>
+
+        <SettingField
+          id="template-exif-gps"
+          label={t('settings.templateExif.gpsFormat.label')}
+          description={t('settings.templateExif.gpsFormat.description')}
+        >
+          <Select
+            value={settings.gps_format}
+            onValueChange={(value) => onChange({ gps_format: value as ExifGpsFormat })}
+          >
+            <SelectTrigger className="w-56" aria-label={t('settings.templateExif.gpsFormat.label')}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {/* 内边距来自 SelectGroup，裸 item 的高亮会铺满弹层 */}
+              <SelectGroup>
+                {EXIF_GPS_OPTIONS.map((option) => (
+                  <SelectItem key={option.id} value={option.id}>
+                    {t(option.labelKey)}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {t('settings.templateExif.gpsFormat.example', { value: gpsSample })}
+          </p>
+        </SettingField>
+
+        <SettingField
+          id="template-exif-mappings"
+          label={t('settings.templateExif.mappings.label')}
+          description={t('settings.templateExif.mappings.description')}
+        >
+          {draft.length === 0 ? (
+            <p className="text-xs leading-5 text-muted-foreground">
+              {t('settings.templateExif.mappings.empty')}
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {draft.map((row, index) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: 规则本身没有稳定 id，顺序即身份
+                <li key={index} className="flex flex-wrap items-center gap-2">
+                  <Select
+                    value={row.field}
+                    onValueChange={(value) =>
+                      commitMappings(
+                        draftRef.current.map((item, i) =>
+                          i === index ? { ...item, field: value as ExifMappingField } : item,
+                        ),
+                      )
+                    }
+                  >
+                    <SelectTrigger className="w-24">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {EXIF_MAPPING_FIELDS.map((option) => (
+                          <SelectItem key={option.id} value={option.id}>
+                            {t(option.labelKey)}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    aria-label={t('settings.templateExif.mappings.match')}
+                    className="w-40"
+                    placeholder={t('settings.templateExif.mappings.matchPlaceholder')}
+                    value={row.match}
+                    onChange={(event) => patchRow(index, { match: event.target.value })}
+                    onBlur={() => commitMappings(draftRef.current)}
+                  />
+                  <span className="text-xs text-muted-foreground">→</span>
+                  <Input
+                    aria-label={t('settings.templateExif.mappings.replace')}
+                    className="w-40"
+                    placeholder={t('settings.templateExif.mappings.replacePlaceholder')}
+                    value={row.replace}
+                    onChange={(event) => patchRow(index, { replace: event.target.value })}
+                    onBlur={() => commitMappings(draftRef.current)}
+                  />
+                  <Button
+                    type="button"
+                    variant="plain"
+                    size="icon-sm"
+                    aria-label={t('settings.templateExif.mappings.remove')}
+                    onClick={() => commitMappings(draft.filter((_, i) => i !== index))}
+                  >
+                    <Trash2 />
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => commitMappings([...draft, { field: 'model', match: '', replace: '' }])}
+            >
+              <Plus data-icon="inline-start" />
+              {t('settings.templateExif.mappings.add')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => commitMappings([...DEFAULT_EXIF_MAPPINGS])}
+            >
+              <RefreshCw data-icon="inline-start" />
+              {t('settings.templateExif.mappings.reset')}
             </Button>
           </div>
         </SettingField>
@@ -1724,6 +1975,8 @@ export function SettingsPage() {
   const navigate = useAppNavigation();
   const setDefaultPresets = useTemplateStore((state) => state.setDefaultPresets);
   const setDefaultFont = useTemplateStore((state) => state.setDefaultFont);
+  const setExifFormat = useTemplateStore((state) => state.setExifFormat);
+  const setRetainExifInExport = useTemplateStore((state) => state.setRetainExifInExport);
   const [tab, setTab] = useState('general');
   const [config, setConfig] = useState<AppConfig | null>(null);
   const { setLanguage } = useI18n();
@@ -2052,6 +2305,38 @@ export function SettingsPage() {
     [config, setDefaultFont, t],
   );
 
+  /**
+   * 设置 → 边框水印 → EXIF：只改显示口径。
+   *
+   * 与「全局字体」同一套做法——本页状态由 `patchConfig` 更新，同时把值写进模板 store，
+   * 模板页（常驻不重挂）立刻跟着变。基准取 `configRef` 里的最新值，连点不会互相覆盖。
+   */
+  const handleChangeExif = useCallback(
+    (patch: Partial<ExifSettings>) => {
+      setExifFormat(normalizeExifSettings({ ...(configRef.current?.exif ?? null), ...patch }));
+      void patchConfig((current) => ({
+        ...current,
+        exif: { ...normalizeExifSettings(current.exif), ...patch },
+      }));
+    },
+    [patchConfig, setExifFormat],
+  );
+
+  /** 导出携带原图 EXIF：存储落在 `output.retain_exif`，同时更新模板页用的镜像。 */
+  const handleRetainExifChange = useCallback(
+    (value: boolean) => {
+      setRetainExifInExport(value);
+      void patchConfig((current) => ({
+        ...current,
+        output: { ...current.output, retain_exif: value },
+      }));
+    },
+    [patchConfig, setRetainExifInExport],
+  );
+
+  /** 归一化后的 EXIF 口径：缺字段补齐，同时保持引用稳定（模板页与设置页都读它） */
+  const exifSettings = useMemo(() => normalizeExifSettings(config?.exif), [config?.exif]);
+
   const handleOpenExportDirectory = useCallback(async () => {
     if (!config) {
       return;
@@ -2321,6 +2606,14 @@ export function SettingsPage() {
                 sizes={config.output.sizes ?? []}
                 onChangeSizes={(sizes) => void handleChangeExportSizes(sizes)}
                 onGoToTemplate={() => navigate('/template')}
+              />
+            </TabsContent>
+            <TabsContent value="template-exif" className="mt-0">
+              <TemplateExifTab
+                settings={exifSettings}
+                retainExif={config.output.retain_exif ?? true}
+                onChange={handleChangeExif}
+                onRetainExifChange={handleRetainExifChange}
               />
             </TabsContent>
             <TabsContent value="collage" className="mt-0">

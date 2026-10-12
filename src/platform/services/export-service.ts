@@ -398,8 +398,8 @@ export function cancelExportTask(taskId: string) {
 /**
  * 按档位逐个导出当前画面。
  *
- * 注意：`options.dpi` 目前只承载语义，尚未写入 EXIF——后端还没有对应的
- * 分辨率写入命令（`src-tauri/src/exif.rs` 只有读取与 JPEG EXIF 段替换）。
+ * 注意：`options.dpi` 目前只承载语义，尚未写入 EXIF——后端没有分辨率写入命令，
+ * `src-tauri/src/exif.rs` 只做「原图 EXIF 段搬运 + 宽高/朝向对齐」。
  */
 export async function exportSingle(
   element: HTMLElement,
@@ -419,8 +419,9 @@ export async function exportSingle(
         if (source instanceof File) {
           bytes = await writeExifSource(source, bytes, fileName);
         } else {
+          // 原图的 EXIF 段整段搬过来，但把宽高/朝向对齐到这张导出画面（缩略图链会被丢掉）
           const exifSeg = await extractJpegExif(source);
-          const result = await insertJpegExif(Array.from(bytes), exifSeg);
+          const result = await insertJpegExif(Array.from(bytes), exifSeg, true);
           bytes = new Uint8Array(result);
         }
       } catch (err) {

@@ -3,6 +3,11 @@
  *
  * Logo 按「规范化后的品牌名 → 大写键」查表；单色版（`*.auto.svg`）使用
  * `currentColor`，可以跟随文字颜色一起上色。
+ *
+ * 机型/品牌**显示名**的改写规则不在这里：它们已经搬进「设置 → 边框水印 → EXIF」的
+ * 字段映射表（默认值见 `exif-format.ts` 的 `DEFAULT_EXIF_MAPPINGS`），用户可以自己增删。
+ * 本文件只保留「根据 make / model 挑哪张 Logo」所需的品牌规范化——即使把 Sony 的显示名
+ * 改成「索尼」，也仍然能选到 `SONY.svg`。
  */
 
 const logoModules = import.meta.glob('../../../assets/logos/*.svg', {
@@ -91,34 +96,7 @@ export function normalizeBrand(make?: string | null): string {
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
 }
 
-/** 机型名的展示规则：把厂商标记替换成惯用符号，或剥离冗余前缀。 */
-const MODEL_RULES: { pattern: RegExp; replace: string | null }[] = [
-  { pattern: /\bILCE-/i, replace: 'α' },
-  { pattern: /\bNIKON Z /i, replace: 'ℤ' },
-  { pattern: /\bCanon\b/i, replace: null },
-  { pattern: /\bDigital Camera\b/i, replace: null },
-  { pattern: /\bPENTAX\b/i, replace: null },
-];
-
-/** 机型名规范化，例如 `ILCE-7M4` → `α7M4`、`NIKON Z 7II` → `ℤ7II`。 */
-export function normalizeModelName(model?: string | null): string {
-  const trimmed = (model ?? '').trim();
-  if (!trimmed) {
-    return '';
-  }
-
-  for (const rule of MODEL_RULES) {
-    if (!rule.pattern.test(trimmed)) {
-      continue;
-    }
-
-    return rule.replace === null
-      ? trimmed.replace(rule.pattern, '').trim()
-      : trimmed.replace(rule.pattern, rule.replace).trim();
-  }
-
-  return trimmed;
-}
+/** 机型名的展示规则已经搬去设置里的映射表，这里不再参与改写。 */
 
 /** 依次用 make 与 model 尝试命中品牌，返回命中的大写键。 */
 function resolveBrandKey(make?: string | null, model?: string | null): string | null {

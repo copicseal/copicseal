@@ -1,6 +1,5 @@
 import { defineTemplate } from './define-template';
 import { MONO_FONT_STACK } from './font-stacks';
-import { formatExifText } from './format-exif-text';
 import type {
   RegisteredTemplate,
   TemplateField,
@@ -79,7 +78,7 @@ function withAlpha(color: string, alpha: string): string {
 /** 胶片模板：宽边框 + 角标 + 底栏信息，边框宽度与颜色都由 schema 驱动。 */
 function Film({
   photoUrl,
-  exif,
+  exifFormat,
   frameWidth,
   frameColor,
   textColor,
@@ -89,8 +88,8 @@ function Film({
 }: TemplateInjectedProps & FilmParams) {
   const { aspect, handleLoad } = useImageAspect(photoUrl);
 
-  const cornerText = formatExifText(cornerLabel, exif);
-  const captionText = formatExifText(caption, exif);
+  const cornerText = exifFormat.text(cornerLabel);
+  const captionText = exifFormat.text(caption);
 
   const canvasStyle: TemplateStyle = {
     '--co-frame-width': frameWidth,

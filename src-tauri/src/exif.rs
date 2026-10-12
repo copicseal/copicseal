@@ -354,16 +354,505 @@ pub fn extract_jpeg_exif(path: String) -> Result<Vec<u8>, String> {
     Err("未找到 EXIF 数据".into())
 }
 
+/// 把 EXIF 段插到 JPEG 的 SOI 之后。
+///
+/// `align_dimensions` 为真时（导出场景）先按导出画面的实际像素改写段里的宽高、
+/// 把朝向归一为 1 并丢掉原图缩略图——原段是从原图搬来的，尺寸与缩略图都对不上。
 #[tauri::command]
-pub fn insert_jpeg_exif(jpeg_data: Vec<u8>, exif_segment: Vec<u8>) -> Result<Vec<u8>, String> {
+pub fn insert_jpeg_exif(
+    jpeg_data: Vec<u8>,
+    exif_segment: Vec<u8>,
+    align_dimensions: bool,
+) -> Result<Vec<u8>, String> {
     if jpeg_data.len() < 2 || jpeg_data[0] != 0xFF || jpeg_data[1] != 0xD8 {
         return Err("不是有效的 JPEG 数据".into());
     }
 
-    let mut result = Vec::with_capacity(jpeg_data.len() + exif_segment.len());
+    let mut segment = exif_segment;
+    if align_dimensions {
+        if let Some((width, height)) = jpeg_frame_size(&jpeg_data) {
+            let patched = align_exif_segment(&mut segment, width, height);
+            if patched == 0 {
+                println!("EXIF 段没有可对齐的尺寸标签，按原样注入");
+            }
+        }
+    }
+
+    let mut result = Vec::with_capacity(jpeg_data.len() + segment.len());
     result.extend_from_slice(&jpeg_data[..2]);
-    result.extend_from_slice(&exif_segment);
+    result.extend_from_slice(&segment);
     result.extend_from_slice(&jpeg_data[2..]);
 
     Ok(result)
+}
+
+// ---------------------------------------------------------------------------
+// 导出时的 EXIF 对齐
+// ---------------------------------------------------------------------------
+
+const TIFF_TAG_IMAGE_WIDTH: u16 = 0x0100;
+const TIFF_TAG_IMAGE_LENGTH: u16 = 0x0101;
+const TIFF_TAG_ORIENTATION: u16 = 0x0112;
+const TIFF_TAG_EXIF_IFD: u16 = 0x8769;
+const TIFF_TAG_PIXEL_X_DIMENSION: u16 = 0xA002;
+const TIFF_TAG_PIXEL_Y_DIMENSION: u16 = 0xA003;
+const TIFF_TYPE_SHORT: u16 = 3;
+const TIFF_TYPE_LONG: u16 = 4;
+
+fn read_u16(bytes: &[u8], offset: usize, big_endian: bool) -> Option<u16> {
+    let slice = bytes.get(offset..offset + 2)?;
+    Some(if big_endian {
+        u16::from_be_bytes([slice[0], slice[1]])
+    } else {
+        u16::from_le_bytes([slice[0], slice[1]])
+    })
+}
+
+fn read_u32(bytes: &[u8], offset: usize, big_endian: bool) -> Option<u32> {
+    let slice = bytes.get(offset..offset + 4)?;
+    let raw = [slice[0], slice[1], slice[2], slice[3]];
+    Some(if big_endian {
+        u32::from_be_bytes(raw)
+    } else {
+        u32::from_le_bytes(raw)
+    })
+}
+
+fn write_u16(bytes: &mut [u8], offset: usize, value: u16, big_endian: bool) -> bool {
+    let raw = if big_endian {
+        value.to_be_bytes()
+    } else {
+        value.to_le_bytes()
+    };
+    match bytes.get_mut(offset..offset + 2) {
+        Some(slice) => {
+            slice.copy_from_slice(&raw);
+            true
+        }
+        None => false,
+    }
+}
+
+fn write_u32(bytes: &mut [u8], offset: usize, value: u32, big_endian: bool) -> bool {
+    let raw = if big_endian {
+        value.to_be_bytes()
+    } else {
+        value.to_le_bytes()
+    };
+    match bytes.get_mut(offset..offset + 4) {
+        Some(slice) => {
+            slice.copy_from_slice(&raw);
+            true
+        }
+        None => false,
+    }
+}
+
+/// APP1 段里 TIFF 头的起始位置（跳过 `Exif\0\0` 标识）。
+fn tiff_start(segment: &[u8]) -> Option<usize> {
+    let marker = segment.windows(6).position(|w| w == b"Exif\0\0")?;
+    Some(marker + 6)
+}
+
+struct IfdPatchResult {
+    /// 实际改写成功的标签数
+    patched: usize,
+    /// IFD 里的 Exif SubIFD 偏移（相对 TIFF 头）
+    exif_ifd: Option<u32>,
+}
+
+/// 在一个 IFD 里就地改写指定标签的值，并顺手取出 Exif SubIFD 指针。
+///
+/// 只处理 SHORT / LONG、count 为 1 的条目：这类条目的值直接写在条目里，
+/// 改值不会改变段长；类型不符或值超范围就跳过，绝不重建 IFD。
+fn patch_ifd(
+    segment: &mut [u8],
+    tiff: usize,
+    ifd: usize,
+    big_endian: bool,
+    values: &[(u16, u32)],
+) -> IfdPatchResult {
+    let mut result = IfdPatchResult {
+        patched: 0,
+        exif_ifd: None,
+    };
+
+    let base = match tiff.checked_add(ifd) {
+        Some(base) => base,
+        None => return result,
+    };
+    let Some(count) = read_u16(segment, base, big_endian) else {
+        return result;
+    };
+
+    for index in 0..count as usize {
+        let entry = base + 2 + index * 12;
+        let Some(tag) = read_u16(segment, entry, big_endian) else {
+            return result;
+        };
+        let Some(field_type) = read_u16(segment, entry + 2, big_endian) else {
+            return result;
+        };
+        let Some(field_count) = read_u32(segment, entry + 4, big_endian) else {
+            return result;
+        };
+
+        if tag == TIFF_TAG_EXIF_IFD && field_type == TIFF_TYPE_LONG && field_count == 1 {
+            result.exif_ifd = read_u32(segment, entry + 8, big_endian);
+            continue;
+        }
+
+        let Some((_, value)) = values.iter().find(|(candidate, _)| *candidate == tag) else {
+            continue;
+        };
+        if field_count != 1 {
+            continue;
+        }
+
+        match field_type {
+            TIFF_TYPE_SHORT if *value <= u32::from(u16::MAX) => {
+                if write_u16(segment, entry + 8, *value as u16, big_endian) {
+                    result.patched += 1;
+                }
+            }
+            TIFF_TYPE_LONG => {
+                if write_u32(segment, entry + 8, *value, big_endian) {
+                    result.patched += 1;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    result
+}
+
+/// 把 IFD0 的 next-IFD 指针清零。
+///
+/// APP1 段里的下一个 IFD 是原图的缩略图（IFD1）：导出画面已经变了，留着它只会
+/// 让看图软件看到一张与原图一致的缩略图，还白占十几 KB。清零即可让解析器忽略它，
+/// 段长保持不变。
+fn clear_next_ifd(segment: &mut [u8], tiff: usize, ifd: usize, big_endian: bool) -> bool {
+    let Some(base) = tiff.checked_add(ifd) else {
+        return false;
+    };
+    let Some(count) = read_u16(segment, base, big_endian) else {
+        return false;
+    };
+    write_u32(segment, base + 2 + count as usize * 12, 0, big_endian)
+}
+
+/// 读出 JPEG 的实际像素尺寸（SOF 帧头）。
+///
+/// 用它而不是让前端传参：导出倍率、尺寸适配器怎么算都不会错。
+pub(crate) fn jpeg_frame_size(data: &[u8]) -> Option<(u32, u32)> {
+    if data.len() < 4 || data[0] != 0xFF || data[1] != 0xD8 {
+        return None;
+    }
+
+    let mut pos = 2usize;
+    while pos + 3 < data.len() {
+        if data[pos] != 0xFF {
+            return None;
+        }
+
+        let marker = data[pos + 1];
+        // 填充字节与无长度字段的标记（RSTn / SOI）
+        if marker == 0xFF {
+            pos += 1;
+            continue;
+        }
+        if marker == 0xD8 || (0xD0..=0xD7).contains(&marker) {
+            pos += 2;
+            continue;
+        }
+        if marker == 0xDA || marker == 0xD9 {
+            return None;
+        }
+
+        let length = ((data[pos + 2] as usize) << 8) | (data[pos + 3] as usize);
+        if length < 2 || pos + 2 + length > data.len() {
+            return None;
+        }
+
+        // SOF0~SOF15，剔除 DHT(0xC4)、JPG(0xC8)、DAC(0xCC)
+        let is_frame_header =
+            (0xC0..=0xCF).contains(&marker) && marker != 0xC4 && marker != 0xC8 && marker != 0xCC;
+        if is_frame_header {
+            let height = ((data[pos + 5] as u32) << 8) | data[pos + 6] as u32;
+            let width = ((data[pos + 7] as u32) << 8) | data[pos + 8] as u32;
+            return Some((width, height));
+        }
+
+        pos += 2 + length;
+    }
+
+    None
+}
+
+/// 把原图 EXIF 段对齐到导出结果：改写宽高、朝向归一为 1、丢掉缩略图链。
+///
+/// 段长不变（都是就地改值），所以直接改注入用的那段字节。返回改写成功的标签数，
+/// 段结构不认时返回 0，调用方照常注入原段。
+pub(crate) fn align_exif_segment(segment: &mut [u8], width: u32, height: u32) -> usize {
+    let Some(tiff) = tiff_start(segment) else {
+        return 0;
+    };
+    let Some(byte_order) = segment.get(tiff..tiff + 2) else {
+        return 0;
+    };
+    let big_endian = match byte_order {
+        b"II" => false,
+        b"MM" => true,
+        _ => return 0,
+    };
+    let Some(ifd0) = read_u32(segment, tiff + 4, big_endian) else {
+        return 0;
+    };
+
+    let ifd0_result = patch_ifd(
+        segment,
+        tiff,
+        ifd0 as usize,
+        big_endian,
+        &[
+            (TIFF_TAG_IMAGE_WIDTH, width),
+            (TIFF_TAG_IMAGE_LENGTH, height),
+            // 导出的像素已经是正立的，再留一个「顺时针 90°」会让看图软件转错
+            (TIFF_TAG_ORIENTATION, 1),
+        ],
+    );
+
+    let mut patched = ifd0_result.patched;
+    if let Some(exif_ifd) = ifd0_result.exif_ifd {
+        let sub = patch_ifd(
+            segment,
+            tiff,
+            exif_ifd as usize,
+            big_endian,
+            &[
+                (TIFF_TAG_PIXEL_X_DIMENSION, width),
+                (TIFF_TAG_PIXEL_Y_DIMENSION, height),
+            ],
+        );
+        patched += sub.patched;
+    }
+
+    clear_next_ifd(segment, tiff, ifd0 as usize, big_endian);
+    patched
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// 手搓一段带 IFD0 + Exif SubIFD 的 EXIF 段；`big_endian` 决定字节序。
+    fn build_segment(big_endian: bool, orientation_short: bool) -> Vec<u8> {
+        let mut tiff: Vec<u8> = Vec::new();
+        let u16b = |value: u16| {
+            if big_endian {
+                value.to_be_bytes().to_vec()
+            } else {
+                value.to_le_bytes().to_vec()
+            }
+        };
+        let u32b = |value: u32| {
+            if big_endian {
+                value.to_be_bytes().to_vec()
+            } else {
+                value.to_le_bytes().to_vec()
+            }
+        };
+        let entry = |tag: u16, field_type: u16, count: u32, value: u32| {
+            let mut out = u16b(tag);
+            out.extend(u16b(field_type));
+            out.extend(u32b(count));
+            out.extend(u32b(value));
+            out
+        };
+
+        // TIFF 头（8 字节）→ IFD0 在 8，SubIFD 紧随 IFD0 之后
+        let ifd0_entries = 4usize;
+        let ifd0_size = 2 + ifd0_entries * 12 + 4;
+        let sub_ifd = 8 + ifd0_size;
+
+        tiff.extend(if big_endian { b"MM" } else { b"II" });
+        tiff.extend(u16b(42));
+        tiff.extend(u32b(8));
+
+        tiff.extend(u16b(ifd0_entries as u16));
+        tiff.extend(entry(TIFF_TAG_IMAGE_WIDTH, TIFF_TYPE_SHORT, 1, 4000));
+        tiff.extend(entry(TIFF_TAG_IMAGE_LENGTH, TIFF_TYPE_SHORT, 1, 3000));
+        tiff.extend(entry(
+            TIFF_TAG_ORIENTATION,
+            if orientation_short {
+                TIFF_TYPE_SHORT
+            } else {
+                TIFF_TYPE_LONG
+            },
+            1,
+            8,
+        ));
+        tiff.extend(entry(TIFF_TAG_EXIF_IFD, TIFF_TYPE_LONG, 1, sub_ifd as u32));
+        // next-IFD 指向缩略图
+        tiff.extend(u32b((sub_ifd + 2 + 2 * 12 + 4) as u32));
+
+        tiff.extend(u16b(2));
+        tiff.extend(entry(TIFF_TAG_PIXEL_X_DIMENSION, TIFF_TYPE_LONG, 1, 4000));
+        tiff.extend(entry(TIFF_TAG_PIXEL_Y_DIMENSION, TIFF_TYPE_LONG, 1, 3000));
+        tiff.extend(u32b(0));
+
+        let mut segment = vec![0xFF, 0xE1, 0x00, 0x00];
+        segment.extend(b"Exif\0\0");
+        segment.extend(tiff);
+        let length = (segment.len() - 2) as u16;
+        segment[2..4].copy_from_slice(&length.to_be_bytes());
+        segment
+    }
+
+    /// 按条目自己的类型读值：SHORT 只占值域前 2 字节，按 u32 读会读到相邻条目的字节。
+    fn read_tag(segment: &[u8], tiff: usize, ifd: usize, tag: u16, big_endian: bool) -> u32 {
+        let base = tiff + ifd;
+        let count = read_u16(segment, base, big_endian).unwrap();
+        for index in 0..count as usize {
+            let entry = base + 2 + index * 12;
+            if read_u16(segment, entry, big_endian).unwrap() == tag {
+                return match read_u16(segment, entry + 2, big_endian).unwrap() {
+                    TIFF_TYPE_SHORT => u32::from(read_u16(segment, entry + 8, big_endian).unwrap()),
+                    _ => read_u32(segment, entry + 8, big_endian).unwrap(),
+                };
+            }
+        }
+        panic!("标签 {tag:#06x} 不存在");
+    }
+
+    #[test]
+    fn patch_dimensions_and_orientation() {
+        for big_endian in [false, true] {
+            let mut segment = build_segment(big_endian, true);
+            let tiff = tiff_start(&segment).unwrap();
+            let patched = align_exif_segment(&mut segment, 1280, 720);
+
+            assert_eq!(
+                read_tag(&segment, tiff, 8, TIFF_TAG_IMAGE_WIDTH, big_endian),
+                1280
+            );
+            assert_eq!(
+                read_tag(&segment, tiff, 8, TIFF_TAG_IMAGE_LENGTH, big_endian),
+                720
+            );
+            assert_eq!(
+                read_tag(&segment, tiff, 8, TIFF_TAG_ORIENTATION, big_endian),
+                1
+            );
+
+            let sub = read_tag(&segment, tiff, 8, TIFF_TAG_EXIF_IFD, big_endian) as usize;
+            assert_eq!(
+                read_tag(&segment, tiff, sub, TIFF_TAG_PIXEL_X_DIMENSION, big_endian),
+                1280
+            );
+            assert_eq!(
+                read_tag(&segment, tiff, sub, TIFF_TAG_PIXEL_Y_DIMENSION, big_endian),
+                720
+            );
+            // 5 个标签：IFD0 的 3 个 + SubIFD 的 2 个
+            assert_eq!(patched, 5);
+        }
+    }
+
+    #[test]
+    fn drops_thumbnail_chain() {
+        let mut segment = build_segment(false, true);
+        let tiff = tiff_start(&segment).unwrap();
+        align_exif_segment(&mut segment, 100, 100);
+
+        let base = tiff + 8;
+        let count = read_u16(&segment, base, false).unwrap() as usize;
+        let next = read_u32(&segment, base + 2 + count * 12, false).unwrap();
+        assert_eq!(next, 0, "IFD0 的 next-IFD 应该被清零");
+    }
+
+    #[test]
+    fn keeps_segment_length() {
+        let mut segment = build_segment(false, true);
+        let before = segment.len();
+        align_exif_segment(&mut segment, 1280, 720);
+        assert_eq!(segment.len(), before, "就地改值不应改变段长");
+    }
+
+    #[test]
+    fn skips_non_short_or_long_values() {
+        // 朝向标签是 LONG 时同样要能改（有些写入器用 LONG 存枚举）
+        let mut segment = build_segment(false, false);
+        let tiff = tiff_start(&segment).unwrap();
+        align_exif_segment(&mut segment, 1280, 720);
+        assert_eq!(read_tag(&segment, tiff, 8, TIFF_TAG_ORIENTATION, false), 1);
+    }
+
+    #[test]
+    fn tolerates_garbage_segment() {
+        let mut garbage = vec![1u8, 2, 3, 4, 5, 6, 7, 8];
+        assert_eq!(align_exif_segment(&mut garbage, 100, 100), 0);
+    }
+
+    /// 最小可用的 JPEG：SOI + SOF0（高 720 宽 1280）+ EOI 标记。
+    fn tiny_jpeg() -> Vec<u8> {
+        vec![
+            0xFF, 0xD8, // SOI
+            0xFF, 0xC0, 0x00, 0x11, 0x08, 0x02, 0xD0, 0x05, 0x00, // SOF0: 720 x 1280
+            0x03, 0x01, 0x11, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01, // 采样表
+            0xFF, 0xD9, // EOI
+        ]
+    }
+
+    #[test]
+    fn insert_command_aligns_to_the_exported_pixels() {
+        let segment = build_segment(false, true);
+        let output = insert_jpeg_exif(tiny_jpeg(), segment, true).unwrap();
+
+        // 段被插在 SOI 之后，尺寸改成这张 JPEG 的实际像素
+        assert_eq!(&output[..2], &[0xFF, 0xD8]);
+        assert_eq!(&output[2..4], &[0xFF, 0xE1]);
+        let tiff = 2 + tiff_start(&output[2..]).unwrap();
+        assert_eq!(
+            read_tag(&output[2..], tiff - 2, 8, TIFF_TAG_IMAGE_WIDTH, false),
+            1280
+        );
+        assert_eq!(
+            read_tag(&output[2..], tiff - 2, 8, TIFF_TAG_IMAGE_LENGTH, false),
+            720
+        );
+        assert_eq!(
+            read_tag(&output[2..], tiff - 2, 8, TIFF_TAG_ORIENTATION, false),
+            1
+        );
+    }
+
+    #[test]
+    fn insert_command_keeps_the_segment_when_not_aligning() {
+        let segment = build_segment(false, true);
+        let original = segment.clone();
+        let output = insert_jpeg_exif(tiny_jpeg(), segment, false).unwrap();
+
+        assert_eq!(&output[2..2 + original.len()], original.as_slice());
+    }
+
+    #[test]
+    fn reads_jpeg_frame_size() {
+        // SOI + APP0(占位) + SOF0(高 720 宽 1280)
+        let jpeg = [
+            0xFF, 0xD8, // SOI
+            0xFF, 0xE0, 0x00, 0x04, 0x00, 0x00, // APP0
+            0xFF, 0xC0, 0x00, 0x11, 0x08, 0x02, 0xD0, 0x05, 0x00, // SOF0: 720 x 1280
+            0x03, 0x01, 0x11, 0x00, 0x02, 0x11, 0x01, 0x03, 0x11, 0x01, // 采样表
+        ];
+        assert_eq!(jpeg_frame_size(&jpeg), Some((1280, 720)));
+    }
+
+    #[test]
+    fn frame_size_needs_a_frame_header() {
+        let jpeg = [0xFF, 0xD8, 0xFF, 0xDA, 0x00, 0x02];
+        assert_eq!(jpeg_frame_size(&jpeg), None);
+        assert_eq!(jpeg_frame_size(&[]), None);
+    }
 }

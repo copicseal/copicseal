@@ -1,7 +1,6 @@
 import { cn } from '@/shared/lib/utils';
 import { defineTemplate } from './define-template';
 import { MONO_FONT_STACK } from './font-stacks';
-import { formatExifText } from './format-exif-text';
 import type {
   RegisteredTemplate,
   TemplateField,
@@ -80,7 +79,7 @@ type MinimalParams = TemplateParams<typeof minimalFields>;
 /** 极简模板：白底无边框，图片下方按排版方向对齐两行文字。 */
 function Minimal({
   photoUrl,
-  exif,
+  exifFormat,
   orientation,
   fontScale,
   textColor,
@@ -89,8 +88,8 @@ function Minimal({
 }: TemplateInjectedProps & MinimalParams) {
   const { aspect, handleLoad } = useImageAspect(photoUrl);
 
-  const line1 = formatExifText(textLine1, exif);
-  const line2 = formatExifText(textLine2, exif);
+  const line1 = exifFormat.text(textLine1);
+  const line2 = exifFormat.text(textLine2);
   const resolvedOrientation =
     orientation === 'auto' ? (aspect < 1 ? 'vertical' : 'horizontal') : orientation;
 

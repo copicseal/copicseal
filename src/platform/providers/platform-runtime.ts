@@ -1,4 +1,5 @@
 import { translate } from '@/shared/i18n';
+import { DEFAULT_EXIF_MAPPINGS, EXIF_DATE_DEFAULT } from '@/shared/lib/exif-defaults';
 import * as tauriApi from './tauri/api';
 import { webExifAdapter } from './web/web-exif-adapter';
 import { WebStorageAdapter } from './web/web-storage-adapter';
@@ -14,6 +15,13 @@ const defaultConfig = {
   fonts: { favorites: [], default_font: '' },
   template_presets: [],
   template_list: { enabled: [], remote_registry: [] },
+  // 与 Rust 侧 ExifConfig::default() / default_exif_mappings() 对齐
+  exif: {
+    date_format: EXIF_DATE_DEFAULT,
+    gps_format: 'letter' as const,
+    focal_length_35mm: false,
+    mappings: [...DEFAULT_EXIF_MAPPINGS],
+  },
   plugins: { sources: [] },
   user_devices: [],
   device_id: 'web-device',

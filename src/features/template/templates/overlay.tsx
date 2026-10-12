@@ -1,7 +1,6 @@
 import type { CSSProperties } from 'react';
-import { getBrandLogoSvg, getBrandLogoUrl, normalizeBrand, normalizeModelName } from './brand';
+import { getBrandLogoSvg, getBrandLogoUrl } from './brand';
 import { defineTemplate } from './define-template';
-import { formatExifText } from './format-exif-text';
 import type {
   RegisteredTemplate,
   TemplateField,
@@ -311,6 +310,7 @@ const H_SIDE_GAP_RATIO = 0.08 * REM_TO_BASE;
 function Overlay({
   photoUrl,
   exif,
+  exifFormat,
   position,
   offsetTop,
   offsetLeft,
@@ -333,14 +333,14 @@ function Overlay({
   // 自动模式：横图并排、竖图上下，避免信息块沿着窄边被拉长
   const isHorizontal = layout === 'auto' ? aspect > 1 : layout === 'horizontal';
 
-  const brand = normalizeBrand(exif?.make);
-  const model = normalizeModelName(exif?.model);
+  const brand = exifFormat.brand();
+  const model = exifFormat.model();
   const monoLogo = logoColorAuto ? getBrandLogoSvg(exif?.make, exif?.model) : null;
   const coloredLogo = monoLogo ? null : getBrandLogoUrl(exif?.make, exif?.model);
 
-  const line1 = formatExifText(text1, exif);
+  const line1 = exifFormat.text(text1);
   // 文案留空时回退到拍摄时间，与旧版 `replaceTextVars(text2) || datetime` 的行为一致
-  const line2 = formatExifText(text2, exif) || (exif?.date_taken ?? '');
+  const line2 = exifFormat.text(text2) || exifFormat.date();
 
   const shadowPaint = `color-mix(in srgb, ${shadowColor} ${Math.round(
     shadowOpacity * 100,

@@ -1,6 +1,5 @@
 import { useId } from 'react';
 import { defineTemplate } from './define-template';
-import { formatExifText } from './format-exif-text';
 import type {
   RegisteredTemplate,
   TemplateField,
@@ -119,7 +118,7 @@ const MIN_FONT_RATIO = 0.001;
  */
 function Watermark({
   photoUrl,
-  exif,
+  exifFormat,
   text,
   textColor,
   textOpacity,
@@ -135,7 +134,7 @@ function Watermark({
   const clipId = `co-watermark-clip-${uid}`;
 
   // 水印文案同样支持 EXIF 变量，缺字段时会被替换为空串
-  const watermarkText = formatExifText(text, exif);
+  const watermarkText = exifFormat.text(text);
   const tileWidthRatio = Math.max(tileWidth, MIN_TILE_RATIO);
   const tileHeightRatio = Math.max(tileHeight, MIN_TILE_RATIO);
   const fontScale = Math.max(fontSize, MIN_FONT_RATIO);

@@ -20,6 +20,7 @@ export const settings = {
     templateDefaults: '默认项',
     templatePresets: '模板预设',
     templateExport: '导出',
+    templateExif: 'EXIF',
     collageDefaults: '默认项',
     collageExport: '导出',
     fonts: '字体',
@@ -33,6 +34,53 @@ export const settings = {
     },
     /** 二级 tab 的可访问名：分组标题对读屏隐藏，靠它把归属补回去 */
     itemAria: '{group} {tab}',
+  },
+  /** 设置 → 边框水印 → EXIF */
+  templateExif: {
+    title: 'EXIF 输出与显示',
+    description:
+      '控制导出文件是否携带原图 EXIF，以及照片上写出的拍摄时间、经纬度与品牌/机型的显示口径。',
+    exportExif: {
+      label: '导出携带原图 EXIF',
+      description:
+        '勾选后把原图的 EXIF 搬进导出的 JPEG，并把其中的宽高与朝向改成实际导出尺寸（原图缩略图会被丢掉）。PNG 导出不写元数据。',
+    },
+    focal35: {
+      label: '焦段使用等效 35mm',
+      description: '{FocalLength} 改用等效 35mm 焦段；原图没有这个字段时回落到实际焦距。',
+    },
+    dateFormat: {
+      label: '拍摄时间格式',
+      description: '常用：YYYY MM DD HH mm ss，其余字符原样保留。',
+      example: '示例：{value}',
+      invalid: '格式串至少要保留一个占位符，已按原样显示。',
+    },
+    gpsFormat: {
+      label: '经纬度格式',
+      description: '只影响照片上的文字与「EXIF 信息」卡片，不改写导出文件里的元数据。',
+      letter: '度数+字母',
+      chinese: '度数+中文',
+      example: '示例：{value}',
+    },
+    mappings: {
+      label: 'EXIF 字段映射',
+      description:
+        '按字段把读到的原文片段换成显示值：只写两段共享的那部分，不必写完整型号——ILCE- → α 覆盖所有索尼阿法，Canon EOS → EOS 覆盖所有 EOS 机型。大小写不敏感、同一字段首个命中生效；「显示为」留空表示删掉这段。',
+      field: '字段',
+      match: '原文',
+      replace: '显示为',
+      empty: '没有映射规则，字段按原样显示。',
+      add: '添加一项',
+      reset: '恢复默认',
+      remove: '删除这条映射',
+      matchPlaceholder: '如 Canon EOS',
+      replacePlaceholder: '留空＝删除这段',
+      fieldNames: {
+        make: '品牌',
+        model: '机型',
+        lens: '镜头',
+      },
+    },
   },
   general: {
     title: '通用',

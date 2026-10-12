@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import type { ExifData } from '@/platform';
 import type { MessageKey } from '@/shared/i18n';
 import type { TemplateBackground } from '../background';
+import type { ExifFormatter } from './format-exif-text';
 
 /**
  * 框架注入的渲染输入。
@@ -19,6 +20,13 @@ export interface TemplateInjectedProps {
    * （如平铺水印的 data URL）是独立文档、继承不到，只能显式透传。
    */
   font: string;
+  /**
+   * EXIF 文案格式化器（已绑定当前照片与「设置 → 边框水印 → EXIF」的口径）。
+   *
+   * 模板里的 `{变量}` 文案、logo 旁的品牌/机型名都要走它，别再自己格式化，
+   * 否则照片上的文字会绕开用户设置。
+   */
+  exifFormat: ExifFormatter;
 }
 
 export interface TemplateMeta {

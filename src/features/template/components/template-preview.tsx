@@ -19,7 +19,7 @@ import { Button } from '@/shared/ui/button';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 import { usePhotoExif } from '../hooks/use-photo-exif';
 import { trackExifReads } from '../lib/used-exif-fields';
-import { useTemplatePhotoConfig } from '../store/use-template-store';
+import { useTemplatePhotoConfig, useTemplateStore } from '../store/use-template-store';
 import { resolveOutputExif } from '../templates/format-exif-text';
 import { TemplateBackgroundFrame } from './template-background-frame';
 
@@ -66,6 +66,7 @@ export function TemplatePreview({
   const t = useTranslate();
   const { currentPhoto } = usePhotos();
   const { exif } = usePhotoExif(currentPhoto);
+  const exifSettings = useTemplateStore((state) => state.exifFormat);
   const modifiedExif = useTemplatePhotoConfig(currentPhoto?.id ?? null).modifiedExif;
   // 与旧版一致：改动值覆盖解析值，模板与导出都看这一份
   const outputExif = useMemo(() => resolveOutputExif(exif, modifiedExif), [exif, modifiedExif]);
@@ -212,6 +213,7 @@ export function TemplatePreview({
                     exif={trackedExif}
                     params={params}
                     font={font}
+                    exifSettings={exifSettings}
                   />
                 </TemplateBackgroundFrame>
               </div>

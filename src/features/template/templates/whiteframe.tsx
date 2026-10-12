@@ -1,7 +1,6 @@
 import type { CSSProperties } from 'react';
-import { getBrandLogoSvg, getBrandLogoUrl, normalizeBrand, normalizeModelName } from './brand';
+import { getBrandLogoSvg, getBrandLogoUrl } from './brand';
 import { defineTemplate } from './define-template';
-import { formatExifText } from './format-exif-text';
 import type {
   RegisteredTemplate,
   TemplateField,
@@ -161,6 +160,7 @@ const LOGO_MAX_WIDTH_RATIO = 0.09;
 function WhiteFrame({
   photoUrl,
   exif,
+  exifFormat,
   layout,
   borderPadding,
   borderColor,
@@ -179,13 +179,13 @@ function WhiteFrame({
   // 自动模式：竖构图（宽高比 < 1）时把信息栏放到图片右侧，避免卡片被拉得过高
   const isHorizontal = layout === 'auto' ? aspect < 1 : layout === 'horizontal';
 
-  const brand = normalizeBrand(exif?.make);
-  const model = normalizeModelName(exif?.model);
+  const brand = exifFormat.brand();
+  const model = exifFormat.model();
   const autoLogo = logoColorAuto ? getBrandLogoSvg(exif?.make, exif?.model) : null;
   const coloredLogo = autoLogo ? null : getBrandLogoUrl(exif?.make, exif?.model);
 
-  const line1 = formatExifText(text1, exif);
-  const line2 = formatExifText(text2, exif) || (exif?.date_taken ?? '');
+  const line1 = exifFormat.text(text1);
+  const line2 = exifFormat.text(text2) || exifFormat.date();
 
   const canvasStyle: TemplateStyle = {
     '--co-border-padding': borderPadding,

@@ -1,7 +1,6 @@
 import type { CSSProperties } from 'react';
-import { getBrandLogoSvg, getBrandLogoUrl, normalizeBrand, normalizeModelName } from './brand';
+import { getBrandLogoSvg, getBrandLogoUrl } from './brand';
 import { defineTemplate } from './define-template';
-import { formatExifText } from './format-exif-text';
 import type {
   RegisteredTemplate,
   TemplateField,
@@ -163,6 +162,7 @@ type RoundedParams = TemplateParams<typeof roundedFields>;
 function Rounded({
   photoUrl,
   exif,
+  exifFormat,
   imageRadius,
   shadowBlur,
   shadowColor,
@@ -176,16 +176,16 @@ function Rounded({
 }: TemplateInjectedProps & RoundedParams) {
   const { aspect, handleLoad } = useImageAspect(photoUrl);
 
-  const brand = normalizeBrand(exif?.make);
-  const model = normalizeModelName(exif?.model);
+  const brand = exifFormat.brand();
+  const model = exifFormat.model();
   // 单色标志走 SVG + currentColor，彩色标志走位图资源，两者互斥
   const autoLogo = logoColorAuto ? getBrandLogoSvg(exif?.make, exif?.model) : null;
   const coloredLogo = autoLogo ? null : getBrandLogoUrl(exif?.make, exif?.model);
   const hasBrandRow = Boolean(autoLogo || coloredLogo || brand || model);
 
-  const line1 = formatExifText(text1, exif);
+  const line1 = exifFormat.text(text1);
   // 文案为空时回落到拍摄时间，与旧版 `replaceTextVars(text2) || DateTimeOriginal` 一致
-  const line2 = formatExifText(text2, exif) || (exif?.date_taken ?? '');
+  const line2 = exifFormat.text(text2) || exifFormat.date();
 
   const canvasStyle: TemplateStyle = {
     '--co-font-scale': fontScale,

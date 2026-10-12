@@ -114,6 +114,15 @@ export function applyWindowFrameMode(mode: WindowFrameMode): Promise<void> {
 export function openExternal(url: string): Promise<void> {
   return invoke('open_external', { url });
 }
+/**
+ * 打开当前窗口的开发者工具。
+ *
+ * 打包版默认没有 DevTools 入口（release 构建下 wry 会关掉它），这个入口留给排查问题用；
+ * 需要在 `src-tauri/Cargo.toml` 里为 tauri 打开 `devtools` feature 才会生效。
+ */
+export function openDevTools(): Promise<void> {
+  return invoke('open_devtools');
+}
 
 export function getAppInfo(): Promise<AppVersion> {
   return invoke('get_app_info');

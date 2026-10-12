@@ -1418,6 +1418,10 @@ function CacheTab({
   );
 }
 
+/** 连点 Logo 打开开发者工具：需要的点击次数，以及相邻两次点击的最大间隔。 */
+const DEVTOOLS_TAP_COUNT = 5;
+const DEVTOOLS_TAP_WINDOW_MS = 1500;
+
 /**
  * 关于页。
  *
@@ -1498,14 +1502,65 @@ function AboutTab() {
 
   const version = info ? `v${info.version}` : '';
 
+  const devtoolsTaps = useRef({ count: 0, timer: 0 });
+
+  // 卸载时清掉未触发的计时器：它只是把连点计数归零，但没必要留在定时器里
+  useEffect(
+    () => () => {
+      window.clearTimeout(devtoolsTaps.current.timer);
+    },
+    [],
+  );
+
+  /**
+   * 连点 Logo 打开开发者工具。
+   *
+   * 打包版默认没有 DevTools 入口（release 构建下 wry 会关掉它），所以留这个后门：
+   * 5 次点击（相邻两次间隔不超过 1.5 秒）后弹一条确认 toast，点「打开」才真正打开。
+   */
+  const handleLogoTap = () => {
+    const state = devtoolsTaps.current;
+    window.clearTimeout(state.timer);
+    state.count += 1;
+
+    if (state.count < DEVTOOLS_TAP_COUNT) {
+      state.timer = window.setTimeout(() => {
+        state.count = 0;
+      }, DEVTOOLS_TAP_WINDOW_MS);
+      return;
+    }
+
+    state.count = 0;
+    toast(t('settings.about.devtools.confirm'), {
+      description: t('settings.about.devtools.description'),
+      action: {
+        label: t('settings.about.devtools.open'),
+        onClick: () => {
+          void platformRuntime.openDevTools().catch((error) => {
+            console.error('打开开发者工具失败:', error);
+          });
+        },
+      },
+      cancel: t('settings.about.devtools.cancel'),
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-4 rounded-lg border border-border/80 bg-card px-5 py-4 shadow-sm">
-        <img
-          src={appLogoUrl}
-          alt=""
-          className="size-12 shrink-0 rounded-2xl border border-border/80 bg-background shadow-sm"
-        />
+        {/* 连点 5 次打开开发者工具（打包版排查用的后门），见 handleLogoTap */}
+        <button
+          type="button"
+          aria-label="Copicseal"
+          onClick={handleLogoTap}
+          className="shrink-0 rounded-2xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
+          <img
+            src={appLogoUrl}
+            alt=""
+            className="size-12 rounded-2xl border border-border/80 bg-background shadow-sm"
+          />
+        </button>
         <div className="min-w-0 flex-1">
           <h3 className="flex items-baseline gap-2 text-sm font-semibold">
             <span>可图匠 Copicseal</span>

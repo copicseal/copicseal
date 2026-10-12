@@ -54,6 +54,24 @@ function AppContent() {
     setVisitedRoutes((prev) => (prev.includes(route) ? prev : [...prev, route]));
   }, [route]);
 
+  /**
+   * 关掉 WebView2 的默认右键菜单（返回 / 刷新 / 另存为 / 打印）。
+   *
+   * wry 官方给的做法就是阻止 `contextmenu` 的默认行为；输入框内保留系统菜单，
+   * 否则连复制粘贴都没了；素材列表的自定义右键菜单由 Radix 自己渲染，不受影响。
+   */
+  useEffect(() => {
+    const handleContextMenu = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target?.closest('input, textarea, [contenteditable="true"]')) {
+        event.preventDefault();
+      }
+    };
+
+    document.addEventListener('contextmenu', handleContextMenu);
+    return () => document.removeEventListener('contextmenu', handleContextMenu);
+  }, []);
+
   // 启动后静默检查一次更新：失败不打扰用户，发现新版本时提示到设置页安装，
   // 同时把待安装的更新预热给设置页使用。
   useEffect(() => {

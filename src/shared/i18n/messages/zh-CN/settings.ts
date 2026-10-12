@@ -255,6 +255,12 @@ export const settings = {
   about: {
     tagline:
       '图片加边框水印工具：读取 EXIF 信息，按模板为照片加上机型、光圈、快门等相机参数，支持自定义字体、背景与导出档位，可批量导出。',
+    devtools: {
+      confirm: '要打开开发者工具吗？',
+      description: '用于排查渲染、资源加载等问题；也可以在打包版里直接按 F12。',
+      open: '打开',
+      cancel: '取消',
+    },
     version: {
       title: '版本',
       description: '检查新版本，或在发现更新时直接下载安装。',

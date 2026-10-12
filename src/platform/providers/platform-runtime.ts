@@ -68,6 +68,8 @@ const webRuntime = {
   openExternal: async (url: string) => {
     window.open(url, '_blank', 'noopener,noreferrer');
   },
+  // 网页端的开发者工具就是浏览器自己的，应用这边不做任何事
+  openDevTools: async () => undefined,
   getCacheOverview: async () => ({
     directory: '',
     image_count: 0,

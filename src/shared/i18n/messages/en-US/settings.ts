@@ -269,6 +269,13 @@ export const settings: Messages['settings'] = {
   about: {
     tagline:
       'A photo border watermark tool: reads EXIF data and adds camera details such as model, aperture, and shutter speed to your photos from a template, with custom fonts, backgrounds, and export presets, and batch export.',
+    devtools: {
+      confirm: 'Open developer tools?',
+      description:
+        'For debugging rendering or resource loading; F12 works in the packaged app too.',
+      open: 'Open',
+      cancel: 'Cancel',
+    },
     version: {
       title: 'Version',
       description: 'Check for a new version, or download and install one as soon as it is found.',

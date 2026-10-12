@@ -49,6 +49,7 @@ pub fn run() {
             config::update_config,
             config::get_device_id,
             window::apply_window_frame_mode,
+            window::open_devtools,
             comark::list_comark_templates,
             comark::upsert_comark_template,
             comark::remove_comark_template,

@@ -83,3 +83,16 @@ fn apply_frame_mode(window: &WebviewWindow, mode: WindowFrameMode) -> Result<(),
 pub fn apply_window_frame_mode(app: tauri::AppHandle, mode: String) -> Result<(), String> {
     apply_main_window_frame_mode(&app, &mode)
 }
+
+/// 打开窗口的开发者工具。
+///
+/// 打包版默认没有 DevTools 入口（release 构建下 wry 会关掉它），设置页「关于」的
+/// Logo 连点 5 次会调它，用来排查渲染与资源加载问题。
+///
+/// 这里直接调用、不加 `cfg`：`open_devtools` 只在 tauri 的 `devtools` feature 或
+/// debug 构建下存在，而 Cargo.toml 已经固定给 tauri 打开了该 feature。若将来把那个
+/// feature 去掉，这里会编译失败——比静默失效更容易发现。
+#[tauri::command]
+pub fn open_devtools(window: WebviewWindow) {
+    window.open_devtools();
+}

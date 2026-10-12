@@ -402,10 +402,19 @@ export function PluginsTab({ sources, onChangeSources }: PluginsTabProps) {
                       >
                         {t('settings.plugins.source')}
                       </button>
-                      {/* 检查中跟在「来源」后面同一行，不单独占一行 */}
+                      {/* 「检查中」与「平台不支持」都跟在「来源」后面同一行，不单独占一行 */}
                       {plugin.supported && !manifest && loading ? (
                         <span>{t('settings.plugins.checking')}</span>
                       ) : null}
+                      {plugin.supported ? null : (
+                        <span>
+                          {plugin.platform === 'macos'
+                            ? t('settings.plugins.notNeeded', {
+                                system: systemLabel(plugin.platform),
+                              })
+                            : t('settings.plugins.noAsset')}
+                        </span>
+                      )}
                       {manifestSources[plugin.id] ? (
                         <span>
                           {t('settings.plugins.fromSource', {
@@ -436,16 +445,6 @@ export function PluginsTab({ sources, onChangeSources }: PluginsTabProps) {
                         </span>
                       ) : null}
                     </div>
-
-                    {plugin.supported ? null : (
-                      <p className="mt-1 text-[10px] text-muted-foreground">
-                        {plugin.platform === 'macos'
-                          ? t('settings.plugins.notNeeded', {
-                              system: systemLabel(plugin.platform),
-                            })
-                          : t('settings.plugins.noAsset')}
-                      </p>
-                    )}
 
                     {plugin.supported && !manifest && !loading && manifestError ? (
                       <p className="mt-1 text-[10px] text-destructive" title={manifestError}>

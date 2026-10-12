@@ -598,11 +598,16 @@ fn cleanup_cache_impl(
 ///
 /// 错误串会带上这个标记：`[[co:heic-decoder-missing]] 文案`，前端剥掉标记后据它决定
 /// 要不要给「去安装插件」按钮（见 `src/platform/errors.ts`）。
+#[cfg(any(target_os = "windows", test))]
 const HEIC_DECODER_MISSING_CODE: &str = "heic-decoder-missing";
 /// 装了插件但转码失败：不再引导用户去安装
+#[cfg(any(target_os = "windows", test))]
 const HEIC_PLUGIN_FAILED_CODE: &str = "heic-plugin-failed";
 
 /// 给错误串加机器可读标记，前端按码决定交互，不靠匹配文案。
+///
+/// 只有 Windows 的解码链路与测试会用到，macOS 上不加 cfg 会被 clippy 判成 dead_code。
+#[cfg(any(target_os = "windows", test))]
 fn coded_error(code: &str, message: String) -> String {
     format!("[[co:{code}]] {message}")
 }

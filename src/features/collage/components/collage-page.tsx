@@ -279,6 +279,8 @@ export function CollagePage() {
       }
       toolbar={<CollageToolbar onExport={() => void handleExport()} exporting={exporting} />}
       library={<CollageLayoutLibrary />}
+      // 布局库钉死 230px：窗口拉大时把多出来的宽度留给画布，不跟着变宽
+      libraryFixedWidth={230}
       // 素材区与「边框水印」一致：固定高度、可折叠，不做可拖拽分隔
       assetsResizable={false}
       // 属性面板里有宽高输入与档位按钮，再窄就会被挤到换行

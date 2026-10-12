@@ -25,6 +25,11 @@ interface BusinessWorkbenchProps {
   properties: () => ReactNode;
   /** 最左侧的功能面板（如拼图的布局库）；给定时工作区会变成中间那一栏 */
   library?: ReactNode;
+  /**
+   * 最左栏的固定宽度（像素）；给了就钉死这个宽度、不参与拖拽，窗口变大也不会跟着变宽。
+   * 不给时按 `libraryDefaultSize` 走可拖拽的百分比面板（百分比会随窗口放大）。
+   */
+  libraryFixedWidth?: number;
   libraryDefaultSize?: number;
   libraryMinSize?: number;
   libraryMaxSize?: number;
@@ -41,6 +46,7 @@ export function BusinessWorkbench({
   assets,
   properties,
   library,
+  libraryFixedWidth,
   libraryDefaultSize = 248,
   libraryMinSize = 180,
   libraryMaxSize = 420,
@@ -54,69 +60,79 @@ export function BusinessWorkbench({
     <div className="flex h-full min-h-0 flex-col bg-background">
       {header}
       {toolbar}
-      <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
-        {library ? (
-          <>
-            <ResizablePanel
-              defaultSize={libraryDefaultSize}
-              minSize={libraryMinSize}
-              maxSize={libraryMaxSize}
-              className="min-h-0 min-w-0"
-              style={PANEL_STYLE}
-            >
-              {library}
-            </ResizablePanel>
-            <ResizableHandle withHandle />
-          </>
+      <div className="flex min-h-0 min-w-0 flex-1">
+        {library && libraryFixedWidth ? (
+          <div
+            className="flex min-h-0 shrink-0 flex-col overflow-hidden border-r border-border"
+            style={{ width: libraryFixedWidth }}
+          >
+            {library}
+          </div>
         ) : null}
-        <ResizablePanel minSize={64} className="min-h-0 min-w-0" style={PANEL_STYLE}>
-          {assetsResizable ? (
-            <ResizablePanelGroup orientation="vertical" className="h-full min-h-0 min-w-0">
-              <ResizablePanel minSize={56} className="min-h-0 min-w-0" style={PANEL_STYLE}>
-                {workspace}
-              </ResizablePanel>
-              <ResizableHandle withHandle />
+        <ResizablePanelGroup orientation="horizontal" className="min-h-0 min-w-0 flex-1">
+          {library && !libraryFixedWidth ? (
+            <>
               <ResizablePanel
-                defaultSize={180}
-                minSize={assetsMinSize}
-                maxSize={300}
+                defaultSize={libraryDefaultSize}
+                minSize={libraryMinSize}
+                maxSize={libraryMaxSize}
                 className="min-h-0 min-w-0"
                 style={PANEL_STYLE}
               >
-                {assets({
-                  collapsed: assetsCollapsed,
-                  toggleCollapsed: () => setAssetsCollapsed((value) => !value),
-                })}
+                {library}
               </ResizablePanel>
-            </ResizablePanelGroup>
-          ) : (
-            <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
-              <div className="min-h-0 min-w-0 flex-1">{workspace}</div>
-              <div
-                className={cn(
-                  'shrink-0 transition-[height] duration-200',
-                  assetsCollapsed ? 'h-12' : 'h-[189px]',
-                )}
-              >
-                {assets({
-                  collapsed: assetsCollapsed,
-                  toggleCollapsed: () => setAssetsCollapsed((value) => !value),
-                })}
+              <ResizableHandle withHandle />
+            </>
+          ) : null}
+          <ResizablePanel minSize={64} className="min-h-0 min-w-0" style={PANEL_STYLE}>
+            {assetsResizable ? (
+              <ResizablePanelGroup orientation="vertical" className="h-full min-h-0 min-w-0">
+                <ResizablePanel minSize={56} className="min-h-0 min-w-0" style={PANEL_STYLE}>
+                  {workspace}
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+                <ResizablePanel
+                  defaultSize={180}
+                  minSize={assetsMinSize}
+                  maxSize={300}
+                  className="min-h-0 min-w-0"
+                  style={PANEL_STYLE}
+                >
+                  {assets({
+                    collapsed: assetsCollapsed,
+                    toggleCollapsed: () => setAssetsCollapsed((value) => !value),
+                  })}
+                </ResizablePanel>
+              </ResizablePanelGroup>
+            ) : (
+              <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
+                <div className="min-h-0 min-w-0 flex-1">{workspace}</div>
+                <div
+                  className={cn(
+                    'shrink-0 transition-[height] duration-200',
+                    assetsCollapsed ? 'h-12' : 'h-[189px]',
+                  )}
+                >
+                  {assets({
+                    collapsed: assetsCollapsed,
+                    toggleCollapsed: () => setAssetsCollapsed((value) => !value),
+                  })}
+                </div>
               </div>
-            </div>
-          )}
-        </ResizablePanel>
-        <ResizableHandle withHandle />
-        <ResizablePanel
-          defaultSize={280}
-          minSize={propertiesMinSize}
-          maxSize={400}
-          className="min-h-0 min-w-0"
-          style={PANEL_STYLE}
-        >
-          {properties()}
-        </ResizablePanel>
-      </ResizablePanelGroup>
+            )}
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel
+            defaultSize={280}
+            minSize={propertiesMinSize}
+            maxSize={400}
+            className="min-h-0 min-w-0"
+            style={PANEL_STYLE}
+          >
+            {properties()}
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { createContext, type ReactNode, useContext } from 'react';
+import { createContext, type ReactNode, useContext, useEffect } from 'react';
 import type { AppRoute } from '@/app/routes';
 
 /**
@@ -11,6 +11,18 @@ export type AppNavigate = (route: AppRoute, targetId?: string) => void;
 
 const NavigationContext = createContext<AppNavigate | null>(null);
 
+/**
+ * 组件外（如 toast 的按钮回调、导入失败提示）用的兜底引用。
+ *
+ * 那些地方拿不到 hook，但同样是「用户点了要切页」的入口，所以留一个模块级引用。
+ */
+let globalNavigate: AppNavigate | null = null;
+
+/** 在组件外跳路由（可带目标元素 id）；没有 Provider 时静默忽略。 */
+export function appNavigate(route: AppRoute, targetId?: string): void {
+  globalNavigate?.(route, targetId);
+}
+
 export function NavigationProvider({
   onNavigate,
   children,
@@ -18,6 +30,14 @@ export function NavigationProvider({
   onNavigate: AppNavigate;
   children: ReactNode;
 }) {
+  useEffect(() => {
+    globalNavigate = onNavigate;
+
+    return () => {
+      globalNavigate = null;
+    };
+  }, [onNavigate]);
+
   return <NavigationContext.Provider value={onNavigate}>{children}</NavigationContext.Provider>;
 }
 

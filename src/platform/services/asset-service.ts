@@ -1,6 +1,6 @@
 import type { CachedImageMeta } from '@/platform/contracts';
 import type { AssetServiceContract, ImportPhotoOptions } from '@/platform/contracts/platform';
-import { importFailureReason } from '@/platform/errors';
+import { parseFailureReason } from '@/platform/errors';
 import { platformRuntime } from '@/platform/providers/platform-runtime';
 import { webFiles } from '@/platform/providers/web/web-platform-provider';
 import {
@@ -207,8 +207,9 @@ export async function importPhotosViaPaths(
       }
     } catch (error) {
       // 单张失败只是跳过：一张系统解不开的图片不该拖垮整批导入
+      const failure = parseFailureReason(error);
       console.warn(`导入失败，已跳过：${name}`, error);
-      options?.onPhotoFailed?.({ name, reason: importFailureReason(error) });
+      options?.onPhotoFailed?.({ name, reason: failure.message, code: failure.code });
     } finally {
       // 失败的那张也要推进进度，否则进度条会停在 N-1
       options?.onProgress?.({ current: index + 1, total: filePaths.length, currentName: name });
@@ -253,8 +254,13 @@ export async function processDroppedFiles(
         waitForThumbnail(photo, meta.thumbnail_path, options?.onPhotoUpdated);
       }
     } catch (error) {
+      const failure = parseFailureReason(error);
       console.warn(`导入失败，已跳过：${file.name}`, error);
-      options?.onPhotoFailed?.({ name: file.name, reason: importFailureReason(error) });
+      options?.onPhotoFailed?.({
+        name: file.name,
+        reason: failure.message,
+        code: failure.code,
+      });
     } finally {
       options?.onProgress?.({
         current: index + 1,

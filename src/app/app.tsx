@@ -134,11 +134,17 @@ function AppContent() {
                 {/*
                   隐藏页用 visibility 而非 display 保留布局：预览自适应、面板尺寸与滚动位置
                   都依赖真实布局尺寸，保留布局可以让切回时不需要重新测量。
+
+                  但只藏起来不够：像 react-resizable-panels 这类库是用
+                  `getBoundingClientRect()` 做「指针是否靠近分隔条」的几何判断的，不看
+                  visibility / pointer-events，隐藏页残留的矩形依然生效——鼠标经过那条
+                  看不见的分隔条时，它会把全局光标改成 ↔。所以再把整页移出视口
+                  （多移 8px，越过它的近距离判定带），几何命中就再也算不到隐藏页了。
                 */}
                 <div
                   className={cn(
                     'absolute inset-0 h-full w-full',
-                    !active && 'pointer-events-none invisible',
+                    !active && 'pointer-events-none invisible translate-x-[calc(100%_+_8px)]',
                   )}
                   aria-hidden={!active}
                   inert={!active}

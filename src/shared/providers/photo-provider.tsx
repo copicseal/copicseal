@@ -16,6 +16,8 @@ import { releaseSessionAssets, trackSessionAssets } from '@/platform/services/as
 import {
   type ImportProgressSnapshot,
   importPhotosViaPaths,
+  importWithFailureFeedback,
+  notifyImportAborted,
   processDroppedFiles,
   selectPhotosFromDirectory,
   selectPhotosViaDialog,
@@ -185,53 +187,76 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
   }, []);
 
   /**
-   * 导入收尾：结束进度提示，并把选中切到这一轮新素材的第一张。
+   * 把选中切到这一轮新素材的第一张。
    *
    * 导入完通常马上要调这张的模板/排版，停在旧素材上还得自己再点一次；
    * 一张都没进来（全部失败或用户取消）时保持当前选中不变。
+   *
+   * 这里不收尾导入状态：收尾放在各入口的 `finally` 里，否则某张失败导致抛错时，
+   * 进度提示会一直留在界面上。
    */
-  const selectImported = useCallback(
-    (source: PhotoImportSource, imported: ImportedPhoto[]) => {
-      finishImport(source);
-
-      if (imported.length > 0 && !importSelectionSuspended) {
-        setCurrentIndex(importStartIndexRef.current);
-      }
-    },
-    [finishImport],
-  );
+  const selectImported = useCallback((imported: ImportedPhoto[]) => {
+    if (imported.length > 0 && !importSelectionSuspended) {
+      setCurrentIndex(importStartIndexRef.current);
+    }
+  }, []);
 
   const importViaDialog = useCallback(async () => {
     startImport('dialog');
-    const result = await selectPhotosViaDialog({
-      onProgress: (progress) => updateImportProgress('dialog', progress),
-      onPhotoImported: (photo) => addPhotos([photo]),
-      onPhotoUpdated: updatePhoto,
-    });
-    selectImported('dialog', result);
-  }, [addPhotos, selectImported, startImport, updateImportProgress, updatePhoto]);
+
+    try {
+      const result = await importWithFailureFeedback(selectPhotosViaDialog, {
+        onProgress: (progress) => updateImportProgress('dialog', progress),
+        onPhotoImported: (photo) => addPhotos([photo]),
+        onPhotoUpdated: updatePhoto,
+      });
+      selectImported(result);
+    } catch (error) {
+      notifyImportAborted(error);
+    } finally {
+      // 失败也要收尾：否则进度提示会一直停在界面上
+      finishImport('dialog');
+    }
+  }, [addPhotos, finishImport, selectImported, startImport, updateImportProgress, updatePhoto]);
 
   const importViaDirectory = useCallback(async () => {
     startImport('directory');
-    const result = await selectPhotosFromDirectory({
-      onProgress: (progress) => updateImportProgress('directory', progress),
-      onPhotoImported: (photo) => addPhotos([photo]),
-      onPhotoUpdated: updatePhoto,
-    });
-    selectImported('directory', result);
-  }, [addPhotos, selectImported, startImport, updateImportProgress, updatePhoto]);
+
+    try {
+      const result = await importWithFailureFeedback(selectPhotosFromDirectory, {
+        onProgress: (progress) => updateImportProgress('directory', progress),
+        onPhotoImported: (photo) => addPhotos([photo]),
+        onPhotoUpdated: updatePhoto,
+      });
+      selectImported(result);
+    } catch (error) {
+      notifyImportAborted(error);
+    } finally {
+      finishImport('directory');
+    }
+  }, [addPhotos, finishImport, selectImported, startImport, updateImportProgress, updatePhoto]);
 
   const importViaDrop = useCallback(
     async (files: FileList | File[]) => {
       startImport('drop');
-      const result = await processDroppedFiles(files, {
-        onProgress: (progress) => updateImportProgress('drop', progress),
-        onPhotoImported: (photo) => addPhotos([photo]),
-        onPhotoUpdated: updatePhoto,
-      });
-      selectImported('drop', result);
+
+      try {
+        const result = await importWithFailureFeedback(
+          (options) => processDroppedFiles(files, options),
+          {
+            onProgress: (progress) => updateImportProgress('drop', progress),
+            onPhotoImported: (photo) => addPhotos([photo]),
+            onPhotoUpdated: updatePhoto,
+          },
+        );
+        selectImported(result);
+      } catch (error) {
+        notifyImportAborted(error);
+      } finally {
+        finishImport('drop');
+      }
     },
-    [addPhotos, selectImported, startImport, updateImportProgress, updatePhoto],
+    [addPhotos, finishImport, selectImported, startImport, updateImportProgress, updatePhoto],
   );
 
   useEffect(() => {
@@ -255,12 +280,25 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
           case 'drop': {
             setIsDraggingOver(false);
             startImport('drop');
-            const result = await importPhotosViaPaths(event.payload.paths, {
-              onProgress: (progress) => updateImportProgress('drop', progress),
-              onPhotoImported: (photo) => addPhotos([photo]),
-              onPhotoUpdated: updatePhoto,
-            });
-            selectImported('drop', result);
+
+            // 先取出 paths：放进下面那个闭包后，TS 对联合类型的收窄会失效
+            const { paths } = event.payload;
+
+            try {
+              const result = await importWithFailureFeedback(
+                (options) => importPhotosViaPaths(paths, options),
+                {
+                  onProgress: (progress) => updateImportProgress('drop', progress),
+                  onPhotoImported: (photo) => addPhotos([photo]),
+                  onPhotoUpdated: updatePhoto,
+                },
+              );
+              selectImported(result);
+            } catch (error) {
+              notifyImportAborted(error);
+            } finally {
+              finishImport('drop');
+            }
             break;
           }
         }
@@ -276,7 +314,15 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
     return () => {
       cleanup?.();
     };
-  }, [addPhotos, pageActive, selectImported, startImport, updateImportProgress, updatePhoto]);
+  }, [
+    addPhotos,
+    finishImport,
+    pageActive,
+    selectImported,
+    startImport,
+    updateImportProgress,
+    updatePhoto,
+  ]);
 
   const currentPhoto = photos[currentIndex] ?? null;
 

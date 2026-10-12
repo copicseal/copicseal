@@ -36,6 +36,12 @@ export const common: Messages['common'] = {
   dropZone: {
     releaseToImport: 'Release to import photos',
   },
+  import: {
+    failedOne: 'Could not import "{name}" — skipped',
+    failedMany: '{count} photos could not be imported — skipped',
+    failedMore: 'and {count} more',
+    failedAborted: 'Import failed: {reason}',
+  },
   export: {
     done: 'Export complete',
     failed: 'Export failed. Check that the save folder set in Settings is available.',

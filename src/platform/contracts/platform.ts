@@ -10,7 +10,7 @@ import type {
   ImportedFont,
   InlineFont,
 } from './index';
-import type { ImportProgressSnapshot } from './services';
+import type { ImportFailure, ImportProgressSnapshot } from './services';
 
 export interface AssetServiceContract {
   selectPhotosViaDialog(options?: ImportPhotoOptions): Promise<ImportedPhoto[]>;
@@ -26,6 +26,13 @@ export interface ImportPhotoOptions {
   onPhotoImported?: (photo: ImportedPhoto) => void;
   onPhotoUpdated?: (photo: ImportedPhoto) => void;
   onProgress?: (progress: ImportProgressSnapshot) => void;
+  /**
+   * 单张导入失败时回调。
+   *
+   * 失败的那张会被跳过、其余文件继续导入；调用方据此提示用户。
+   * 不要在这个回调里抛错，否则会中断整批导入。
+   */
+  onPhotoFailed?: (failure: ImportFailure) => void;
 }
 
 export interface ExportServiceContract {

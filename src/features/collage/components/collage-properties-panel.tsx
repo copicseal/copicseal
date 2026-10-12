@@ -23,7 +23,11 @@ import type { OutputSize } from '@/platform/contracts';
 import { CoPanelSection } from '@/shared/components/co-panel-section';
 import { usePhotos } from '@/shared/hooks/use-photos';
 import { type MessageKey, useTranslate } from '@/shared/i18n';
-import { selectPhotosViaDialog } from '@/shared/lib/import-photo';
+import {
+  importWithFailureFeedback,
+  notifyImportAborted,
+  selectPhotosViaDialog,
+} from '@/shared/lib/import-photo';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import {
@@ -148,12 +152,16 @@ export function CollagePropertiesPanel({
   };
 
   const handleReplace = async (photoId: string) => {
-    const selectedPhotos = await selectPhotosViaDialog();
-    if (!selectedPhotos[0]) {
-      return;
-    }
+    try {
+      const selectedPhotos = await importWithFailureFeedback(selectPhotosViaDialog);
+      if (!selectedPhotos[0]) {
+        return;
+      }
 
-    replacePhoto(photoId, selectedPhotos[0]);
+      replacePhoto(photoId, selectedPhotos[0]);
+    } catch (error) {
+      notifyImportAborted(error);
+    }
   };
 
   const slotIndex = selectedSlotIndex;

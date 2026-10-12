@@ -35,6 +35,12 @@ export const common = {
   dropZone: {
     releaseToImport: '释放以导入照片',
   },
+  import: {
+    failedOne: '「{name}」导入失败，已跳过',
+    failedMany: '{count} 张图片导入失败，已跳过',
+    failedMore: '等 {count} 张',
+    failedAborted: '导入失败：{reason}',
+  },
   export: {
     done: '导出完成',
     failed: '导出失败，请检查设置里的保存目录是否可用',

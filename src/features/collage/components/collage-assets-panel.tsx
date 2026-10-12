@@ -11,7 +11,11 @@ import {
   BusinessWorkbenchAssetsPane,
   type BusinessWorkbenchAssetsRenderProps,
 } from '@/shared/layouts/business-workbench';
-import { selectPhotosViaDialog } from '@/shared/lib/import-photo';
+import {
+  importWithFailureFeedback,
+  notifyImportAborted,
+  selectPhotosViaDialog,
+} from '@/shared/lib/import-photo';
 import { cn } from '@/shared/lib/utils';
 import type { ImportedPhoto } from '@/shared/types/photo';
 import { Button } from '@/shared/ui/button';
@@ -240,12 +244,16 @@ export function CollageAssetsPanel({ collapsed, toggleCollapsed }: CollageAssets
   );
 
   const handleReplace = async (photoId: string) => {
-    const selected = await selectPhotosViaDialog();
-    if (!selected[0]) {
-      return;
-    }
+    try {
+      const selected = await importWithFailureFeedback(selectPhotosViaDialog);
+      if (!selected[0]) {
+        return;
+      }
 
-    replacePhoto(photoId, selected[0]);
+      replacePhoto(photoId, selected[0]);
+    } catch (error) {
+      notifyImportAborted(error);
+    }
   };
 
   const handlePutIntoSlot = (photoId: string) => {

@@ -1,5 +1,6 @@
 import type { CachedImageMeta } from '@/platform/contracts';
 import type { AssetServiceContract, ImportPhotoOptions } from '@/platform/contracts/platform';
+import { importFailureReason } from '@/platform/errors';
 import { platformRuntime } from '@/platform/providers/platform-runtime';
 import { webFiles } from '@/platform/providers/web/web-platform-provider';
 import {
@@ -38,6 +39,11 @@ function photoId(name: string): string {
 
 function isSupportedExt(name: string): boolean {
   return SUPPORTED_IMAGE_EXTENSIONS.some((ext) => name.toLowerCase().endsWith(ext));
+}
+
+/** 取文件名：失败提示只需要名字，不必把完整路径摊给用户。 */
+function fileNameOf(path: string): string {
+  return path.split(/[\\/]/).pop() || path;
 }
 
 function toImportedPhoto(meta: CachedImageMeta): ImportedPhoto {
@@ -189,18 +195,24 @@ export async function importPhotosViaPaths(
   });
 
   for (const [index, filePath] of filePaths.entries()) {
-    const meta = await importImageToCache(filePath, cacheDir);
-    const photo = toImportedPhoto(meta);
-    photos.push(photo);
-    options?.onPhotoImported?.(photo);
-    if (!meta.thumbnail_ready) {
-      waitForThumbnail(photo, meta.thumbnail_path, options?.onPhotoUpdated);
+    const name = fileNameOf(filePath);
+
+    try {
+      const meta = await importImageToCache(filePath, cacheDir);
+      const photo = toImportedPhoto(meta);
+      photos.push(photo);
+      options?.onPhotoImported?.(photo);
+      if (!meta.thumbnail_ready) {
+        waitForThumbnail(photo, meta.thumbnail_path, options?.onPhotoUpdated);
+      }
+    } catch (error) {
+      // 单张失败只是跳过：一张系统解不开的图片不该拖垮整批导入
+      console.warn(`导入失败，已跳过：${name}`, error);
+      options?.onPhotoFailed?.({ name, reason: importFailureReason(error) });
+    } finally {
+      // 失败的那张也要推进进度，否则进度条会停在 N-1
+      options?.onProgress?.({ current: index + 1, total: filePaths.length, currentName: name });
     }
-    options?.onProgress?.({
-      current: index + 1,
-      total: filePaths.length,
-      currentName: photo.name,
-    });
   }
 
   return photos;
@@ -231,19 +243,25 @@ export async function processDroppedFiles(
   }
 
   for (const [index, file] of importableFiles.entries()) {
-    const contents = Array.from(new Uint8Array(await file.arrayBuffer()));
-    const meta = await importImageBytesToCache(file.name, contents, cacheDir);
-    const photo = toImportedPhoto(meta);
-    photos.push(photo);
-    options?.onPhotoImported?.(photo);
-    if (!meta.thumbnail_ready) {
-      waitForThumbnail(photo, meta.thumbnail_path, options?.onPhotoUpdated);
+    try {
+      const contents = Array.from(new Uint8Array(await file.arrayBuffer()));
+      const meta = await importImageBytesToCache(file.name, contents, cacheDir);
+      const photo = toImportedPhoto(meta);
+      photos.push(photo);
+      options?.onPhotoImported?.(photo);
+      if (!meta.thumbnail_ready) {
+        waitForThumbnail(photo, meta.thumbnail_path, options?.onPhotoUpdated);
+      }
+    } catch (error) {
+      console.warn(`导入失败，已跳过：${file.name}`, error);
+      options?.onPhotoFailed?.({ name: file.name, reason: importFailureReason(error) });
+    } finally {
+      options?.onProgress?.({
+        current: index + 1,
+        total: importableFiles.length,
+        currentName: file.name,
+      });
     }
-    options?.onProgress?.({
-      current: index + 1,
-      total: importableFiles.length,
-      currentName: photo.name,
-    });
   }
 
   return photos;

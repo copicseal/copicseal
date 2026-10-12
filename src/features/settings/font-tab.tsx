@@ -63,6 +63,23 @@ function parseFontFaceUrls(css: string): string[] {
   return [...css.matchAll(/url\((https:[^)]+)\)/g)].map((match) => match[1] as string);
 }
 
+/** Google 的 latin 主集：它的 `unicode-range` 一定从 U+0000-00FF 起。 */
+const LATIN_SUBSET_PATTERN = /unicode-range:\s*U\+0000-00FF/i;
+
+/**
+ * 从 Google 的 CSS 里挑出主字体文件。
+ *
+ * 一个族会被拆成多个 `@font-face`（latin、latin-ext、cyrillic…），每块只带自己那段
+ * `unicode-range` 的字形。**不能直接取第一个 url**：Google 把 `latin-ext` 排在前面，
+ * 那份文件里没有 ASCII 字形，注册成 FontFace（本地文件不带 unicode-range）后，画布与
+ * 预览里的英文数字会全部退化成默认字体——正是「待引入显示手写体、已引入变正常体」。
+ */
+function pickPrimaryFontUrl(css: string): string | null {
+  const blocks = [...css.matchAll(/@font-face\s*\{([\s\S]*?)\}/g)].map((match) => match[1] ?? '');
+  const primary = blocks.find((block) => LATIN_SUBSET_PATTERN.test(block)) ?? blocks[0];
+  return primary?.match(/url\((https:[^)]+)\)/)?.[1] ?? null;
+}
+
 /** 字体预览行：标题 + 用该字体渲染的样例，右侧是操作。 */
 function FontRow({
   title,
@@ -265,7 +282,10 @@ function GoogleSource({
 
       // 按真实地址取扩展名：UA 不同时 Google 会给 woff2 或 ttf，后缀写错会让
       // asset 协议按错误 MIME 返回，浏览器可能拒绝加载
-      const fileUrl = fileUrls[0] as string;
+      const fileUrl = pickPrimaryFontUrl(css);
+      if (!fileUrl) {
+        throw new Error(t('settings.fonts.google.errorNoFiles'));
+      }
       const ext = fileUrl.split('?')[0]?.split('.').pop() ?? 'woff2';
       await library.importFromUrl(fileUrl, `${family.replace(/\s+/g, '')}.${ext}`);
     } catch (error) {

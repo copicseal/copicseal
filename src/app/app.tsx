@@ -55,12 +55,18 @@ function AppContent() {
   }, [route]);
 
   /**
-   * 关掉 WebView2 的默认右键菜单（返回 / 刷新 / 另存为 / 打印）。
+   * 打包版关掉 WebView2 的默认右键菜单（返回 / 刷新 / 另存为 / 打印）。
    *
-   * wry 官方给的做法就是阻止 `contextmenu` 的默认行为；输入框内保留系统菜单，
-   * 否则连复制粘贴都没了；素材列表的自定义右键菜单由 Radix 自己渲染，不受影响。
+   * wry 官方给的做法就是阻止 `contextmenu` 的默认行为。开发环境保留系统右键菜单：
+   * `pnpm tauri dev` 下前端由 Vite 提供，刷新 / 检查都靠它，屏蔽了反而碍事。
+   * 输入框内也一律保留，否则连复制粘贴都没了；素材列表的自定义右键菜单由 Radix
+   * 自己渲染，不受影响。
    */
   useEffect(() => {
+    if (import.meta.env.DEV) {
+      return;
+    }
+
     const handleContextMenu = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
       if (!target?.closest('input, textarea, [contenteditable="true"]')) {

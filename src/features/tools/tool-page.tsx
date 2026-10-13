@@ -73,7 +73,7 @@ export function ToolPage({ toolId }: { toolId: string }) {
       */}
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="flex min-h-full flex-col justify-center p-6">
-          <div className="mx-auto w-full max-w-2xl">
+          <div className="mx-auto w-full max-w-3xl">
             {failed ? (
               <p className="text-xs text-muted-foreground">
                 {t('common.tools.loadFailed', { name: t(tool.nameKey) })}

@@ -79,6 +79,9 @@ export const common: Messages['common'] = {
       hint: 'Reads the shutter count from straight-out-of-camera files (JPEG / RAW / HEIC). Edited, re-compressed or phone-made files usually do not carry this field.',
       chooseFile: 'Choose a camera file',
       reselect: 'Choose another file',
+      dropTitle: 'Drop a camera-original file here',
+      dropHint: 'or pick one with the button below',
+      supported: 'JPEG / HEIC / RAW and other camera originals',
       parsing: 'Parsing… (the first run loads the parser, this can take a moment)',
       readFailed: 'Could not parse the file',
       notFoundTitle: 'This file has no shutter count field',
@@ -89,6 +92,7 @@ export const common: Messages['common'] = {
       camera: 'Camera',
       unknown: 'Unknown',
       provider: 'Parser',
+      file: 'File',
       tooLarge: 'The file is larger than {limit}; parsing loads the whole file into memory',
       tag: {
         serialNumber: 'Body serial number',

@@ -78,6 +78,9 @@ export const common = {
       hint: '读取相机直出文件里的快门数（JPEG / RAW / HEIC）。编辑过、二次压缩或手机拍的文件通常没有这个字段。',
       chooseFile: '选择相机文件',
       reselect: '换一个文件',
+      dropTitle: '把相机直出的文件拖到这里',
+      dropHint: '或点击下面的按钮挑一个文件',
+      supported: '支持 JPEG / HEIC / RAW 等相机原图',
       parsing: '正在解析…（首次要加载解析器，稍等一下）',
       readFailed: '解析失败',
       notFoundTitle: '这个文件里没有快门数字段',
@@ -88,6 +91,7 @@ export const common = {
       camera: '相机',
       unknown: '未识别',
       provider: '解析器',
+      file: '文件',
       tooLarge: '文件超过 {limit}，请换一张（解析要把整份文件读进内存）',
       tag: {
         serialNumber: '机身序列号',

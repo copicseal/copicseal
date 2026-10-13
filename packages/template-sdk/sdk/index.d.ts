@@ -165,7 +165,15 @@ export declare function defineTemplate<const TFields extends readonly TemplateFi
 /** 模板文案里支持的 EXIF 变量（与宿主一致）。 */
 export declare const EXIF_TEXT_VARIABLES: readonly { token: string; label: string }[];
 
-/** 把 `{变量}` 替换成当前照片的 EXIF 值；已知变量缺失时替换为空串。 */
+/**
+ * 把 `{变量}` 替换成当前照片的 EXIF 值；已知变量缺失时替换为空串。
+ *
+ * 空格语义（与宿主一致）：
+ * - 文案里**连续 2 个以上空格会原样保留**，用来控制参数之间的间距（单空格是普通空格，
+ *   该折行的位置仍可折行）；宿主内部会把它换成不换行空格，避免被 HTML 折叠；
+ * - 空变量两侧的空白只收成**一个空格**（`105mm  {ISO}  1/160s` 在 ISO 为空时得 `105mm 1/160s`）；
+ * - 首尾空白一并去掉；未识别的 `{Foo}` 原样保留。
+ */
 export declare function formatExifText(template: string, exif: ExifData | null): string;
 
 /** 读取图片真实长宽比；`src` 变化时自动回退到 `fallback`。 */

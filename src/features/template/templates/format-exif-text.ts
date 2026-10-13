@@ -233,11 +233,24 @@ function resolveToken(token: string, exif: ExifData, settings: ExifSettings): st
 }
 
 /**
+ * 空变量的占位符。
+ *
+ * 替换阶段先把「解析为空」的变量换成它，随后连同两侧空白收成一个空格：
+ * 这样「空字段不留空档」与「用户写的连续空格保留」两件事互不干扰。
+ * 用 Unicode 私有使用区字符（不是控制字符，也不会出现在文案里）。
+ */
+const EMPTY_VALUE = '\uE000';
+
+/**
  * 把模板文案里的 `{变量}` 替换成当前照片的 EXIF 值。
  *
  * - 已知变量在字段缺失或未读取到 EXIF 时替换为空串，避免导出结果残留 `{Make}` 这类占位符；
  * - 未知变量原样保留，方便模板作者发现拼写错误；
- * - 替换后合并多余空格并去掉首尾空白，避免空字段在版面上留下大段空隙；
+ * - **用户写的连续空格会被保留**：文案里 2 个以上空格用于控制参数间距（模板默认文案
+ *   本来就写着双空格）。HTML 会把连续空格折叠成一个，所以这里换成不换行空格 `\u00A0`；
+ * - 空字段两侧的空白只收成一个空格（`105mm  {ISO}  1/160s` 在 ISO 为空时得 `105mm 1/160s`，
+ *   既不拼成 `105mm1/160s`，也不会留下大段空隙）；
+ * - 首尾空白（含首尾的不换行空格）一并去掉；
  * - 时间/经纬度/机型品牌按「设置 → 边框水印 → EXIF」里的口径输出。
  */
 export function formatExifText(
@@ -250,10 +263,24 @@ export function formatExifText(
     if (!KNOWN_TOKENS.has(token)) {
       return token;
     }
-    return exif ? (resolveToken(token, exif, resolved) ?? '') : '';
+
+    const value = exif ? (resolveToken(token, exif, resolved) ?? '') : '';
+
+    // 空值先占位：稍后连同两侧空白一起收，避免拼出 `105mm1/160s`
+    return value === '' ? EMPTY_VALUE : value;
   });
 
-  return replaced.replace(/\s{2,}/g, ' ').trim();
+  return (
+    replaced
+      // 空字段：连同两侧空白收成一个空格；`[\s\uE000]*` 覆盖「连续多个空变量」的情况
+      // （`105mm  {ISO}  {DateTaken}  1/60s` 两者都为空时应当是 `105mm 1/60s`，不是双空格）
+      .replace(/\s*\uE000[\s\uE000]*/g, ' ')
+      // 编辑器把段落连成空格后仍可能残留的换行/制表符，统一归一成空格
+      .replace(/[^\S ]+/g, ' ')
+      // 用户写的连续空格保留：普通空格会被 HTML 折叠，换成等量的不换行空格
+      .replace(/ {2,}/g, (run) => '\u00A0'.repeat(run.length))
+      .trim()
+  );
 }
 
 /**

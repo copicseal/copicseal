@@ -1,4 +1,3 @@
-import { Star } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useFontLibrary } from '@/features/fonts/use-font-library';
 import {
@@ -10,8 +9,6 @@ import { CoFontField } from '@/shared/components/co-font-field';
 import { CoPanelSection } from '@/shared/components/co-panel-section';
 import { useSystemFonts } from '@/shared/hooks/use-system-fonts';
 import { useTranslate } from '@/shared/i18n';
-import { cn } from '@/shared/lib/utils';
-import { Button } from '@/shared/ui/button';
 import {
   Select,
   SelectContent,
@@ -29,19 +26,11 @@ interface TemplateSelectorProps {
   onFontChange: (font: string) => void;
 }
 
-/** 收藏排在最近使用之前，其余保持注册顺序。 */
-function resolveRank(templateId: string, favorites: string[], recentIds: string[]): number {
-  const favoriteIndex = favorites.indexOf(templateId);
-  if (favoriteIndex >= 0) {
-    return favoriteIndex;
-  }
-
+/** 最近使用过的排在前面，其余保持注册顺序。 */
+function resolveRank(templateId: string, recentIds: string[]): number {
   const recentIndex = recentIds.indexOf(templateId);
-  if (recentIndex >= 0) {
-    return favorites.length + recentIndex;
-  }
 
-  return Number.MAX_SAFE_INTEGER;
+  return recentIndex >= 0 ? recentIndex : Number.MAX_SAFE_INTEGER;
 }
 
 export function TemplateSelector({
@@ -52,7 +41,6 @@ export function TemplateSelector({
 }: TemplateSelectorProps) {
   const t = useTranslate();
   const templates = listBuiltinTemplates();
-  const [favorites, setFavorites] = useState<string[]>(['minimal', 'film']);
   const [recentIds, setRecentIds] = useState<string[]>(['minimal']);
   const { loading, reload } = useSystemFonts();
   const library = useFontLibrary();
@@ -68,28 +56,19 @@ export function TemplateSelector({
     return families.map((family) => ({ family, postscript_name: null }));
   }, [library.entries]);
 
-  // 收藏与最近使用只影响下拉里的排序，模板列表本身始终是完整的一份。
+  // 最近使用只影响下拉里的排序，模板列表本身始终是完整的一份。
   const orderedTemplates = templates
     .map((template, index) => ({ template, index }))
     .sort((left, right) => {
       const delta =
-        resolveRank(left.template.meta.id, favorites, recentIds) -
-        resolveRank(right.template.meta.id, favorites, recentIds);
+        resolveRank(left.template.meta.id, recentIds) -
+        resolveRank(right.template.meta.id, recentIds);
 
       return delta === 0 ? left.index - right.index : delta;
     })
     .map((entry) => entry.template);
 
   const activeTemplate = templates.find((template) => template.meta.id === activeTemplateId);
-  const activeFavorite = favorites.includes(activeTemplateId);
-
-  const toggleFavorite = () => {
-    setFavorites((current) =>
-      current.includes(activeTemplateId)
-        ? current.filter((id) => id !== activeTemplateId)
-        : [...current, activeTemplateId],
-    );
-  };
 
   const handleSelect = (templateId: string) => {
     onTemplateChange(templateId);
@@ -99,22 +78,7 @@ export function TemplateSelector({
   };
 
   return (
-    <CoPanelSection
-      title={t('template.selector.title')}
-      actions={
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          aria-pressed={activeFavorite}
-          className={cn('text-muted-foreground', activeFavorite && 'text-primary')}
-          onClick={toggleFavorite}
-        >
-          <Star data-icon="inline-start" className={cn(activeFavorite && 'fill-current')} />
-          {activeFavorite ? t('template.selector.favorited') : t('template.selector.favorite')}
-        </Button>
-      }
-    >
+    <CoPanelSection title={t('template.selector.title')}>
       <div className="space-y-3">
         <div className="space-y-1.5">
           <span className="text-xs font-medium text-foreground">

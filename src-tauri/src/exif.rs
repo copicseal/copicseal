@@ -510,15 +510,14 @@ fn patch_ifd(
         }
 
         match field_type {
+            // 写成功才计数：`match` 臂里再套一层 `if` 会被 clippy 判 collapsible_match，
+            // 这里直接累加布尔值，语义不变（true = 1）。
             TIFF_TYPE_SHORT if *value <= u32::from(u16::MAX) => {
-                if write_u16(segment, entry + 8, *value as u16, big_endian) {
-                    result.patched += 1;
-                }
+                result.patched +=
+                    usize::from(write_u16(segment, entry + 8, *value as u16, big_endian));
             }
             TIFF_TYPE_LONG => {
-                if write_u32(segment, entry + 8, *value, big_endian) {
-                    result.patched += 1;
-                }
+                result.patched += usize::from(write_u32(segment, entry + 8, *value, big_endian));
             }
             _ => {}
         }

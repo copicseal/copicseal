@@ -142,7 +142,7 @@ function LogoEditorDialog({ logo, workspace, existing, onSave, onClose }: LogoEd
           <div className="flex items-center gap-3">
             <div className="co-logo-checker flex size-16 shrink-0 items-center justify-center rounded-md border border-border/70 p-1">
               {previewUrl ? (
-                <img src={previewUrl} alt="" className="max-h-full max-w-full object-contain" />
+                <img src={previewUrl} alt="" className="h-14 w-full object-contain" />
               ) : (
                 <ImagePlus aria-hidden="true" className="size-5 text-muted-foreground" />
               )}
@@ -344,11 +344,7 @@ export function LogosTab({ logos, workspace, onChange }: LogosTabProps) {
                 className="co-logo-checker flex h-16 items-center justify-center rounded-md border border-border/60 p-2"
                 title={brand.label}
               >
-                <img
-                  src={brand.url}
-                  alt={brand.label}
-                  className="max-h-full max-w-full object-contain"
-                />
+                <img src={brand.url} alt={brand.label} className="h-12 w-full object-contain" />
               </li>
             ))}
           </ul>
@@ -385,7 +381,7 @@ export function LogosTab({ logos, workspace, onChange }: LogosTabProps) {
                     <img
                       src={customLogoUrl(workspace, logo.file_name)}
                       alt=""
-                      className="max-h-full max-w-full object-contain"
+                      className="h-10 w-full object-contain"
                     />
                   </div>
                   <div className="min-w-0 flex-1">

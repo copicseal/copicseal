@@ -149,6 +149,22 @@ platform/
 
 ---
 
+### CSP 与 asset 协议
+
+照片预览、导入字体、自定义 Logo 都通过 Tauri 的 asset 协议加载：macOS / Linux 是 `asset:`，
+Windows / Android 是 `http://asset.localhost`。`app.security.csp` 里**三者都要各自放行**：
+
+| 指令 | 覆盖 |
+|------|------|
+| `img-src` | `<img>` 显示（预览、Logo） |
+| `font-src` | `@font-face` 加载工作区字体 |
+| `connect-src` | **代码里的 `fetch()`**：导出前把照片降采样内联（`core/renderer`）、从照片取主题色（`template/lib/photo-palette`） |
+
+`connect-src` 最容易漏：dev 模式跑在 Vite 页面上、不受 Tauri 注入的 CSP 约束，所以**这类问题只在打包版出现**，
+表现为导出结果里照片整块消失（只剩灰底与破图）、主题色取不到。前端只是 `console.warn`，
+界面上看不出原因——排查时先按上面这张表核对 CSP，再看控制台有没有
+`[snapshot] 图片降采样失败`。
+
 ## 6.6 持久化策略
 
 ### 持久化内容

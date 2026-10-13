@@ -27,7 +27,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost http://asset.localhost https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' asset: http://asset.localhost blob: https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' asset: http://asset.localhost data: https://fonts.gstatic.com; script-src 'self' 'wasm-unsafe-eval'",
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost asset: http://asset.localhost https://fonts.googleapis.com https://fonts.gstatic.com; img-src 'self' asset: http://asset.localhost blob: https: data:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' asset: http://asset.localhost data: https://fonts.gstatic.com; script-src 'self' 'wasm-unsafe-eval'",
       "assetProtocol": {
         "enable": true,
         "scope": [

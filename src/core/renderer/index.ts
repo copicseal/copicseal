@@ -174,7 +174,14 @@ export async function capEmbeddedImages(
         target.apply(dataUrl);
         restores.push(target.restore);
       } catch (error) {
-        console.warn('[snapshot] 图片降采样失败，改用原图:', error);
+        // 打包版里这里失败通常只有一个原因：CSP 的 connect-src 没放行该图片协议
+        //（照片预览走 asset: / http://asset.localhost），fetch 被拦后只能拿原图去内联，
+        // 大图会让整个 SVG 超出 WebKit 上限、图片整块丢失——导出里就是灰底加破图。
+        const scheme = target.src.split(':')[0] || '?';
+        console.warn(
+          `[snapshot] 图片降采样失败（${scheme}:），改用原图；打包版请检查 tauri.conf.json 的 connect-src 是否放行了这个协议:`,
+          error,
+        );
       }
     }),
   );

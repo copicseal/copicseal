@@ -2,6 +2,7 @@ import {
   ArrowDown,
   ArrowUp,
   Box,
+  Camera,
   ChevronRight,
   Code2,
   Cog,
@@ -27,6 +28,7 @@ import appLogoUrl from '@/assets/logo.svg';
 import { COLLAGE_LAYOUT_GROUPS } from '@/features/collage/layouts';
 import { COLLAGE_RATIO_OPTIONS } from '@/features/collage/lib';
 import { useFontLibrary } from '@/features/fonts/use-font-library';
+import { DevicesTab } from '@/features/settings/devices-tab';
 import { PluginsTab } from '@/features/settings/plugins-tab';
 import { THIRD_PARTY_NOTICES } from '@/features/settings/third-party-notices';
 import { useTemplatePresets } from '@/features/template/hooks/use-template-presets';
@@ -59,6 +61,7 @@ import {
   type OutputPreset,
   type OutputSize,
   platformCapabilities,
+  type UserDeviceProfile,
 } from '@/platform';
 import { platformRuntime } from '@/platform/providers/platform-runtime';
 
@@ -151,6 +154,7 @@ const TAB_GROUPS: SettingsTabGroup[] = [
   },
   { items: [{ id: 'fonts', labelKey: 'settings.tabs.fonts', icon: Type }] },
   { items: [{ id: 'plugins', labelKey: 'settings.tabs.plugins', icon: Puzzle }] },
+  { items: [{ id: 'devices', labelKey: 'settings.tabs.devices', icon: Camera }] },
   { items: [{ id: 'export', labelKey: 'settings.tabs.exportTab', icon: Download }] },
   { items: [{ id: 'cache', labelKey: 'settings.tabs.cache', icon: Database }] },
   { items: [{ id: 'about', labelKey: 'settings.tabs.about', icon: Info }] },
@@ -1976,6 +1980,7 @@ export function SettingsPage() {
   const setDefaultPresets = useTemplateStore((state) => state.setDefaultPresets);
   const setDefaultFont = useTemplateStore((state) => state.setDefaultFont);
   const setExifFormat = useTemplateStore((state) => state.setExifFormat);
+  const setDevices = useTemplateStore((state) => state.setDevices);
   const setRetainExifInExport = useTemplateStore((state) => state.setRetainExifInExport);
   const [tab, setTab] = useState('general');
   const [config, setConfig] = useState<AppConfig | null>(null);
@@ -2231,6 +2236,19 @@ export function SettingsPage() {
       }));
     },
     [patchConfig],
+  );
+
+  /**
+   * 设备档案：写配置的同时同步模板 store 的镜像。
+   *
+   * 模板页常驻挂载，不同步的话要等重新进页面才能在新设备，体验上像「加了没用」。
+   */
+  const handleChangeDevices = useCallback(
+    (devices: UserDeviceProfile[]) => {
+      void patchConfig((current) => ({ ...current, devices: { items: devices } }));
+      setDevices(devices);
+    },
+    [patchConfig, setDevices],
   );
 
   const handleChangeExportSizes = useCallback(
@@ -2659,6 +2677,9 @@ export function SettingsPage() {
                 sources={config.plugins.sources}
                 onChangeSources={handleChangePluginSources}
               />
+            </TabsContent>
+            <TabsContent value="devices" className="mt-0">
+              <DevicesTab devices={config.devices.items} onChange={handleChangeDevices} />
             </TabsContent>
           </div>
         </ScrollArea>

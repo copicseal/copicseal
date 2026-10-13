@@ -14,5 +14,4 @@ export type {
   TemplatePreset,
   TemplateRegistry,
   UpsertComarkTemplatePayload,
-  UserDevice,
 } from './index';

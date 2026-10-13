@@ -50,7 +50,6 @@ export type {
   TemplatePreset,
   TemplateRegistry,
   UpsertComarkTemplatePayload,
-  UserDevice,
   WindowFrameMode,
 } from '@/platform/contracts';
 

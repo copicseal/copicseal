@@ -21,7 +21,8 @@ pub struct AppConfig {
     pub exif: ExifConfig,
     /// 插件下载源：默认内置官方源，用户可追加自己的镜像
     pub plugins: PluginConfig,
-    pub user_devices: Vec<UserDevice>,
+    /// 用户自己的设备档案（相机 / 镜头）：给不记录 EXIF 的机器与手动镜头用
+    pub devices: DeviceConfig,
     pub device_id: String,
 }
 
@@ -324,16 +325,38 @@ pub struct TemplateRegistry {
     pub url: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+/// 设备档案里的一行：字段名 + 用户手填的值。
+///
+/// `field` 取自前端那 10 个可改写字段（`make` / `model` / `lens_model` / `focal_length` /
+/// `aperture` / `shutter_speed` / `iso` / `date_taken` / `latitude` / `longitude`），
+/// 前端会忽略不认识的键，所以这里存字符串即可。
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[serde(default)]
-pub struct UserDevice {
+pub struct DeviceFieldValue {
+    pub field: String,
+    pub value: String,
+}
+
+/// 用户自己的设备档案：相机或镜头，字段可自由增删。
+///
+/// 用途：相机 / 手动镜头不记录 EXIF 时，把已知信息存成档案，在边框水印页一键写进
+/// 照片的「改动值」层（前端 `modifiedExif`），没有拍摄信息的照片也能有机型与参数。
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
+pub struct UserDeviceProfile {
     pub id: String,
     pub name: String,
-    pub device_type: String,
-    pub brand: String,
-    pub model: String,
-    pub lens: String,
-    pub exif_overrides: serde_json::Value,
+    /// `camera` | `lens`
+    pub category: String,
+    pub fields: Vec<DeviceFieldValue>,
+    pub created_at: u64,
+    pub updated_at: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
+pub struct DeviceConfig {
+    pub items: Vec<UserDeviceProfile>,
 }
 
 impl Default for AppConfig {
@@ -353,7 +376,7 @@ impl Default for AppConfig {
             collage: CollageConfig::default(),
             exif: ExifConfig::default(),
             plugins: PluginConfig::default(),
-            user_devices: Vec::new(),
+            devices: DeviceConfig::default(),
             device_id: String::new(),
         }
     }
@@ -466,20 +489,6 @@ fn default_export_directory() -> String {
         .to_string()
 }
 
-impl Default for UserDevice {
-    fn default() -> Self {
-        Self {
-            id: String::new(),
-            name: String::new(),
-            device_type: "camera".to_string(),
-            brand: String::new(),
-            model: String::new(),
-            lens: String::new(),
-            exif_overrides: serde_json::json!({}),
-        }
-    }
-}
-
 fn read_json_value<T>(conn: &Connection, key: &str) -> Result<Option<T>, String>
 where
     T: for<'de> Deserialize<'de>,
@@ -535,7 +544,7 @@ fn load_from_db(app: &tauri::AppHandle) -> Result<AppConfig, String> {
         collage: read_json_value(&conn, "collage")?.unwrap_or(defaults.collage),
         exif: read_json_value(&conn, "exif")?.unwrap_or(defaults.exif),
         plugins: read_json_value(&conn, "plugins")?.unwrap_or(defaults.plugins),
-        user_devices: read_json_value(&conn, "user_devices")?.unwrap_or(defaults.user_devices),
+        devices: read_json_value(&conn, "devices")?.unwrap_or(defaults.devices),
         device_id: read_json_value(&conn, "device_id")?.unwrap_or_default(),
     };
 
@@ -588,7 +597,7 @@ fn save_to_db(app: &tauri::AppHandle, config: &AppConfig) -> Result<(), String> 
     write_json_value(&tx, "collage", &config.collage)?;
     write_json_value(&tx, "exif", &config.exif)?;
     write_json_value(&tx, "plugins", &config.plugins)?;
-    write_json_value(&tx, "user_devices", &config.user_devices)?;
+    write_json_value(&tx, "devices", &config.devices)?;
     write_json_value(&tx, "device_id", &config.device_id)?;
 
     tx.commit().map_err(|e| format!("提交配置事务失败: {e}"))
@@ -672,5 +681,73 @@ mod tests {
         assert_eq!(config.date_format, "YYYY-MM-DD HH:mm:ss");
         assert_eq!(config.gps_format, "letter");
         assert!(!config.focal_length_35mm);
+    }
+
+    /// `devices` 段的线上字段名同样是前后端约定，改名会让设备档案静默丢字段。
+    #[test]
+    fn device_config_wire_keys_are_snake_case() {
+        let profile = serde_json::to_value(UserDeviceProfile::default()).unwrap();
+        let profile_keys: Vec<&str> = profile
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect();
+        assert_eq!(
+            profile_keys,
+            vec![
+                "category",
+                "created_at",
+                "fields",
+                "id",
+                "name",
+                "updated_at"
+            ]
+        );
+
+        let field = serde_json::to_value(DeviceFieldValue::default()).unwrap();
+        let field_keys: Vec<&str> = field
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect();
+        assert_eq!(field_keys, vec!["field", "value"]);
+
+        let config = serde_json::to_value(DeviceConfig::default()).unwrap();
+        let config_keys: Vec<&str> = config
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect();
+        assert_eq!(config_keys, vec!["items"]);
+    }
+
+    /// 前端载荷（下划线键 + 字段数组）要能原样读回来，不被 `#[serde(default)]` 吞掉。
+    #[test]
+    fn device_config_accepts_the_frontend_payload() {
+        let payload = r#"{
+            "items": [
+                {
+                    "id": "d-1",
+                    "name": "A7M4",
+                    "category": "camera",
+                    "fields": [
+                        { "field": "make", "value": "SONY" },
+                        { "field": "model", "value": "ILCE-7M4" }
+                    ],
+                    "created_at": 1,
+                    "updated_at": 2
+                }
+            ]
+        }"#;
+        let config: DeviceConfig = serde_json::from_str(payload).unwrap();
+
+        assert_eq!(config.items.len(), 1);
+        assert_eq!(config.items[0].category, "camera");
+        assert_eq!(config.items[0].fields.len(), 2);
+        assert_eq!(config.items[0].fields[1].value, "ILCE-7M4");
+        assert_eq!(config.items[0].updated_at, 2);
     }
 }

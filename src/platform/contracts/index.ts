@@ -70,6 +70,20 @@ export interface FontNote {
   note: string;
 }
 
+/** 可被用户改写的 EXIF 字段：模板变量用到的那些字符串字段。 */
+export type ExifOverrideFieldName =
+  | 'make'
+  | 'model'
+  | 'lens_model'
+  | 'focal_length'
+  | 'aperture'
+  | 'shutter_speed'
+  | 'iso'
+  | 'date_taken'
+  // GPS：ExifData 里是 number，改动值仍按字符串存（用户输入），合并时再转数值
+  | 'latitude'
+  | 'longitude';
+
 export interface ImportedFont {
   id: string;
   /** 工作区 `Fonts/` 下的文件名 */
@@ -321,14 +335,32 @@ export interface TemplateListConfig {
   remote_registry: TemplateRegistry[];
 }
 
-export interface UserDevice {
+/** 设备档案的类别：相机或镜头（应用时各选一个，字段合并、镜头优先）。 */
+export type DeviceCategory = 'camera' | 'lens';
+
+/**
+ * 设备档案里的一行：字段名 + 用户手填的值。
+ *
+ * 字段取自 `ExifOverrideFieldName`（模板变量能用到的那 10 个），值按原样文本存，
+ * 显示/导出时再走「设置 → 边框水印 → EXIF」的格式化与映射口径。
+ */
+export interface DeviceFieldValue {
+  field: ExifOverrideFieldName;
+  value: string;
+}
+
+/** 用户自己的设备档案：给不记录 EXIF 的相机与手动镜头用。 */
+export interface UserDeviceProfile {
   id: string;
   name: string;
-  device_type: string;
-  brand: string;
-  model: string;
-  lens: string;
-  exif_overrides: Record<string, unknown>;
+  category: DeviceCategory;
+  fields: DeviceFieldValue[];
+  created_at: number;
+  updated_at: number;
+}
+
+export interface DeviceConfig {
+  items: UserDeviceProfile[];
 }
 
 export interface AppConfig {
@@ -347,7 +379,8 @@ export interface AppConfig {
   exif: ExifSettings;
   /** 插件下载源（默认官方源，可加镜像） */
   plugins: PluginConfig;
-  user_devices: UserDevice[];
+  /** 用户自己的设备档案（相机 / 镜头） */
+  devices: DeviceConfig;
   device_id: string;
 }
 

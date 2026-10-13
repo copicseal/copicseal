@@ -293,6 +293,32 @@ EXIF 的显示口径是独立的一段配置，见下面的 EXIF 小节。
 「导出携带原图 EXIF」的开关落在 `output.retain_exif`（见 Export 一节）：它描述的是导出行为，
 所以留在 `output` 里，开关本身画在 EXIF 这一页。
 
+### Devices
+
+设置 → 设备 写的就是这里；Rust 侧 `DeviceConfig` / `UserDeviceProfile` / `DeviceFieldValue`，
+字段名同样必须与 Rust 结构体逐字一致（下划线），理由见上一节。
+
+| 字段 | 默认 | 说明 |
+|------|------|------|
+| items | `[]` | 设备档案列表 |
+
+`items[]` 的成员：
+
+| 字段 | 说明 |
+|------|------|
+| id | uuid |
+| name | 用户起的名字 |
+| category | `camera` / `lens` |
+| fields | `{ field, value }[]`；field 取 10 个可改写字段之一（`make` / `model` / `lens_model` / `focal_length` / `aperture` / `shutter_speed` / `iso` / `date_taken` / `latitude` / `longitude`） |
+| created_at / updated_at | 秒级时间戳 |
+
+约束：
+
+- 前端读回时过 `normalizeDeviceProfiles`：类别非法或没有 id 的条目丢弃，字段去空值、按字段表顺序规整
+- 设置页保存后会同步 `useTemplateStore.devices`（模板页与设置页都是常驻页面，不重挂也要立刻能选到），
+  与 `exifFormat` 同一套做法
+- 旧版遗留的 `user_devices` 段已移除；DB 里的旧键不再读写，也不做迁移
+
 ### Collage
 
 设置 → 拼图（「默认项 / 导出」两页）写的就是这里；Rust 侧 `CollageConfig`，缺字段按 `Default` 补齐。

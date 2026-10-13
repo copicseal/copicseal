@@ -14,6 +14,7 @@ import {
   useTemplateStore,
 } from '../store/use-template-store';
 import { collectUsedExifTokens, EXIF_TEXT_VARIABLES } from '../templates/format-exif-text';
+import { TemplateExifDevicePanel } from './template-exif-device-panel';
 
 /** 卡片与标题栏按钮共用的状态：当前照片、模板用到的字段、改动值与还原动作。 */
 function useExifFieldsEditor() {
@@ -118,6 +119,8 @@ export function TemplateExifFieldsCard() {
 
   return (
     <div className="space-y-2">
+      <TemplateExifDevicePanel photoId={photoId} exif={exif} overrides={overrides} />
+
       <p className="text-[11px] leading-5 text-muted-foreground">{t('template.exifFields.hint')}</p>
 
       {usedFields.map((variable) => {

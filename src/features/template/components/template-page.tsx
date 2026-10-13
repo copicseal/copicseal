@@ -18,6 +18,7 @@ import {
   type TemplateBackground,
   toTemplateBackground,
 } from '@/features/template/background';
+import { resolveUserDevices } from '@/features/template/lib/device-settings';
 import {
   resolveExifSettings,
   resolveRetainExifInExport,
@@ -673,6 +674,7 @@ export function TemplatePage() {
   const setExportSizes = useTemplateStore((state) => state.setExportSizes);
   const setExifFormat = useTemplateStore((state) => state.setExifFormat);
   const setRetainExifInExport = useTemplateStore((state) => state.setRetainExifInExport);
+  const setDevices = useTemplateStore((state) => state.setDevices);
   const retainExifInExport = useTemplateStore((state) => state.retainExifInExport);
   const defaultFont = useTemplateStore((state) => state.defaultConfig.font);
   const prune = useTemplateStore((state) => state.prune);
@@ -692,12 +694,13 @@ export function TemplatePage() {
     let cancelled = false;
 
     void (async () => {
-      const [presets, font, sizes, exifSettings, retainExif] = await Promise.all([
+      const [presets, font, sizes, exifSettings, retainExif, devices] = await Promise.all([
         resolveDefaultOutputPresets(),
         resolveDefaultFont(),
         resolveExportSizes(),
         resolveExifSettings(),
         resolveRetainExifInExport(),
+        resolveUserDevices(),
       ]);
       if (cancelled) {
         return;
@@ -713,12 +716,20 @@ export function TemplatePage() {
       setExportSizes(sizes);
       setExifFormat(exifSettings);
       setRetainExifInExport(retainExif);
+      setDevices(devices);
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [setDefaultFont, setDefaultPresets, setExportSizes, setExifFormat, setRetainExifInExport]);
+  }, [
+    setDefaultFont,
+    setDefaultPresets,
+    setExportSizes,
+    setExifFormat,
+    setRetainExifInExport,
+    setDevices,
+  ]);
 
   // 素材被移除后回收它的配置；prune 在无变化时返回原 state，不会引起额外渲染
   useEffect(() => {

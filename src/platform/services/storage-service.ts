@@ -27,5 +27,4 @@ export type {
   TemplateListConfig,
   TemplatePreset,
   UpsertComarkTemplatePayload,
-  UserDevice,
 } from '@/platform/contracts';

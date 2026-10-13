@@ -23,7 +23,7 @@ const defaultConfig = {
     mappings: [...DEFAULT_EXIF_MAPPINGS],
   },
   plugins: { sources: [] },
-  user_devices: [],
+  devices: { items: [] },
   device_id: 'web-device',
 };
 

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ExifSettings, OutputSize } from '@/platform/contracts';
+import type { ExifSettings, OutputSize, UserDeviceProfile } from '@/platform/contracts';
 import type { ExportPreset } from '@/shared/types/export';
 import { resolveTemplateBackground, type TemplateBackground } from '../background';
 import { createExportPreset } from '../lib/export-preset';
@@ -75,6 +75,12 @@ interface TemplateStoreState {
   setModifiedExif: (photoId: string, field: ExifOverrideField, value: string) => void;
   /** 清空改动值：全部字段回落到照片自身的 EXIF */
   resetModifiedExif: (photoId: string) => void;
+  /**
+   * 一次写入多张照片的改动值（设备档案「应用到全部素材」）。
+   *
+   * 只覆盖传入的字段，其余改动与照片原值保持原样。
+   */
+  applyModifiedExif: (entries: Array<{ photoId: string; overrides: ExifOverrides }>) => void;
   setParams: (photoId: string, params: Record<string, unknown>) => void;
   setBackground: (photoId: string, background: TemplateBackground) => void;
   setPresets: (photoId: string, presets: ExportPreset[]) => void;
@@ -108,6 +114,14 @@ interface TemplateStoreState {
    */
   retainExifInExport: boolean;
   setRetainExifInExport: (value: boolean) => void;
+  /**
+   * 用户自己的设备档案（相机 / 镜头）。
+   *
+   * 存储落在 `config.devices`，这里给两个常驻页面一份同步镜像，理由同 `exifFormat`：
+   * 设置页新增设备后，模板页的「我的设备」立刻能选到。
+   */
+  devices: UserDeviceProfile[];
+  setDevices: (devices: UserDeviceProfile[]) => void;
   /**
    * 把一条模板预设应用到若干张照片。
    *
@@ -143,6 +157,7 @@ export const useTemplateStore = create<TemplateStoreState>()((set) => ({
   templatePresets: [],
   exifFormat: DEFAULT_EXIF_SETTINGS,
   retainExifInExport: true,
+  devices: [],
 
   setTemplate: (photoId, templateId) => {
     const template = resolveBuiltinTemplate(templateId);
@@ -186,6 +201,34 @@ export const useTemplateStore = create<TemplateStoreState>()((set) => ({
           [photoId]: { ...current, modifiedExif: {} },
         },
       };
+    });
+  },
+
+  /**
+   * 一次写入多张照片的改动值（设备档案「应用到全部素材」用）。
+   *
+   * 合并语义：只覆盖传入的字段，其它改动与照片原值保持不变；合成一次 set，
+   * 避免逐张写入触发 N 次重渲染。
+   */
+  applyModifiedExif: (entries) => {
+    set((state) => {
+      const configs = { ...state.configs };
+      let changed = false;
+
+      for (const entry of entries) {
+        if (Object.keys(entry.overrides).length === 0) {
+          continue;
+        }
+
+        const current = configFor(configs, state.defaultConfig, entry.photoId);
+        configs[entry.photoId] = {
+          ...current,
+          modifiedExif: { ...current.modifiedExif, ...entry.overrides },
+        };
+        changed = true;
+      }
+
+      return changed ? { configs } : state;
     });
   },
 
@@ -247,6 +290,10 @@ export const useTemplateStore = create<TemplateStoreState>()((set) => ({
 
   setExifFormat: (settings) => {
     set({ exifFormat: structuredClone(settings) });
+  },
+
+  setDevices: (devices) => {
+    set({ devices: structuredClone(devices) });
   },
 
   setRetainExifInExport: (value) => {

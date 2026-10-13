@@ -1,4 +1,4 @@
-import type { ExifData, ExifSettings } from '@/platform';
+import type { ExifData, ExifOverrideFieldName, ExifSettings } from '@/platform';
 import type { MessageKey } from '@/shared/i18n';
 import {
   applyExifMapping,
@@ -11,19 +11,13 @@ import {
 } from './exif-format';
 
 /** 模板文案中支持的内置 EXIF 变量，同时用于属性面板提示与「按模板用到的字段」编辑。 */
-/** 可被用户改写的 EXIF 字段（只含模板变量用到的字符串字段）。 */
-export type ExifOverrideField =
-  | 'make'
-  | 'model'
-  | 'lens_model'
-  | 'focal_length'
-  | 'aperture'
-  | 'shutter_speed'
-  | 'iso'
-  | 'date_taken'
-  // GPS：ExifData 里是 number，改动值仍按字符串存（用户输入），合并时再转数值
-  | 'latitude'
-  | 'longitude';
+/**
+ * 可被用户改写的 EXIF 字段（只含模板变量用到的字符串字段）。
+ *
+ * 定义放在平台契约里：设备档案（`config.devices`）用的是同一份字段集合，
+ * 两边共用一个类型才不会漂移。
+ */
+export type ExifOverrideField = ExifOverrideFieldName;
 
 export interface ExifVariable {
   token: string;

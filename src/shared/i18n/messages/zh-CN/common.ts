@@ -56,12 +56,16 @@ export const common = {
   dialog: {
     /** 原生「打开图片」对话框里的文件类型筛选名 */
     imageFilter: '图片',
+    /** 原生「选择 Logo」对话框里的文件类型筛选名 */
+    logoFilter: 'Logo 图片',
   },
   error: {
     /** Web 端（没有工作区目录）才会出现的错误 */
     webNoWorkspace: {
       importFonts: '网页端没有工作区目录，无法导入字体文件',
       deleteFonts: '网页端没有工作区目录，无法删除字体文件',
+      importLogos: '网页端没有工作区目录，无法添加自定义 Logo',
+      deleteLogos: '网页端没有工作区目录，无法删除自定义 Logo',
     },
     webNoPlugins: '网页端不支持插件',
   },

@@ -2,6 +2,7 @@ import type { CSSProperties, ReactNode } from 'react';
 import type { ExifData } from '@/platform';
 import type { MessageKey } from '@/shared/i18n';
 import type { TemplateBackground } from '../background';
+import type { CustomLogoOverride } from './custom-logo';
 import type { ExifFormatter } from './format-exif-text';
 
 /**
@@ -27,6 +28,14 @@ export interface TemplateInjectedProps {
    * 否则照片上的文字会绕开用户设置。
    */
   exifFormat: ExifFormatter;
+  /**
+   * 命中的自定义品牌 Logo；没有自定义条目命中时为 null。
+   *
+   * `brand.ts` 的两个 getter 只认内置品牌表，用户自定义的 Logo 从这里覆盖：
+   * `svg` 优先内联（用 `currentColor` 的会跟随文字颜色），否则退回 `url` 按原色渲染。
+   * 模板用 `resolveLogoRender()` 统一决策，不要自己拼这段逻辑。
+   */
+  logoOverride: CustomLogoOverride | null;
 }
 
 export interface TemplateMeta {

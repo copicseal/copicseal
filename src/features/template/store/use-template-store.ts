@@ -11,6 +11,7 @@ import {
   resolveBuiltinTemplate,
 } from '../runtime/template-registry';
 import { DEFAULT_TEMPLATE_ID } from '../templates';
+import type { CustomLogoEntry } from '../templates/custom-logo';
 import { DEFAULT_EXIF_SETTINGS } from '../templates/exif-format';
 import type { ExifOverrideField, ExifOverrides } from '../templates/format-exif-text';
 
@@ -123,6 +124,14 @@ interface TemplateStoreState {
   devices: UserDeviceProfile[];
   setDevices: (devices: UserDeviceProfile[]) => void;
   /**
+   * 自定义品牌 Logo（已解析好资源地址与内联 SVG）。
+   *
+   * 与 `devices` / `exifFormat` 同理：存储落在 `config.logos`，这里给两个常驻页面一份
+   * 同步镜像——模板渲染走它来挑 Logo，设置页改完画布立刻跟着换。
+   */
+  customLogos: CustomLogoEntry[];
+  setCustomLogos: (logos: CustomLogoEntry[]) => void;
+  /**
    * 把一条模板预设应用到若干张照片。
    *
    * 模板、参数、背景与字体一次性写入：它们共同构成「一套样式」，
@@ -158,6 +167,7 @@ export const useTemplateStore = create<TemplateStoreState>()((set) => ({
   exifFormat: DEFAULT_EXIF_SETTINGS,
   retainExifInExport: true,
   devices: [],
+  customLogos: [],
 
   setTemplate: (photoId, templateId) => {
     const template = resolveBuiltinTemplate(templateId);
@@ -294,6 +304,10 @@ export const useTemplateStore = create<TemplateStoreState>()((set) => ({
 
   setDevices: (devices) => {
     set({ devices: structuredClone(devices) });
+  },
+
+  setCustomLogos: (logos) => {
+    set({ customLogos: [...logos] });
   },
 
   setRetainExifInExport: (value) => {

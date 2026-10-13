@@ -85,6 +85,7 @@
 - 表是唯一口径：删掉某条内置映射，字段就恢复原样显示（`{Make}` 会重新输出 `SONY`）
 - **Logo 选图不受映射影响**：品牌规范化在代码里另有一张表（`templates/brand.ts` 的 `BRAND_ALIASES`），
   把 Sony 的显示名改成「索尼」也仍会选到 `SONY.svg`；Logo 提供 PNG 与 SVG 两种格式
+  - 用户自建的 Logo 走「设置 → Logo」，命中后**覆盖内置**（见 docs/03 的「品牌 Logo」一节）
 
 内置表在两处定义、必须保持一致：Rust `config::default_exif_mappings()`（新装用户的配置默认值）
 与前端 `shared/lib/exif-defaults.ts` 的 `DEFAULT_EXIF_MAPPINGS`（老配置缺键时的回落）。

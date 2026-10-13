@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { getBrandLogoSvg, getBrandLogoUrl } from './brand';
+import { resolveLogoRender } from './custom-logo';
 import { defineTemplate } from './define-template';
 import type {
   RegisteredTemplate,
@@ -322,6 +322,7 @@ function Overlay({
   textColor,
   logoColorAuto,
   logoShadow,
+  logoOverride,
   shadowBlur,
   shadowColor,
   shadowOpacity,
@@ -335,8 +336,12 @@ function Overlay({
 
   const brand = exifFormat.brand();
   const model = exifFormat.model();
-  const monoLogo = logoColorAuto ? getBrandLogoSvg(exif?.make, exif?.model) : null;
-  const coloredLogo = monoLogo ? null : getBrandLogoUrl(exif?.make, exif?.model);
+  const { autoLogo: monoLogo, coloredLogo } = resolveLogoRender({
+    override: logoOverride,
+    logoColorAuto,
+    make: exif?.make,
+    model: exif?.model,
+  });
 
   const line1 = exifFormat.text(text1);
   // 文案留空时回退到拍摄时间，与旧版 `replaceTextVars(text2) || datetime` 的行为一致
@@ -448,7 +453,7 @@ function Overlay({
               className="flex h-full [&>svg]:h-full [&>svg]:w-auto [&>svg]:max-w-full"
               // 单色标志是 SVG 源码，靠容器上的 color 让 currentColor 生效
               style={{ color: textColor }}
-              // biome-ignore lint/security/noDangerouslySetInnerHtml: 标志是构建期打包的内置 SVG 资源，不是用户输入
+              // biome-ignore lint/security/noDangerouslySetInnerHtml: 内置 Logo 资产，或已由 sanitizeCustomSvg 清理过的自定义 SVG（去掉脚本与事件属性）
               dangerouslySetInnerHTML={{ __html: monoLogo }}
             />
           ) : coloredLogo ? (

@@ -23,6 +23,8 @@ pub struct AppConfig {
     pub plugins: PluginConfig,
     /// 用户自己的设备档案（相机 / 镜头）：给不记录 EXIF 的机器与手动镜头用
     pub devices: DeviceConfig,
+    /// 自定义品牌 Logo：内置品牌之外（或覆盖内置）的厂商标志
+    pub logos: LogoConfig,
     pub device_id: String,
 }
 
@@ -359,6 +361,32 @@ pub struct DeviceConfig {
     pub items: Vec<UserDeviceProfile>,
 }
 
+/// 一条自定义品牌 Logo。
+///
+/// 用途：内置品牌表（`src/assets/logos/`）收不全所有厂商，或者用户想换成自己的标志。
+/// 匹配只看 EXIF 的 `make` / `model`：任一关键字出现即命中，数组顺序即优先级，
+/// 自定义命中后**覆盖内置**。
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
+pub struct CustomLogo {
+    pub id: String,
+    pub name: String,
+    /// 匹配关键字（大小写不敏感，逗号分隔由前端拆成数组）
+    pub keywords: Vec<String>,
+    /// 兜底：没有匹配到任何品牌时使用
+    pub catch_all: bool,
+    /// 工作区 `Logos/` 下的文件名
+    pub file_name: String,
+    pub size: u64,
+    pub added_at: u64,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
+pub struct LogoConfig {
+    pub items: Vec<CustomLogo>,
+}
+
 impl Default for AppConfig {
     fn default() -> Self {
         let save_directory = default_save_directory();
@@ -377,6 +405,7 @@ impl Default for AppConfig {
             exif: ExifConfig::default(),
             plugins: PluginConfig::default(),
             devices: DeviceConfig::default(),
+            logos: LogoConfig::default(),
             device_id: String::new(),
         }
     }
@@ -545,6 +574,7 @@ fn load_from_db(app: &tauri::AppHandle) -> Result<AppConfig, String> {
         exif: read_json_value(&conn, "exif")?.unwrap_or(defaults.exif),
         plugins: read_json_value(&conn, "plugins")?.unwrap_or(defaults.plugins),
         devices: read_json_value(&conn, "devices")?.unwrap_or(defaults.devices),
+        logos: read_json_value(&conn, "logos")?.unwrap_or(defaults.logos),
         device_id: read_json_value(&conn, "device_id")?.unwrap_or_default(),
     };
 
@@ -598,6 +628,7 @@ fn save_to_db(app: &tauri::AppHandle, config: &AppConfig) -> Result<(), String> 
     write_json_value(&tx, "exif", &config.exif)?;
     write_json_value(&tx, "plugins", &config.plugins)?;
     write_json_value(&tx, "devices", &config.devices)?;
+    write_json_value(&tx, "logos", &config.logos)?;
     write_json_value(&tx, "device_id", &config.device_id)?;
 
     tx.commit().map_err(|e| format!("提交配置事务失败: {e}"))
@@ -749,5 +780,63 @@ mod tests {
         assert_eq!(config.items[0].fields.len(), 2);
         assert_eq!(config.items[0].fields[1].value, "ILCE-7M4");
         assert_eq!(config.items[0].updated_at, 2);
+    }
+
+    /// `logos` 段的键名同样是前后端约定：改名会让自定义 Logo 静默丢失。
+    #[test]
+    fn logo_config_wire_keys_are_snake_case() {
+        let logo = serde_json::to_value(CustomLogo::default()).unwrap();
+        let logo_keys: Vec<&str> = logo
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect();
+        assert_eq!(
+            logo_keys,
+            vec![
+                "added_at",
+                "catch_all",
+                "file_name",
+                "id",
+                "keywords",
+                "name",
+                "size"
+            ]
+        );
+
+        let config = serde_json::to_value(LogoConfig::default()).unwrap();
+        let config_keys: Vec<&str> = config
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect();
+        assert_eq!(config_keys, vec!["items"]);
+    }
+
+    /// 前端载荷（下划线键 + 关键字数组）要能原样读回来。
+    #[test]
+    fn logo_config_accepts_the_frontend_payload() {
+        let payload = r#"{
+            "items": [
+                {
+                    "id": "l-1",
+                    "name": "我的厂牌",
+                    "keywords": ["SONY", "ILCE"],
+                    "catch_all": false,
+                    "file_name": "mylogo.svg",
+                    "size": 2048,
+                    "added_at": 7
+                }
+            ]
+        }"#;
+        let config: LogoConfig = serde_json::from_str(payload).unwrap();
+
+        assert_eq!(config.items.len(), 1);
+        assert_eq!(config.items[0].keywords, vec!["SONY", "ILCE"]);
+        assert!(!config.items[0].catch_all);
+        assert_eq!(config.items[0].file_name, "mylogo.svg");
+        assert_eq!(config.items[0].size, 2048);
     }
 }

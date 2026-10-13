@@ -28,6 +28,7 @@ import {
   parseDefaultPresets,
   toDefaultPresets,
 } from '@/features/template/lib/export-preset';
+import { resolveCustomLogoEntries } from '@/features/template/lib/logo-settings';
 import { applyRenderSize } from '@/features/template/lib/render-size';
 import { getBuiltinTemplateSchema } from '@/features/template/runtime/template-registry';
 import {
@@ -675,6 +676,7 @@ export function TemplatePage() {
   const setExifFormat = useTemplateStore((state) => state.setExifFormat);
   const setRetainExifInExport = useTemplateStore((state) => state.setRetainExifInExport);
   const setDevices = useTemplateStore((state) => state.setDevices);
+  const setCustomLogos = useTemplateStore((state) => state.setCustomLogos);
   const retainExifInExport = useTemplateStore((state) => state.retainExifInExport);
   const defaultFont = useTemplateStore((state) => state.defaultConfig.font);
   const prune = useTemplateStore((state) => state.prune);
@@ -694,14 +696,16 @@ export function TemplatePage() {
     let cancelled = false;
 
     void (async () => {
-      const [presets, font, sizes, exifSettings, retainExif, devices] = await Promise.all([
-        resolveDefaultOutputPresets(),
-        resolveDefaultFont(),
-        resolveExportSizes(),
-        resolveExifSettings(),
-        resolveRetainExifInExport(),
-        resolveUserDevices(),
-      ]);
+      const [presets, font, sizes, exifSettings, retainExif, devices, customLogos] =
+        await Promise.all([
+          resolveDefaultOutputPresets(),
+          resolveDefaultFont(),
+          resolveExportSizes(),
+          resolveExifSettings(),
+          resolveRetainExifInExport(),
+          resolveUserDevices(),
+          resolveCustomLogoEntries(),
+        ]);
       if (cancelled) {
         return;
       }
@@ -717,6 +721,7 @@ export function TemplatePage() {
       setExifFormat(exifSettings);
       setRetainExifInExport(retainExif);
       setDevices(devices);
+      setCustomLogos(customLogos);
     })();
 
     return () => {
@@ -729,6 +734,7 @@ export function TemplatePage() {
     setExifFormat,
     setRetainExifInExport,
     setDevices,
+    setCustomLogos,
   ]);
 
   // 素材被移除后回收它的配置；prune 在无变化时返回原 state，不会引起额外渲染

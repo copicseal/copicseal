@@ -57,12 +57,16 @@ export const common: Messages['common'] = {
   dialog: {
     /** File type filter name in the native “open images” dialog */
     imageFilter: 'Images',
+    /** File type filter name in the native “select logo” dialog */
+    logoFilter: 'Logo image',
   },
   error: {
     /** Web build only (no workspace folder) */
     webNoWorkspace: {
       importFonts: 'The web build has no workspace folder, so font files cannot be imported.',
       deleteFonts: 'The web build has no workspace folder, so font files cannot be deleted.',
+      importLogos: 'The web build has no workspace folder, so custom logos cannot be added.',
+      deleteLogos: 'The web build has no workspace folder, so custom logos cannot be deleted.',
     },
     webNoPlugins: 'Plugins are not supported in the web build.',
   },

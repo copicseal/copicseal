@@ -4,11 +4,17 @@
  * Logo 按「规范化后的品牌名 → 大写键」查表；单色版（`*.auto.svg`）使用
  * `currentColor`，可以跟随文字颜色一起上色。
  *
+ * **这里只管内置表**：用户自定义的 Logo 由模板注入的 `logoOverride` 在渲染时覆盖
+ * （见 `custom-logo.ts` 与 `TemplateRuntime`），两者不在这里混在一起，
+ * 这样设置页改完能立刻反映到画布上（走 React 数据流而不是模块级缓存）。
+ *
  * 机型/品牌**显示名**的改写规则不在这里：它们已经搬进「设置 → 边框水印 → EXIF」的
  * 字段映射表（默认值见 `exif-format.ts` 的 `DEFAULT_EXIF_MAPPINGS`），用户可以自己增删。
  * 本文件只保留「根据 make / model 挑哪张 Logo」所需的品牌规范化——即使把 Sony 的显示名
  * 改成「索尼」，也仍然能选到 `SONY.svg`。
  */
+
+import { toInlineSvg } from './svg-text';
 
 const logoModules = import.meta.glob('../../../assets/logos/*.svg', {
   eager: true,
@@ -29,28 +35,17 @@ function brandKeyOf(path: string): string {
 
 const logoUrlMap: Record<string, string> = {};
 const logoSvgMap: Record<string, string> = {};
+/** 大写键 → 文件名原始大小写（设置页展示用） */
+const logoLabelMap: Record<string, string> = {};
 
 for (const [path, url] of Object.entries(logoModules)) {
   // `*.svg` 也会匹配到单色版，这里排除，避免覆盖彩色版
   if (path.endsWith('.auto.svg')) {
     continue;
   }
-  logoUrlMap[brandKeyOf(path)] = url;
-}
-
-/**
- * 内联用的 SVG 源码清理。
- *
- * 原始文件带 BOM 与 `<?xml … ?>` 声明：直接塞进 `dangerouslySetInnerHTML` 时，
- * 前者会渲染成一个占位的行内字符、后者变成注释节点，它们和真正的 `<svg>`
- * 会在同一行盒里排布，把标志挤出垂直居中（白框 / 圆角模板里表现为标志下沉）。
- * 这里只保留 `<svg>` 本身，内联结果与普通元素一样可预测。
- */
-function toInlineSvg(svg: string): string {
-  return svg
-    .replace(/^\uFEFF/, '')
-    .replace(/<\?xml[\s\S]*?\?>/i, '')
-    .trim();
+  const key = brandKeyOf(path);
+  logoUrlMap[key] = url;
+  logoLabelMap[key] = (path.split('/').pop() ?? key).replace(/\.svg$/i, '');
 }
 
 for (const [path, svg] of Object.entries(logoSvgModules)) {
@@ -120,4 +115,27 @@ export function getBrandLogoUrl(make?: string | null, model?: string | null): st
 export function getBrandLogoSvg(make?: string | null, model?: string | null): string | null {
   const key = resolveBrandKey(make, model);
   return key ? (logoSvgMap[key] ?? null) : null;
+}
+
+export interface BuiltInBrand {
+  /** 大写品牌键（与文件名一致） */
+  key: string;
+  /** 展示名：取文件名原始大小写，如 `Sony`、`Fujifilm` */
+  label: string;
+  /** 彩色 Logo 的资源地址 */
+  url: string;
+  /** 是否有单色版；只有单色版才支持「logo 跟随文字颜色」 */
+  hasMono: boolean;
+}
+
+/** 内置品牌清单，供设置页只读展示（排序稳定，便于比对）。 */
+export function listBuiltInBrands(): BuiltInBrand[] {
+  return Object.keys(logoUrlMap)
+    .sort()
+    .map((key) => ({
+      key,
+      label: logoLabelMap[key] ?? key,
+      url: logoUrlMap[key] as string,
+      hasMono: key in logoSvgMap,
+    }));
 }

@@ -363,6 +363,36 @@ export interface DeviceConfig {
   items: UserDeviceProfile[];
 }
 
+/**
+ * 一条自定义品牌 Logo。
+ *
+ * 内置品牌表（`src/assets/logos/`）收不全所有厂商，或者用户想换成自己的标志。
+ * 匹配只看 EXIF 的 `make` / `model`：任一关键字出现即命中，数组顺序即优先级，
+ * 自定义命中后**覆盖内置**。
+ */
+export interface CustomLogo {
+  id: string;
+  name: string;
+  /** 匹配关键字（大小写不敏感） */
+  keywords: string[];
+  /** 兜底：没有匹配到任何品牌时使用 */
+  catch_all: boolean;
+  /** 工作区 `Logos/` 下的文件名 */
+  file_name: string;
+  size: number;
+  added_at: number;
+}
+
+export interface LogoConfig {
+  items: CustomLogo[];
+}
+
+/** 导入一条自定义 Logo 后的落盘结果（配置条目由前端补全 id / 关键字等）。 */
+export interface ImportedLogo {
+  file_name: string;
+  size: number;
+}
+
 export interface AppConfig {
   language: string;
   theme: string;
@@ -381,6 +411,8 @@ export interface AppConfig {
   plugins: PluginConfig;
   /** 用户自己的设备档案（相机 / 镜头） */
   devices: DeviceConfig;
+  /** 自定义品牌 Logo（内置之外的厂商标志，可覆盖同名内置品牌） */
+  logos: LogoConfig;
   device_id: string;
 }
 

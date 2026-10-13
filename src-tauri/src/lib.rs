@@ -4,6 +4,7 @@ mod db;
 mod exif;
 mod font;
 mod fs;
+mod logo;
 mod plugin;
 mod system;
 mod window;
@@ -55,6 +56,9 @@ pub fn run() {
             plugin::fetch_plugin_manifest,
             plugin::install_plugin,
             plugin::remove_plugin,
+            logo::import_logo_file,
+            logo::read_logo_svg,
+            logo::remove_logo_file,
             comark::list_comark_templates,
             comark::upsert_comark_template,
             comark::remove_comark_template,

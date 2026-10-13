@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
+import { useTemplateStore } from '@/features/template/store/use-template-store';
 import type { TemplateInjectedProps } from '@/features/template/templates';
+import { matchCustomLogo } from '@/features/template/templates/custom-logo';
 import { createExifFormatter } from '@/features/template/templates/format-exif-text';
 import type { ExifData, ExifSettings } from '@/platform';
 import { DEFAULT_TEMPLATE_ID, getBuiltinTemplateById, normalizeParams } from './template-registry';
@@ -43,6 +45,13 @@ export function TemplateRuntime({
   // 格式化器按「设置 + 当前照片」构造一次：口径或照片变了自然重算
   const exifFormat = useMemo(() => createExifFormatter(exifSettings, exif), [exifSettings, exif]);
 
+  // 自定义 Logo 命中后覆盖内置品牌图；订阅 store，设置页改完画布立刻跟着换
+  const customLogos = useTemplateStore((state) => state.customLogos);
+  const logoOverride = useMemo(
+    () => matchCustomLogo(customLogos, exif?.make, exif?.model),
+    [customLogos, exif?.make, exif?.model],
+  );
+
   if (!template) {
     return null;
   }
@@ -60,7 +69,13 @@ export function TemplateRuntime({
   const pick = font ? `"${font.replace(/"/g, '')}"` : resolvedFont;
   const canvasFont = pick ? `${pick}, sans-serif` : '';
   // 内联输入给原始族名：模板自己拼 SVG 时会写进属性，不能带引号与逗号
-  const injected: TemplateInjectedProps = { photoUrl, exif, font: resolvedFont, exifFormat };
+  const injected: TemplateInjectedProps = {
+    photoUrl,
+    exif,
+    font: resolvedFont,
+    exifFormat,
+    logoOverride,
+  };
 
   // 画布盒子只作为稳定句柄，尺寸由模板根自己按 --co-base 决定
   return (

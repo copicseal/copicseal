@@ -24,6 +24,7 @@ const defaultConfig = {
   },
   plugins: { sources: [] },
   devices: { items: [] },
+  logos: { items: [] },
   device_id: 'web-device',
 };
 
@@ -69,6 +70,15 @@ const webRuntime = {
     throw new Error(translate('common.error.webNoWorkspace.deleteFonts'));
   },
   inlineImportedFont: async () => null,
+  // 自定义 Logo 是工作区文件：网页端没有工作区目录，直接拒绝并给同一套提示
+  importLogoFile: async () => {
+    throw new Error(translate('common.error.webNoWorkspace.importLogos'));
+  },
+  removeLogoFile: async () => {
+    throw new Error(translate('common.error.webNoWorkspace.deleteLogos'));
+  },
+  readLogoSvg: async () => '',
+  openLogoDialog: async () => null,
   getConfig: async () => (await webStorage.get('app-config')) ?? defaultConfig,
   updateConfig: (config: Parameters<typeof tauriApi.updateConfig>[0]) =>
     webStorage.set('app-config', config),

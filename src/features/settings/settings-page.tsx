@@ -18,6 +18,7 @@ import {
   Puzzle,
   RefreshCw,
   Settings2,
+  Shapes,
   Trash2,
   Type,
   User,
@@ -29,10 +30,12 @@ import { COLLAGE_LAYOUT_GROUPS } from '@/features/collage/layouts';
 import { COLLAGE_RATIO_OPTIONS } from '@/features/collage/lib';
 import { useFontLibrary } from '@/features/fonts/use-font-library';
 import { DevicesTab } from '@/features/settings/devices-tab';
+import { LogosTab } from '@/features/settings/logos-tab';
 import { PluginsTab } from '@/features/settings/plugins-tab';
 import { THIRD_PARTY_NOTICES } from '@/features/settings/third-party-notices';
 import { useTemplatePresets } from '@/features/template/hooks/use-template-presets';
 import { parseDefaultPresets } from '@/features/template/lib/export-preset';
+import { resolveCustomLogoEntries } from '@/features/template/lib/logo-settings';
 import {
   MAX_TEMPLATE_PRESETS,
   TEMPLATE_PRESET_NAME_MAX,
@@ -51,6 +54,7 @@ import {
   type AppVersion,
   type CacheOverview,
   type CollageConfig,
+  type CustomLogo,
   clearAssetCaches,
   DEFAULT_COLLAGE_CONFIG,
   type ExifFieldMapping,
@@ -155,6 +159,7 @@ const TAB_GROUPS: SettingsTabGroup[] = [
   { items: [{ id: 'fonts', labelKey: 'settings.tabs.fonts', icon: Type }] },
   { items: [{ id: 'plugins', labelKey: 'settings.tabs.plugins', icon: Puzzle }] },
   { items: [{ id: 'devices', labelKey: 'settings.tabs.devices', icon: Camera }] },
+  { items: [{ id: 'logos', labelKey: 'settings.tabs.logos', icon: Shapes }] },
   { items: [{ id: 'export', labelKey: 'settings.tabs.exportTab', icon: Download }] },
   { items: [{ id: 'cache', labelKey: 'settings.tabs.cache', icon: Database }] },
   { items: [{ id: 'about', labelKey: 'settings.tabs.about', icon: Info }] },
@@ -1981,6 +1986,7 @@ export function SettingsPage() {
   const setDefaultFont = useTemplateStore((state) => state.setDefaultFont);
   const setExifFormat = useTemplateStore((state) => state.setExifFormat);
   const setDevices = useTemplateStore((state) => state.setDevices);
+  const setCustomLogos = useTemplateStore((state) => state.setCustomLogos);
   const setRetainExifInExport = useTemplateStore((state) => state.setRetainExifInExport);
   const [tab, setTab] = useState('general');
   const [config, setConfig] = useState<AppConfig | null>(null);
@@ -2249,6 +2255,24 @@ export function SettingsPage() {
       setDevices(devices);
     },
     [patchConfig, setDevices],
+  );
+
+  /**
+   * 自定义 Logo：先写配置、再重新解析镜像给模板 store。
+   *
+   * 必须等配置写完再解析：`resolveCustomLogoEntries()` 是从配置里读清单的，
+   * 顺序反了会拿到上一版（表现为「加了 Logo 但画布不换」）。
+   */
+  const handleChangeLogos = useCallback(
+    async (logos: CustomLogo[]) => {
+      try {
+        await patchConfig((current) => ({ ...current, logos: { items: logos } }));
+        setCustomLogos(await resolveCustomLogoEntries());
+      } catch (error) {
+        console.error('保存自定义 Logo 失败:', error);
+      }
+    },
+    [patchConfig, setCustomLogos],
   );
 
   const handleChangeExportSizes = useCallback(
@@ -2533,13 +2557,14 @@ export function SettingsPage() {
                 {index > 0 ? (
                   // w-full 不能省：TabsList 是 items-center 的 flex 列，没有宽度的
                   // 元素会被压成 0 宽并居中（分隔线会直接看不见）
-                  <span aria-hidden="true" className="my-1.5 h-px w-full bg-border/70" />
+                  // shrink-0：窗口矮时不允许被压缩，让列表真正产生溢出才能滚动
+                  <span aria-hidden="true" className="my-1.5 h-px w-full shrink-0 bg-border/70" />
                 ) : null}
                 {groupLabel ? (
                   // 同理，分组标题也必须铺满，否则会被 TabsList 居中
                   <span
                     aria-hidden="true"
-                    className="flex w-full items-center gap-2 px-1.5 pt-1 pb-0.5 text-[10px] font-medium text-muted-foreground"
+                    className="flex w-full shrink-0 items-center gap-2 px-1.5 pt-1 pb-0.5 text-[10px] font-medium text-muted-foreground"
                   >
                     {GroupIcon ? <GroupIcon className="size-3.5" /> : null}
                     {groupLabel}
@@ -2571,7 +2596,6 @@ export function SettingsPage() {
             );
           })}
         </TabsList>
-
         {/*
           「字体」页自成一块：它内部有会滚动的列表，需要确定高度。若和别的 tab 一样放进
           下面的滚动区，就会出现「页面滚动 + 列表滚动」两条滚动条，所以它在滚动区之外，
@@ -2588,7 +2612,6 @@ export function SettingsPage() {
             <FontLibraryTab />
           </div>
         </TabsContent>
-
         {/*
           viewportClassName 覆盖 Radix 给内容包的那层 `display: table`：table 盒会按内容
          的 max-content 撑开，`w-full` 与 `truncate` 全部失效，窗口一窄内容就横着溢出。
@@ -2680,6 +2703,13 @@ export function SettingsPage() {
             </TabsContent>
             <TabsContent value="devices" className="mt-0">
               <DevicesTab devices={config.devices.items} onChange={handleChangeDevices} />
+            </TabsContent>
+            <TabsContent value="logos" className="mt-0">
+              <LogosTab
+                logos={config.logos.items}
+                workspace={config.save_directory}
+                onChange={handleChangeLogos}
+              />
             </TabsContent>
           </div>
         </ScrollArea>

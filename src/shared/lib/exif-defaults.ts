@@ -26,7 +26,7 @@ export const DEFAULT_EXIF_MAPPINGS: readonly ExifFieldMapping[] = [
   { field: 'model', match: 'Canon', replace: '' },
   { field: 'model', match: 'Digital Camera', replace: '' },
   { field: 'model', match: 'PENTAX', replace: '' },
-  // 品牌：统一展示名（Logo 选图另有内置表，不受这里影响）
+  // 品牌：统一展示名（Logo 选图另有内置表 + 用户自定义表，不受这里影响）
   { field: 'make', match: 'SONY', replace: 'Sony' },
   { field: 'make', match: 'LEICA', replace: 'Leica' },
   { field: 'make', match: 'OLYMPUS', replace: 'Olympus' },

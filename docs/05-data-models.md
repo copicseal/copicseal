@@ -319,6 +319,35 @@ EXIF 的显示口径是独立的一段配置，见下面的 EXIF 小节。
   与 `exifFormat` 同一套做法
 - 旧版遗留的 `user_devices` 段已移除；DB 里的旧键不再读写，也不做迁移
 
+### Logos
+
+设置 → Logo 写的就是这里；Rust 侧 `LogoConfig` / `CustomLogo`，字段名同样必须与 Rust 结构体逐字一致。
+
+| 字段 | 默认 | 说明 |
+|------|------|------|
+| items | `[]` | 自定义 Logo 列表，**数组顺序即匹配优先级** |
+
+`items[]` 的成员：
+
+| 字段 | 说明 |
+|------|------|
+| id | uuid |
+| name | 展示名 |
+| keywords | 匹配关键字数组；命中 `exif.make` 或 `exif.model` 任一即生效（包含匹配、大小写不敏感） |
+| catch_all | 兜底：没有匹配到任何品牌时使用 |
+| file_name | 工作区 `Logos/` 下的文件名 |
+| size / added_at | 文件体积与导入时间 |
+
+约束：
+
+- 文件由 Rust 侧收进 `<工作区>/Logos/`：扩展名白名单（svg / png / jpg / jpeg / webp）、
+  SVG ≤ 512 KB、位图 ≤ 4 MB，位图还会用 `image::guess_format` 验真（挡住改扩展名的假图片）
+- 渲染侧只把自定义条目当作**覆盖层**：`brand.ts` 仍只管内置表，命中与否由
+  `templates/custom-logo.ts` 判定后经 `TemplateRuntime` 注入（`logoOverride`），
+  这样设置页改完画布立刻能换图，不需要模块级缓存
+- 自定义 SVG 会被读取文本并清理后内联（`templates/svg-text.ts`）；读取或清理失败则退回 `<img>`
+- 网页端没有工作区目录：该页提示不支持，配置段仍按空列表处理
+
 ### Collage
 
 设置 → 拼图（「默认项 / 导出」两页）写的就是这里；Rust 侧 `CollageConfig`，缺字段按 `Default` 补齐。

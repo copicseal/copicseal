@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { getBrandLogoSvg, getBrandLogoUrl } from './brand';
+import { resolveLogoRender } from './custom-logo';
 import { defineTemplate } from './define-template';
 import type {
   RegisteredTemplate,
@@ -168,6 +168,7 @@ function WhiteFrame({
   textColor,
   logoColorAuto,
   logoShadow,
+  logoOverride,
   shadowBlur,
   shadowColor,
   shadowOpacity,
@@ -181,8 +182,13 @@ function WhiteFrame({
 
   const brand = exifFormat.brand();
   const model = exifFormat.model();
-  const autoLogo = logoColorAuto ? getBrandLogoSvg(exif?.make, exif?.model) : null;
-  const coloredLogo = autoLogo ? null : getBrandLogoUrl(exif?.make, exif?.model);
+  // 自定义 Logo 优先，其次内置品牌图；是否内联由「logo 跟随文字颜色」决定
+  const { autoLogo, coloredLogo } = resolveLogoRender({
+    override: logoOverride,
+    logoColorAuto,
+    make: exif?.make,
+    model: exif?.model,
+  });
 
   const line1 = exifFormat.text(text1);
   const line2 = exifFormat.text(text2) || exifFormat.date();
@@ -264,7 +270,7 @@ function WhiteFrame({
                 className="block [&>svg]:block [&>svg]:h-auto [&>svg]:w-auto [&>svg]:max-h-(--co-logo-height) [&>svg]:max-w-(--co-logo-width)"
                 style={{ color: textColor }}
                 // 单色标志是随包内置的 SVG 资产（非用户输入），靠 currentColor 跟随文字颜色
-                // biome-ignore lint/security/noDangerouslySetInnerHtml: 内容来自打包进应用的 Logo 资产，不经过用户输入
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: 内置 Logo 资产，或已由 sanitizeCustomSvg 清理过的自定义 SVG（去掉脚本与事件属性）
                 dangerouslySetInnerHTML={{ __html: autoLogo }}
               />
             </div>

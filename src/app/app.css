@@ -174,3 +174,24 @@ body {
   animation: co-anchor-flash 1.6s ease-out;
   border-radius: var(--radius);
 }
+
+/*
+ * Logo 预览底色：透明格子棋盘。
+ *
+ * 品牌标志里黑色/深色的很常见，直接放在深色界面上会「看不见」；
+ * 固定用浅色棋盘格，既不跟主题走，也能一眼看出标志本身的透明区域。
+ */
+.co-logo-checker {
+  background-color: oklch(0.97 0 0);
+  background-image:
+    linear-gradient(45deg, oklch(0.85 0 0) 25%, transparent 25%),
+    linear-gradient(-45deg, oklch(0.85 0 0) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, oklch(0.85 0 0) 75%),
+    linear-gradient(-45deg, transparent 75%, oklch(0.85 0 0) 75%);
+  background-size: 12px 12px;
+  background-position:
+    0 0,
+    0 6px,
+    6px -6px,
+    -6px 0;
+}

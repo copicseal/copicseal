@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { getBrandLogoSvg, getBrandLogoUrl } from './brand';
+import { resolveLogoRender } from './custom-logo';
 import { defineTemplate } from './define-template';
 import type {
   RegisteredTemplate,
@@ -173,14 +173,19 @@ function Rounded({
   text2,
   logoColorAuto,
   logoShadow,
+  logoOverride,
 }: TemplateInjectedProps & RoundedParams) {
   const { aspect, handleLoad } = useImageAspect(photoUrl);
 
   const brand = exifFormat.brand();
   const model = exifFormat.model();
-  // 单色标志走 SVG + currentColor，彩色标志走位图资源，两者互斥
-  const autoLogo = logoColorAuto ? getBrandLogoSvg(exif?.make, exif?.model) : null;
-  const coloredLogo = autoLogo ? null : getBrandLogoUrl(exif?.make, exif?.model);
+  // 单色标志走 SVG + currentColor，彩色/自定义标志走图片资源，两者互斥
+  const { autoLogo, coloredLogo } = resolveLogoRender({
+    override: logoOverride,
+    logoColorAuto,
+    make: exif?.make,
+    model: exif?.model,
+  });
   const hasBrandRow = Boolean(autoLogo || coloredLogo || brand || model);
 
   const line1 = exifFormat.text(text1);
@@ -274,7 +279,7 @@ function Rounded({
                 <span
                   className="block [&>svg]:block [&>svg]:h-auto [&>svg]:w-auto [&>svg]:max-h-(--co-logo-height) [&>svg]:max-w-(--co-logo-width)"
                   style={{ color: textColor }}
-                  // biome-ignore lint/security/noDangerouslySetInnerHtml: 内容来自打包进应用的 Logo 资产，不经过用户输入
+                  // biome-ignore lint/security/noDangerouslySetInnerHtml: 内置 Logo 资产，或已由 sanitizeCustomSvg 清理过的自定义 SVG（去掉脚本与事件属性）
                   dangerouslySetInnerHTML={{ __html: autoLogo }}
                 />
               </div>

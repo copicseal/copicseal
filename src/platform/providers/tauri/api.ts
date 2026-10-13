@@ -17,6 +17,7 @@ import type {
   FontInfo,
   ImageFileMeta,
   ImportedFont,
+  ImportedLogo,
   InlineFont,
   PluginInstallOutcome,
   PluginInstallProgress,
@@ -103,6 +104,29 @@ export function openFontDialog(): Promise<string | string[] | null> {
   return open({
     multiple: false,
     filters: [{ name: 'Fonts', extensions: ['ttf', 'otf', 'ttc', 'woff', 'woff2'] }],
+  });
+}
+/** 把用户选中的 Logo 文件收进工作区 `Logos/`（自定义品牌 Logo 用）。 */
+export function importLogoFile(workspace: string, sourcePath: string): Promise<ImportedLogo> {
+  return invoke('import_logo_file', { workspace, sourcePath });
+}
+export function removeLogoFile(workspace: string, fileName: string): Promise<void> {
+  return invoke('remove_logo_file', { workspace, fileName });
+}
+/** 读取 SVG Logo 的文本（内联渲染用，这样 currentColor 能跟随文字颜色）。 */
+export function readLogoSvg(workspace: string, fileName: string): Promise<string> {
+  return invoke('read_logo_svg', { workspace, fileName });
+}
+/** 选择 Logo 文件：支持 SVG 与常见位图。 */
+export function openLogoDialog(): Promise<string | string[] | null> {
+  return open({
+    multiple: false,
+    filters: [
+      {
+        name: translate('common.dialog.logoFilter'),
+        extensions: ['svg', 'png', 'jpg', 'jpeg', 'webp'],
+      },
+    ],
   });
 }
 export function getConfig(): Promise<AppConfig> {

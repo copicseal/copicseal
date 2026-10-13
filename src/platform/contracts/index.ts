@@ -387,6 +387,17 @@ export interface LogoConfig {
   items: CustomLogo[];
 }
 
+/**
+ * 「更多功能」面板里已启用的小功能。
+ *
+ * 只记 id：功能本身是前端静态注册表（`src/features/tools/registry.ts`），
+ * 注册表里删掉的 id 会被前端忽略。
+ */
+export interface ToolConfig {
+  /** 已添加（启用）的小功能 id，顺序即展示顺序 */
+  enabled: string[];
+}
+
 /** 导入一条自定义 Logo 后的落盘结果（配置条目由前端补全 id / 关键字等）。 */
 export interface ImportedLogo {
   file_name: string;
@@ -413,6 +424,8 @@ export interface AppConfig {
   devices: DeviceConfig;
   /** 自定义品牌 Logo（内置之外的厂商标志，可覆盖同名内置品牌） */
   logos: LogoConfig;
+  /** 「更多功能」面板已启用的小功能 */
+  tools: ToolConfig;
   device_id: string;
 }
 

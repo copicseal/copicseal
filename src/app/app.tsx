@@ -4,6 +4,7 @@ import { type AppRoute, navigate, normalizeRoute } from '@/app/routes';
 import CollagePage from '@/features/collage';
 import { SettingsPage } from '@/features/settings';
 import TemplatePage from '@/features/template';
+import { ToolPage } from '@/features/tools/tool-page';
 import { platformCapabilities } from '@/platform';
 import { platformRuntime } from '@/platform/providers/platform-runtime';
 import { CoSidebar } from '@/shared/components/co-sidebar';
@@ -20,6 +21,11 @@ import './app.css';
 function renderPage(route: AppRoute) {
   if (route === '/settings') {
     return <SettingsPage />;
+  }
+
+  // 小功能：每个已添加的功能在侧栏占一个图标，点进去是独立页面（不弹对话框）
+  if (route.startsWith('/tools/')) {
+    return <ToolPage toolId={route.slice('/tools/'.length)} />;
   }
 
   // Template 与 Collage 各自持有独立的素材会话，因此各挂一份 PhotoProvider。

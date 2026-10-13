@@ -420,3 +420,15 @@
 - [x] 模板文案的**连续空格原样保留**（用于控制参数间距）：单空格仍是普通空格、该折行处照旧折行，
       空变量两侧的空白只收成一个空格；`formatExifText` 的这一语义同步写进 SDK 类型注释
 - [ ] 在线 Logo 库 / 从 URL 导入 Logo
+- [x] 左侧导航栏新增「更多功能」面板：已添加 / 未添加两个分区 + 管理态增删，
+      开关存 `config.tools.enabled`；功能注册表在前端（`src/features/tools/registry.ts`），
+      具体功能按需动态 import
+- [x] 第一个小功能「快门数查询」：读相机直出文件（JPEG / RAW / HEIC）的累计快门次数，
+      解析能力走 `ShutterCountProvider` 抽象，当前实现为 ExifTool(WASM)
+- [ ] 快门数查询补「使用当前照片」入口（需要照片列表 API + 读原图字节；
+      资源协议 fetch 或加 `tauri-plugin-fs` 二选一）
+- [ ] 复核第三方许可清单是否需要补 ExifTool / Perl 本体（Artistic-1.0/GPL 双许可）：
+      现有 `src/features/settings/third-party-notices.ts` 只列了两个 wrapper 包（Apache-2.0）
+- [ ] 把快门数解析做成 libheif 那样的插件（注册一个低 priority 的 provider 即可替换 WASM 实现，
+      同时省掉随包的 24 MB wasm）
+- [ ] 打包版实测 `@uswriting/exiftool` 的 dist 增量与首次解析耗时

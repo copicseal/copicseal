@@ -60,6 +60,43 @@ export const common: Messages['common'] = {
     /** File type filter name in the native “select logo” dialog */
     logoFilter: 'Logo image',
   },
+  tools: {
+    title: 'More features',
+    manage: 'Manage',
+    manageDone: 'Done',
+    added: 'Added features',
+    addedEmpty: 'No features added yet',
+    available: 'Available features',
+    availableEmpty: 'Everything is already added',
+    loading: 'Loading…',
+    back: 'Back',
+    notFound: 'This feature is not available (it may have been removed)',
+    loadFailed: 'Could not load “{name}”',
+    saveFailed: 'Could not save the feature list',
+    shutterCount: {
+      name: 'Shutter count',
+      description: 'Read the shutter actuations stored in a camera file',
+      hint: 'Reads the shutter count from straight-out-of-camera files (JPEG / RAW / HEIC). Edited, re-compressed or phone-made files usually do not carry this field.',
+      chooseFile: 'Choose a camera file',
+      reselect: 'Choose another file',
+      parsing: 'Parsing… (the first run loads the parser, this can take a moment)',
+      readFailed: 'Could not parse the file',
+      notFoundTitle: 'This file has no shutter count field',
+      notFoundHint:
+        'Common reasons: the photo was edited or re-exported, it was taken with a phone, or the model does not record it (iPhones do not). Try an untouched original from the camera card.',
+      count: 'Shutter actuations',
+      source: 'From {tag}',
+      camera: 'Camera',
+      unknown: 'Unknown',
+      provider: 'Parser',
+      tooLarge: 'The file is larger than {limit}; parsing loads the whole file into memory',
+      tag: {
+        serialNumber: 'Body serial number',
+        firmware: 'Firmware version',
+        fileNumber: 'File number',
+      },
+    },
+  },
   error: {
     /** Web build only (no workspace folder) */
     webNoWorkspace: {

@@ -348,6 +348,22 @@ EXIF 的显示口径是独立的一段配置，见下面的 EXIF 小节。
 - 自定义 SVG 会被读取文本并清理后内联（`templates/svg-text.ts`）；读取或清理失败则退回 `<img>`
 - 网页端没有工作区目录：该页提示不支持，配置段仍按空列表处理
 
+### Tools
+
+「更多功能」面板里已启用的小工具；Rust 侧 `ToolConfig`，字段名与 Rust 结构体逐字一致。
+
+| 字段 | 默认 | 说明 |
+|------|------|------|
+| enabled | `[]` | 已添加（启用）的功能 id，**顺序即面板里的展示顺序** |
+
+约束：
+
+- 只存 id：功能本身是前端静态注册表（`src/features/tools/registry.ts`），Rust 不认识具体功能，
+  因此新增小工具**不需要改 Rust**
+- 配置里没有 `tools` 段（老配置）：前端按注册表的 `defaultEnabled` 渲染且**不写回**；
+  配置里出现注册表已删掉的 id：前端忽略，数据保留（降级/回滚不会连累用户配置）
+- 详见 [docs/16-more-tools.md](16-more-tools.md)
+
 ### Collage
 
 设置 → 拼图（「默认项 / 导出」两页）写的就是这里；Rust 侧 `CollageConfig`，缺字段按 `Default` 补齐。

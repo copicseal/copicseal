@@ -25,6 +25,7 @@ const defaultConfig = {
   plugins: { sources: [] },
   devices: { items: [] },
   logos: { items: [] },
+  tools: { enabled: [] },
   device_id: 'web-device',
 };
 

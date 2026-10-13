@@ -132,6 +132,14 @@ interface TemplateStoreState {
   customLogos: CustomLogoEntry[];
   setCustomLogos: (logos: CustomLogoEntry[]) => void;
   /**
+   * 「更多功能」里已启用的小功能 id。
+   *
+   * 与 `devices` / `customLogos` 同理：存储落在 `config.tools`，这里给面板一份同步镜像，
+   * 侧栏与面板不重挂也能立刻反映开关变化。
+   */
+  enabledTools: string[];
+  setEnabledTools: (enabled: string[]) => void;
+  /**
    * 把一条模板预设应用到若干张照片。
    *
    * 模板、参数、背景与字体一次性写入：它们共同构成「一套样式」，
@@ -168,6 +176,7 @@ export const useTemplateStore = create<TemplateStoreState>()((set) => ({
   retainExifInExport: true,
   devices: [],
   customLogos: [],
+  enabledTools: [],
 
   setTemplate: (photoId, templateId) => {
     const template = resolveBuiltinTemplate(templateId);
@@ -308,6 +317,10 @@ export const useTemplateStore = create<TemplateStoreState>()((set) => ({
 
   setCustomLogos: (logos) => {
     set({ customLogos: [...logos] });
+  },
+
+  setEnabledTools: (enabled) => {
+    set({ enabledTools: [...enabled] });
   },
 
   setRetainExifInExport: (value) => {

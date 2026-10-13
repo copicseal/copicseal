@@ -59,6 +59,43 @@ export const common = {
     /** 原生「选择 Logo」对话框里的文件类型筛选名 */
     logoFilter: 'Logo 图片',
   },
+  tools: {
+    title: '更多功能',
+    manage: '管理',
+    manageDone: '完成',
+    added: '已添加功能',
+    addedEmpty: '还没有添加任何功能',
+    available: '未添加功能',
+    availableEmpty: '全部功能都已添加',
+    loading: '正在加载…',
+    back: '返回',
+    notFound: '这个功能不存在（可能已从应用里移除）',
+    loadFailed: '加载「{name}」失败',
+    saveFailed: '保存功能开关失败',
+    shutterCount: {
+      name: '快门数查询',
+      description: '读出相机文件里的累计快门次数',
+      hint: '读取相机直出文件里的快门数（JPEG / RAW / HEIC）。编辑过、二次压缩或手机拍的文件通常没有这个字段。',
+      chooseFile: '选择相机文件',
+      reselect: '换一个文件',
+      parsing: '正在解析…（首次要加载解析器，稍等一下）',
+      readFailed: '解析失败',
+      notFoundTitle: '这个文件里没有快门数字段',
+      notFoundHint:
+        '常见原因：照片被编辑或二次导出过、用手机拍摄、该机型不记录（iPhone 不提供）。换成相机存储卡里未动过的原图再试。',
+      count: '累计快门数',
+      source: '取自 {tag}',
+      camera: '相机',
+      unknown: '未识别',
+      provider: '解析器',
+      tooLarge: '文件超过 {limit}，请换一张（解析要把整份文件读进内存）',
+      tag: {
+        serialNumber: '机身序列号',
+        firmware: '固件版本',
+        fileNumber: '文件序号',
+      },
+    },
+  },
   error: {
     /** Web 端（没有工作区目录）才会出现的错误 */
     webNoWorkspace: {

@@ -1,22 +1,9 @@
-// 经由包 exports 暴露的 "./zeroperl.wasm" 子路径解析 WASM 资产（深层 dist 路径未导出，无法直接导入）。
-import zeroperlWasmUrl from '@6over3/zeroperl-ts/zeroperl.wasm?url';
 import { type ExifTags, parseMetadata, writeMetadata } from '@uswriting/exiftool';
 import type { ExifData } from '@/platform/contracts';
+// zeroperl 的 WASM 资产地址与请求重定向与「更多功能 → 快门数查询」共用一份（见该模块注释）
+import { fetchZeroperlWasm as wasmFetch } from '@/shared/lib/zeroperl-wasm';
 
 type RawMetadata = Record<string, unknown>;
-
-/**
- * zeroperl 在浏览器中以页面相对路径 `fetch("./zeroperl.wasm")` 加载 WASM 引擎，
- * 该路径在 Vite（dev 与 build）下并不存在，会导致 WASM 初始化失败、EXIF 永远读取不到。
- * 这里把请求重定向到由 Vite 资源管线处理的 `?url` 资产地址。
- */
-function wasmFetch(input: unknown, init?: unknown): Promise<Response> {
-  const url =
-    typeof input === 'string' && input.endsWith('zeroperl.wasm')
-      ? zeroperlWasmUrl
-      : (input as string | URL | Request);
-  return fetch(url, init as RequestInit | undefined);
-}
 
 /** 只解析 EXIF 组，避免把 SourceFile/FileSize 等系统标签混入结果或写回导出文件。 */
 const EXIF_ARGS = ['-json', '-n', '-exif:all'];

@@ -25,6 +25,8 @@ pub struct AppConfig {
     pub devices: DeviceConfig,
     /// 自定义品牌 Logo：内置品牌之外（或覆盖内置）的厂商标志
     pub logos: LogoConfig,
+    /// 「更多功能」面板里已添加（启用）的小功能
+    pub tools: ToolConfig,
     pub device_id: String,
 }
 
@@ -387,6 +389,17 @@ pub struct LogoConfig {
     pub items: Vec<CustomLogo>,
 }
 
+/// 「更多功能」面板里已启用的小功能。
+///
+/// 只记 id（功能本身是前端静态注册表，见 `src/features/tools/registry.ts`）：
+/// 注册表里删掉某个 id 时，配置里的残留项会被前端忽略，不报错。
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
+pub struct ToolConfig {
+    /// 已添加（启用）的功能 id，顺序即面板里的展示顺序
+    pub enabled: Vec<String>,
+}
+
 impl Default for AppConfig {
     fn default() -> Self {
         let save_directory = default_save_directory();
@@ -406,6 +419,7 @@ impl Default for AppConfig {
             plugins: PluginConfig::default(),
             devices: DeviceConfig::default(),
             logos: LogoConfig::default(),
+            tools: ToolConfig::default(),
             device_id: String::new(),
         }
     }
@@ -575,6 +589,7 @@ fn load_from_db(app: &tauri::AppHandle) -> Result<AppConfig, String> {
         plugins: read_json_value(&conn, "plugins")?.unwrap_or(defaults.plugins),
         devices: read_json_value(&conn, "devices")?.unwrap_or(defaults.devices),
         logos: read_json_value(&conn, "logos")?.unwrap_or(defaults.logos),
+        tools: read_json_value(&conn, "tools")?.unwrap_or(defaults.tools),
         device_id: read_json_value(&conn, "device_id")?.unwrap_or_default(),
     };
 
@@ -629,6 +644,7 @@ fn save_to_db(app: &tauri::AppHandle, config: &AppConfig) -> Result<(), String> 
     write_json_value(&tx, "plugins", &config.plugins)?;
     write_json_value(&tx, "devices", &config.devices)?;
     write_json_value(&tx, "logos", &config.logos)?;
+    write_json_value(&tx, "tools", &config.tools)?;
     write_json_value(&tx, "device_id", &config.device_id)?;
 
     tx.commit().map_err(|e| format!("提交配置事务失败: {e}"))
@@ -838,5 +854,29 @@ mod tests {
         assert!(!config.items[0].catch_all);
         assert_eq!(config.items[0].file_name, "mylogo.svg");
         assert_eq!(config.items[0].size, 2048);
+    }
+
+    /// `tools` 段的键名同样是前后端约定。
+    #[test]
+    fn tool_config_wire_keys_are_snake_case() {
+        let config = serde_json::to_value(ToolConfig::default()).unwrap();
+        let keys: Vec<&str> = config
+            .as_object()
+            .unwrap()
+            .keys()
+            .map(String::as_str)
+            .collect();
+
+        assert_eq!(keys, vec!["enabled"]);
+    }
+
+    /// 前端载荷（已启用功能 id 数组）要能原样读回来；注册表里已删掉的 id 也不丢，
+    /// 由前端忽略（这样降级/回滚版本时不会连累用户配置）。
+    #[test]
+    fn tool_config_accepts_the_frontend_payload() {
+        let payload = r#"{ "enabled": ["shutter-count", "removed-tool"] }"#;
+        let config: ToolConfig = serde_json::from_str(payload).unwrap();
+
+        assert_eq!(config.enabled, vec!["shutter-count", "removed-tool"]);
     }
 }

@@ -2544,58 +2544,69 @@ export function SettingsPage() {
         orientation="vertical"
         className="min-h-0 flex-1 p-4"
       >
-        <TabsList
-          variant="line"
-          className="w-56 shrink-0 gap-0 rounded-lg border border-border/80 bg-card p-3 data-[variant=line]:rounded-lg"
+        {/*
+          侧栏用 ScrollArea 包一层（而不是给 TabsList 加 overflow）：
+          ① 滚动条与应用其它面板一致，不是系统原生样式；
+          ② TabsList 自身是 `h-fit`，包在 ScrollArea 里由视口负责滚动，内容高度不受限。
+          ScrollArea 需要确定高度才能滚动，所以这块会撑满整列（flex 行里默认 stretch）。
+        */}
+        <ScrollArea
+          className="max-h-full min-h-0 w-56 shrink-0 rounded-lg border border-border/80 bg-card"
+          viewportClassName="[&>div]:!block"
         >
-          {TAB_GROUPS.map((group, index) => {
-            const GroupIcon = group.icon;
-            const groupLabel = group.labelKey ? t(group.labelKey) : null;
+          <TabsList
+            variant="line"
+            className="w-full gap-0 rounded-lg p-3 data-[variant=line]:rounded-lg"
+          >
+            {TAB_GROUPS.map((group, index) => {
+              const GroupIcon = group.icon;
+              const groupLabel = group.labelKey ? t(group.labelKey) : null;
 
-            return (
-              <Fragment key={group.labelKey ?? group.items[0].id}>
-                {index > 0 ? (
-                  // w-full 不能省：TabsList 是 items-center 的 flex 列，没有宽度的
-                  // 元素会被压成 0 宽并居中（分隔线会直接看不见）
-                  // shrink-0：窗口矮时不允许被压缩，让列表真正产生溢出才能滚动
-                  <span aria-hidden="true" className="my-1.5 h-px w-full shrink-0 bg-border/70" />
-                ) : null}
-                {groupLabel ? (
-                  // 同理，分组标题也必须铺满，否则会被 TabsList 居中
-                  <span
-                    aria-hidden="true"
-                    className="flex w-full shrink-0 items-center gap-2 px-1.5 pt-1 pb-0.5 text-[10px] font-medium text-muted-foreground"
-                  >
-                    {GroupIcon ? <GroupIcon className="size-3.5" /> : null}
-                    {groupLabel}
-                  </span>
-                ) : null}
-                {group.items.map((tab) => {
-                  const Icon = tab.icon;
-                  const tabLabel = t(tab.labelKey);
-
-                  return (
-                    <TabsTrigger
-                      key={tab.id}
-                      value={tab.id}
-                      // 子项缩进一级，父级图标已表达归属，这里不再重复
-                      className={cn(group.labelKey && 'pl-6')}
-                      // 分组标题对读屏隐藏，靠可访问名把归属补回去
-                      aria-label={
-                        groupLabel
-                          ? t('settings.tabs.itemAria', { group: groupLabel, tab: tabLabel })
-                          : undefined
-                      }
+              return (
+                <Fragment key={group.labelKey ?? group.items[0].id}>
+                  {index > 0 ? (
+                    // w-full 不能省：TabsList 是 items-center 的 flex 列，没有宽度的
+                    // 元素会被压成 0 宽并居中（分隔线会直接看不见）
+                    // shrink-0：窗口矮时不允许被压缩，让列表真正产生溢出才能滚动
+                    <span aria-hidden="true" className="my-1.5 h-px w-full shrink-0 bg-border/70" />
+                  ) : null}
+                  {groupLabel ? (
+                    // 同理，分组标题也必须铺满，否则会被 TabsList 居中
+                    <span
+                      aria-hidden="true"
+                      className="flex w-full shrink-0 items-center gap-2 px-1.5 pt-1 pb-0.5 text-[10px] font-medium text-muted-foreground"
                     >
-                      {Icon ? <Icon className="size-3.5" /> : null}
-                      {tabLabel}
-                    </TabsTrigger>
-                  );
-                })}
-              </Fragment>
-            );
-          })}
-        </TabsList>
+                      {GroupIcon ? <GroupIcon className="size-3.5" /> : null}
+                      {groupLabel}
+                    </span>
+                  ) : null}
+                  {group.items.map((tab) => {
+                    const Icon = tab.icon;
+                    const tabLabel = t(tab.labelKey);
+
+                    return (
+                      <TabsTrigger
+                        key={tab.id}
+                        value={tab.id}
+                        // 子项缩进一级，父级图标已表达归属，这里不再重复
+                        className={cn(group.labelKey && 'pl-6')}
+                        // 分组标题对读屏隐藏，靠可访问名把归属补回去
+                        aria-label={
+                          groupLabel
+                            ? t('settings.tabs.itemAria', { group: groupLabel, tab: tabLabel })
+                            : undefined
+                        }
+                      >
+                        {Icon ? <Icon className="size-3.5" /> : null}
+                        {tabLabel}
+                      </TabsTrigger>
+                    );
+                  })}
+                </Fragment>
+              );
+            })}
+          </TabsList>
+        </ScrollArea>
         {/*
           「字体」页自成一块：它内部有会滚动的列表，需要确定高度。若和别的 tab 一样放进
           下面的滚动区，就会出现「页面滚动 + 列表滚动」两条滚动条，所以它在滚动区之外，

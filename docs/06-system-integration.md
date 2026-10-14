@@ -160,10 +160,15 @@ Windows / Android 是 `http://asset.localhost`。`app.security.csp` 里**三者�
 | `font-src` | `@font-face` 加载工作区字体 |
 | `connect-src` | **代码里的 `fetch()`**：导出前把照片降采样内联（`core/renderer`）、从照片取主题色（`template/lib/photo-palette`） |
 
-`connect-src` 最容易漏：dev 模式跑在 Vite 页面上、不受 Tauri 注入的 CSP 约束，所以**这类问题只在打包版出现**，
-表现为导出结果里照片整块消失（只剩灰底与破图）、主题色取不到。前端只是 `console.warn`，
-界面上看不出原因——排查时先按上面这张表核对 CSP，再看控制台有没有
-`[snapshot] 图片降采样失败`。
+`connect-src` 最容易漏：漏了它，导出结果里照片会整块消失（只剩灰底与破图）、主题色也取不到，
+而前端只打一条 `console.warn`，界面上看不出原因。
+
+注意两个容易误判的点：
+
+- Tauri 会把 CSP 注入页面，**dev 与打包版都生效**；但直接用浏览器打开 dev server 属于普通网页、
+  不受这条 CSP 约束——所以「浏览器里好好的」不能说明打包版没问题，别用浏览器验证这类问题
+- 排查顺序：先看控制台有没有 `Refused to connect to … does not appear in the connect-src directive`，
+  再看 `[snapshot] 图片降采样失败（asset:）`
 
 ## 6.6 持久化策略
 

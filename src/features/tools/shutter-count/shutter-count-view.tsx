@@ -1,5 +1,6 @@
 import { AlertTriangle, FileImage, Gauge, Loader2 } from 'lucide-react';
 import { Fragment, useRef, useState } from 'react';
+import { platformRuntime } from '@/platform/providers/platform-runtime';
 import { CoDropZone } from '@/shared/components/co-drop-zone';
 // 懒加载块里不要从 i18n 的 barrel 取**运行时**导出：Rollup 会把 barrel 与懒加载块拆到不同 chunk，
 // 形成跨 chunk 循环并告警。运行时函数直接指向定义它的模块；类型是编译期擦除的，从 barrel 取无妨。
@@ -25,6 +26,11 @@ const EXTRA_LABEL_KEYS: Record<string, MessageKey> = {
 
 type Status = 'idle' | 'loading' | 'done' | 'error';
 
+/** 从路径里取文件名（两种分隔符都要处理） */
+function baseName(path: string): string {
+  return path.split(/[\\/]/).pop() ?? path;
+}
+
 /** 空态/解析中/失败共用的大卡尺寸：三种状态之间切换时页面高度不跳。 */
 const STAGE_MIN_HEIGHT = 'min-h-[320px]';
 
@@ -47,12 +53,17 @@ export default function ShutterCountView({ onBack }: ToolViewProps) {
   const [result, setResult] = useState<ShutterCountResult | null>(null);
   const [message, setMessage] = useState('');
 
-  const run = async (file: File) => {
-    setFileName(file.name);
+  /**
+   * 读一份文件。两种入口：
+   * - 走原生对话框拿到的是**磁盘路径** → 原生 ExifTool 可以直接用（也能读 RAW）
+   * - 拖放 / 网页文件选择只有**字节** → 交给内置 WASM 解析器
+   */
+  const run = async (input: { file?: File; path?: string; name: string }) => {
+    setFileName(input.name);
     setResult(null);
     setMessage('');
 
-    if (file.size > MAX_BYTES) {
+    if (input.file && input.file.size > MAX_BYTES) {
       setStatus('error');
       setMessage(t('common.tools.shutterCount.tooLarge', { limit: '100 MB' }));
       return;
@@ -61,8 +72,12 @@ export default function ShutterCountView({ onBack }: ToolViewProps) {
     setStatus('loading');
 
     try {
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      const parsed = await readShutterCount({ bytes, fileName: file.name });
+      const bytes = input.file ? new Uint8Array(await input.file.arrayBuffer()) : undefined;
+      const parsed = await readShutterCount({
+        bytes,
+        path: input.path,
+        fileName: input.name,
+      });
       setResult(parsed);
       setStatus('done');
     } catch (error) {
@@ -73,7 +88,43 @@ export default function ShutterCountView({ onBack }: ToolViewProps) {
   };
 
   const count = result?.shutterCount ?? null;
-  const choose = () => inputRef.current?.click();
+
+  /**
+   * HTML5 拖入：只有字节，没有磁盘路径。
+   *
+   * 原生 ExifTool 必须在真实文件上跑，所以先把字节**原样落成一个临时文件**，
+   * 再走与「选择文件」完全相同的链路（`run({ path })`）。
+   */
+  const stageDropped = async (file: File) => {
+    try {
+      const config = await platformRuntime.getConfig();
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const path = await platformRuntime.stageDroppedFile(config.cache.directory, file.name, bytes);
+
+      await run({ path, name: file.name });
+    } catch (error) {
+      console.error('拖入的文件落盘失败:', error);
+      setStatus('error');
+      setMessage(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  /** 桌面端优先用原生对话框（拿路径给原生 ExifTool）；网页端或不可用时回落到 <input> */
+  const choose = async () => {
+    try {
+      const picked = await platformRuntime.openCameraFileDialog();
+      const path = Array.isArray(picked) ? picked[0] : picked;
+
+      if (path) {
+        await run({ path, name: baseName(path) });
+        return;
+      }
+    } catch (error) {
+      console.warn('原生文件对话框不可用，改用网页文件选择:', error);
+    }
+
+    inputRef.current?.click();
+  };
 
   /** 结果态的文件信息：相机 / 附带字段 / 解析器 / 文件名，铺成两列小格子。 */
   const detailRows: Array<[string, string]> = result
@@ -105,13 +156,20 @@ export default function ShutterCountView({ onBack }: ToolViewProps) {
           const file = event.target.files?.[0];
           event.target.value = '';
           if (file) {
-            void run(file);
+            void run({ file, name: file.name });
           }
         }}
       />
 
       {status === 'idle' ? (
-        <CoDropZone onFilesDrop={(files) => void run(files[0])} className={STAGE_MIN_HEIGHT}>
+        <CoDropZone
+          /*
+           * HTML5 拖放只给字节，而原生 ExifTool 要在真实文件上跑：
+           * 先按原样落成一个临时文件，再走和「选择文件」一样的路径。
+           */
+          onFilesDrop={(files) => void stageDropped(files[0])}
+          className={STAGE_MIN_HEIGHT}
+        >
           <div className="flex flex-col items-center gap-3 px-6 text-center">
             <span className="flex size-14 items-center justify-center rounded-2xl bg-muted/60 text-muted-foreground">
               <Gauge className="size-7" />

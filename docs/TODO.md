@@ -429,6 +429,13 @@
       资源协议 fetch 或加 `tauri-plugin-fs` 二选一）
 - [ ] 复核第三方许可清单是否需要补 ExifTool / Perl 本体（Artistic-1.0/GPL 双许可）：
       现有 `src/features/settings/third-party-notices.ts` 只列了两个 wrapper 包（Apache-2.0）
-- [ ] 把快门数解析做成 libheif 那样的插件（注册一个低 priority 的 provider 即可替换 WASM 实现，
-      同时省掉随包的 24 MB wasm）
+- [x] 把 ExifTool 做成可下载组件（`copicseal-static` 的 `exiftool/`）：目录项带每资产的
+      `required_files`、安装前探测系统是否已有 exiftool、macOS/Linux 用 Perl 版并检测系统 perl；
+      目前只接给「快门数查询」（原生优先、内置 WASM 兜底）
+- [ ] Windows aarch64 没有 ExifTool 资产（上游只发 32/64 位）：要么接受「当前系统没有该版本」，
+      要么把 aarch64 映射到 x86_64（靠系统模拟）
+- [x] 移除随包的 ExifTool WASM（约 24 MB 原始 / 5.1 MB brotli）：快门数改走原生 ExifTool，
+      CSP 的 `wasm-unsafe-eval`、依赖与相关代码一并删掉；拖放改用 Tauri 原生事件（能直接拿路径）
+- [ ] 网页端的 EXIF 读取（移除 WASM 后是空实现）：真要支持时另接一个轻量实现，
+      不要把整套 WASM 塞回主包
 - [ ] 打包版实测 `@uswriting/exiftool` 的 dist 增量与首次解析耗时

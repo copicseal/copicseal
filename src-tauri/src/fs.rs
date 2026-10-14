@@ -134,7 +134,8 @@ pub async fn write_file(path: String, contents: Vec<u8>) -> Result<(), String> {
 pub async fn convert_heic_to_jpeg(app: tauri::AppHandle, input: String) -> Result<String, String> {
     let input_path = Path::new(&input);
     let output_path = input_path.with_extension("jpg");
-    let heif_dec = crate::plugin::heif_dec_path(&app);
+    let heif_dec =
+        crate::plugin::component_file(&app, crate::plugin::HEIF_PLUGIN_ID, "heif-dec.exe");
 
     #[cfg(target_os = "windows")]
     {
@@ -156,6 +157,40 @@ pub async fn convert_heic_to_jpeg(app: tauri::AppHandle, input: String) -> Resul
         convert_heic_to_jpeg_path(input_path, &output_path)?;
         Ok(output_path.to_string_lossy().to_string())
     }
+}
+
+#[tauri::command]
+/// 把 HTML5 拖入的字节落成一个临时文件，返回它的路径。
+///
+/// 拖放给的只有 `File`（字节），没有磁盘路径，而有些工具必须在真实文件上跑
+/// （原生 ExifTool 就是）。文件按内容**原样写入**（不转码，EXIF/MakerNote 不会被破坏），
+/// 放在工作区缓存的 `Dropped/` 下，文件名带时间戳避免重名。
+pub fn stage_dropped_file(
+    cache_dir: String,
+    file_name: String,
+    contents: Vec<u8>,
+) -> Result<String, String> {
+    if contents.is_empty() {
+        return Err("拖入的文件是空的".to_string());
+    }
+
+    let dir = Path::new(&cache_dir).join("Dropped");
+    fs::create_dir_all(&dir).map_err(|e| format!("创建临时目录失败: {e}"))?;
+
+    let ext = Path::new(&file_name)
+        .extension()
+        .and_then(|value| value.to_str())
+        .map(|value| value.to_ascii_lowercase())
+        .unwrap_or_else(|| "bin".to_string());
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|value| value.as_millis())
+        .unwrap_or_default();
+    let path = dir.join(format!("drop-{stamp}.{ext}"));
+
+    fs::write(&path, contents).map_err(|e| format!("写入临时文件失败: {e}"))?;
+
+    Ok(path.to_string_lossy().to_string())
 }
 
 #[tauri::command]
@@ -189,7 +224,8 @@ pub async fn import_image_to_cache(
         read_started_at.elapsed().as_millis()
     );
 
-    let heif_dec = crate::plugin::heif_dec_path(&app);
+    let heif_dec =
+        crate::plugin::component_file(&app, crate::plugin::HEIF_PLUGIN_ID, "heif-dec.exe");
     let meta = import_bytes_to_cache_impl(
         file_name,
         bytes,
@@ -215,7 +251,8 @@ pub async fn import_image_bytes_to_cache(
     cache_dir: String,
     scheduler: State<'_, ThumbnailTaskScheduler>,
 ) -> Result<CachedImageMeta, String> {
-    let heif_dec = crate::plugin::heif_dec_path(&app);
+    let heif_dec =
+        crate::plugin::component_file(&app, crate::plugin::HEIF_PLUGIN_ID, "heif-dec.exe");
     import_bytes_to_cache_impl(
         &name,
         contents,

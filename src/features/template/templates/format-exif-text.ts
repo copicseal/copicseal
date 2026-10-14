@@ -1,4 +1,5 @@
 import type { ExifData, ExifOverrideFieldName, ExifSettings } from '@/platform';
+import { EMPTY_EXIF } from '@/platform';
 import type { MessageKey } from '@/shared/i18n';
 import {
   applyExifMapping,
@@ -88,35 +89,6 @@ export const EXIF_TEXT_VARIABLES: readonly ExifVariable[] = [
 
 /** 用户改动值：按照片存，键是 EXIF 字段名。 */
 export type ExifOverrides = Partial<Record<ExifOverrideField, string>>;
-
-const EMPTY_EXIF: ExifData = {
-  make: null,
-  model: null,
-  lens_model: null,
-  aperture: null,
-  shutter_speed: null,
-  iso: null,
-  focal_length: null,
-  exposure_compensation: null,
-  date_taken: null,
-  white_balance: null,
-  metering_mode: null,
-  latitude: null,
-  longitude: null,
-  image_width: null,
-  image_height: null,
-  orientation: null,
-  exposure_program: null,
-  flash: null,
-  focal_length_35mm: null,
-  max_aperture: null,
-  software: null,
-  artist: null,
-  copyright: null,
-  body_serial: null,
-  lens_serial: null,
-  gps_altitude: null,
-};
 
 /**
  * 合并「解析到的 EXIF」与「用户改动值」：改动值优先。

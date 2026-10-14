@@ -3,9 +3,17 @@ import { useTranslate } from '@/shared/i18n';
 import { cn } from '@/shared/lib/utils';
 
 interface CoDropZoneProps {
+  /**
+   * 拖入的文件（HTML5 拖放给的 `File`，只有字节、没有磁盘路径）。
+   *
+   * 注意：Windows 上 Tauri 的原生拖放（OLE）与 HTML5 无法共存，本工程已在窗口配置里
+   * 关掉原生拖放（`dragDropEnabled: false`）改走 HTML5 —— 原生版本在咱们的窗口组合下
+   * 只会给出 🚫 光标且事件一个都不到。需要磁盘路径的场景（如原生 ExifTool）由调用方
+   * 把字节落成临时文件。
+   */
   onFilesDrop: (files: FileList | File[]) => void;
   className?: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
 }
 
 export const CoDropZone: FC<CoDropZoneProps> = ({ onFilesDrop, className, children }) => {

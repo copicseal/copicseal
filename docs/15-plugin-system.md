@@ -1,4 +1,4 @@
-# 15 插件系统与首个插件 libheif
+# 15 插件系统（libheif 与 exiftool）
 
 > **定位**：把「系统缺少的能力」做成可按需安装的第三方组件，而不是把所有依赖都塞进安装包。
 > **首个插件**：`libheif`（Windows 上的 HEIC/HEIF 转码），来源
@@ -189,3 +189,50 @@ macOS：
       reqwest 默认特性集，在只设置系统代理、不设环境变量的机器上可能同样受限，待单独确认
 - [ ] 与「预览 / 导出源分离」联动：插件现在只服务预览链路，导出仍需要按需生成高质量源
       （见 `docs/TODO.md`）
+
+---
+
+## 9. 第二个组件：ExifTool（读相机 MakerNote）
+
+快门数这类信息只存在于厂商 MakerNote（当前自带的 `kamadak-exif` 不解析），所以又会引出一个可下载组件。
+它跟 libheif 的形态**完全不同**，因此组件层不能假设「都有个 Windows 二进制」：
+
+| | libheif | exiftool |
+|---|---|---|
+| 适用平台 | 仅 Windows | Windows + macOS + Linux |
+| 资产形态 | 自包含 zip（`heif-dec.exe`）| Windows：自包含 exe（内含 Perl 运行时）<br>macOS/Linux：Perl 版（`exiftool` 脚本 + `lib/`），依赖系统自带 `perl` |
+| 安装前探测 | 系统是否已有 HEIC 解码能力 | **系统是否已有 `exiftool`** —— 有则显示「系统已安装」，不下载 |
+| 调用方式 | 直接执行 `heif-dec.exe` | Windows 直接执行；macOS/Linux 用 `perl -I <目录>/lib <目录>/exiftool` |
+| 兜底 | — | macOS 上没有 perl 时，面板给「到 exiftool.org 下载」的出口 |
+
+实现要点：
+
+- **插件层保持通用**：它只负责「装」与「按声明解析出该怎么跑」，**不认识任何具体组件**
+  - 每份资产自带 `required_files`（装完必须存在的文件）与 `run`（怎么运行：`executable` 直接执行，
+    `perl` 用系统 perl 跑脚本）。`run` 取代了最初的 `requires_perl` 布尔，也顺手消掉了
+    「Windows 上提示缺 perl」那类跨平台串味
+  - 目录项带 `system_command` / `system_version_args`（探测系统是否已装、以及它的版本）
+  - 对外只有两个通用入口：`plugin::component_command(app, id)`（解析出可执行文件 + 前置参数）
+    与 `plugin::component_file(app, id, relative)`（取安装目录里的某个文件）
+- **组件 id 与「怎么用」归功能域自己**：HEIC 的 id 在 `fs.rs`，元数据命令在 `exiftool.rs`；
+  `plugin.rs` 只保留目录声明 —— 这样 libheif / exiftool 后续被别的功能复用也不会互相牵扯
+- 上游压缩包结构不一致（exiftool 的 Windows 包多一层版本目录、可执行文件叫 `exiftool(-k).exe`）：
+  安装时统一**归一化**（单层顶层目录下沉 + 改名）后再校验必需文件 —— 这样静态仓库可以照上游原样放包
+- `find_in_path` 除 PATH 外还补查 `/opt/homebrew/bin`、`/usr/local/bin`、`/usr/bin`、`/bin`：
+  macOS 上从 Finder 启动的 GUI 应用 PATH 很干净（只有 `/usr/bin:/bin:/usr/sbin:/sbin`），
+  不补查就漏掉 Homebrew 装的 exiftool
+- 运行顺序：**装了就用装的，没装才用系统的** —— 用户主动安装的那份应当生效，
+  系统里自带的那份只是省一次下载的便利
+- 命令 `exiftool::read_exiftool_metadata(path, args)` 只读，返回原始 stdout（JSON 由前端解析），
+  Windows 上带 `CREATE_NO_WINDOW` 起子进程
+
+### 9.1 目前谁在用它
+
+只有「更多功能 → 快门数查询」（`src/features/tools/shutter-count`）：它通过解析器抽象
+（`shutter-count/provider.ts`）调用原生 ExifTool（`exiftool.rs`），结果里会显示实际使用的解析器。
+
+起初这里还内置了 ExifTool 的 **WASM 版**作为兜底，**现已移除**：它给应用带来约 24 MB 的 wasm 资源
+（brotli 后约 5 MB），而桌面端本就有原生替代，留着只增加体积与启动开销。
+网页端因此暂时没有 EXIF 读取能力（`web-exif-adapter.ts` 返回空 EXIF）—— 当前以桌面端为主。
+
+**HEIC 那条链保持原样**。

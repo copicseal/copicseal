@@ -34,7 +34,30 @@ function renderPage(route: AppRoute) {
   );
 }
 
+/**
+ * 拦住把文件拖到窗口上的**默认行为**。
+ *
+ * 关掉原生拖放（`dragDropEnabled: false`）后 webview 走 HTML5 拖放：如果没有任何地方
+ * `preventDefault`，把文件拖到窗口上会让 webview 直接**导航去打开那个文件**。
+ * 拖放区自己会处理并 `stopPropagation`，这里只负责兜住「落在别处」的情况。
+ */
+function useWindowDropGuard() {
+  useEffect(() => {
+    const prevent = (event: Event) => event.preventDefault();
+
+    document.addEventListener('dragover', prevent);
+    document.addEventListener('drop', prevent);
+
+    return () => {
+      document.removeEventListener('dragover', prevent);
+      document.removeEventListener('drop', prevent);
+    };
+  }, []);
+}
+
 function AppContent() {
+  useWindowDropGuard();
+
   const [route, setRoute] = useState<AppRoute>(() => normalizeRoute(window.location.pathname));
   // 访问过的页面保持挂载：页面内容（素材、模板参数、拼图布局）都是 React 会话状态，
   // 一旦卸载就会丢失。切换功能改为只切换可见性，卸载只发生在应用退出时。

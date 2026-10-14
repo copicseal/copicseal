@@ -233,6 +233,26 @@ export function installPlugin(id: string, sources: string[]): Promise<PluginInst
 export function removePlugin(id: string): Promise<void> {
   return invoke('remove_plugin', { id });
 }
+/**
+ * 用 ExifTool 读一个照片文件的元数据（只读）。
+ *
+ * 优先用系统里已有的 exiftool，其次插件目录里装的那份；返回原始 stdout（JSON 由调用方解析）。
+ */
+export function readExiftoolMetadata(path: string, args: string[]): Promise<string> {
+  return invoke('read_exiftool_metadata', { path, args });
+}
+/**
+ * 把拖入的字节落成一个临时文件，返回路径。
+ *
+ * HTML5 拖放只有字节、没有磁盘路径，而原生 ExifTool 必须在真实文件上跑。
+ */
+export function stageDroppedFile(
+  cacheDir: string,
+  fileName: string,
+  contents: Uint8Array,
+): Promise<string> {
+  return invoke('stage_dropped_file', { cacheDir, fileName, contents });
+}
 /** 订阅插件安装进度；返回取消订阅函数 */
 export function onPluginInstallProgress(handler: (progress: PluginInstallProgress) => void) {
   if (!isNativeWindowAvailable()) return Promise.resolve(() => undefined);
@@ -332,6 +352,40 @@ export function openImageDialog() {
         // 原生对话框由系统绘制，筛选名要按当前界面语言取
         name: translate('common.dialog.imageFilter'),
         extensions: ['jpg', 'jpeg', 'png', 'heic', 'heif', 'hif', 'webp'],
+      },
+    ],
+  });
+}
+/**
+ * 选择一个相机文件（供「快门数查询」等工具用）。
+ *
+ * 比「打开图片」宽：包含各家 RAW —— 查快门数最常见的场景就是直接读相机存储卡里的原图。
+ */
+export function openCameraFileDialog() {
+  return open({
+    multiple: false,
+    filters: [
+      {
+        name: translate('common.dialog.cameraFileFilter'),
+        extensions: [
+          'jpg',
+          'jpeg',
+          'png',
+          'heic',
+          'heif',
+          'hif',
+          'webp',
+          'tif',
+          'tiff',
+          'cr3',
+          'nef',
+          'arw',
+          'raf',
+          'dng',
+          'rw2',
+          'orf',
+          'pef',
+        ],
       },
     ],
   });

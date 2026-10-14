@@ -2,6 +2,7 @@ mod comark;
 mod config;
 mod db;
 mod exif;
+mod exiftool;
 mod font;
 mod fs;
 mod logo;
@@ -28,7 +29,7 @@ pub fn run() {
             // 导出目录可能还没被创建过（默认目录是新建的，或者用户刚改过），
             // 先建出来，这样「打开」按钮和导出完成提示里的目录链接立刻可用
             let _ = std::fs::create_dir_all(&config.output.default_path);
-            window::apply_main_window_frame_mode(app.handle(), &config.window_frame_mode)?;
+            // window::apply_main_window_frame_mode(app.handle(), &config.window_frame_mode)?;
 
             Ok(())
         })
@@ -47,6 +48,7 @@ pub fn run() {
             fs::cleanup_cache,
             fs::path_exists,
             fs::open_directory,
+            fs::stage_dropped_file,
             config::get_config,
             config::update_config,
             config::get_device_id,
@@ -56,6 +58,7 @@ pub fn run() {
             plugin::fetch_plugin_manifest,
             plugin::install_plugin,
             plugin::remove_plugin,
+            exiftool::read_exiftool_metadata,
             logo::import_logo_file,
             logo::read_logo_svg,
             logo::remove_logo_file,

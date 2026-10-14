@@ -58,6 +58,8 @@ export const common = {
     imageFilter: '图片',
     /** 原生「选择 Logo」对话框里的文件类型筛选名 */
     logoFilter: 'Logo 图片',
+    /** 原生「选择相机文件」对话框里的文件类型筛选名（含各家 RAW） */
+    cameraFileFilter: '相机文件',
   },
   tools: {
     title: '更多功能',
@@ -81,7 +83,7 @@ export const common = {
       dropTitle: '把相机直出的文件拖到这里',
       dropHint: '或点击下面的按钮挑一个文件',
       supported: '支持 JPEG / HEIC / RAW 等相机原图',
-      parsing: '正在解析…（首次要加载解析器，稍等一下）',
+      parsing: '正在解析…',
       readFailed: '解析失败',
       notFoundTitle: '这个文件里没有快门数字段',
       notFoundHint:

@@ -18,7 +18,6 @@
     "ci": "biome ci src/ packages/"
   },
   "dependencies": {
-    "@6over3/zeroperl-ts": "^1.0.10",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -33,7 +32,6 @@
     "@tiptap/react": "^3.31.4",
     "@tiptap/starter-kit": "^3.31.4",
     "@tiptap/suggestion": "^3.31.4",
-    "@uswriting/exiftool": "^1.0.9",
     "@zumer/snapdom": "^2.12.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

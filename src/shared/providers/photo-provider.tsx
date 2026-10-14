@@ -8,14 +8,9 @@ import {
   useRef,
   useState,
 } from 'react';
-import { platformRuntime } from '@/platform/providers/platform-runtime';
-
-const { onNativeFileDrop } = platformRuntime;
-
 import { releaseSessionAssets, trackSessionAssets } from '@/platform/services/asset-service';
 import {
   type ImportProgressSnapshot,
-  importPhotosViaPaths,
   importWithFailureFeedback,
   notifyImportAborted,
   processDroppedFiles,
@@ -259,70 +254,70 @@ export const PhotoProvider: FC<{ children: ReactNode }> = ({ children }) => {
     [addPhotos, finishImport, selectImported, startImport, updateImportProgress, updatePhoto],
   );
 
+  /**
+   * 拖入文件即导入。
+   *
+   * 用 **HTML5 拖放**（DOM 事件）而不是 Tauri 的原生拖放：Windows 上原生拖放被 OLE 独占，
+   * 本工程这套窗口组合（透明 + 无边框）下 wry 的 `RegisterDragDrop` 会静默失败 ——
+   * 表现为拖动时只有 🚫 光标、事件一个都不到，或者「拖一次之后就再也拖不动」。
+   *
+   * 窗口配置里已关掉原生拖放（`dragDropEnabled: false`，与 HTML5 在 Windows 上无法共存），
+   * 这里按 DOM 事件接管：拖入的 `File` 走字节导入链路（`importViaDrop`），
+   * 因此拿不到磁盘路径也能正常导入。
+   */
   useEffect(() => {
-    // 隐藏页不再监听原生拖放：页面常驻挂载后，否则两个功能页会同时响应同一次拖入。
     if (!pageActive) {
       setIsDraggingOver(false);
       return;
     }
 
-    let cleanup: (() => void) | undefined;
+    const hasFiles = (event: DragEvent) => Boolean(event.dataTransfer?.types.includes('Files'));
 
-    try {
-      const unlisten = onNativeFileDrop(async (event) => {
-        switch (event.payload.type) {
-          case 'enter':
-            setIsDraggingOver(true);
-            break;
-          case 'leave':
-            setIsDraggingOver(false);
-            break;
-          case 'drop': {
-            setIsDraggingOver(false);
-            startImport('drop');
+    const handleDragEnter = (event: DragEvent) => {
+      if (hasFiles(event)) {
+        setIsDraggingOver(true);
+      }
+    };
 
-            // 先取出 paths：放进下面那个闭包后，TS 对联合类型的收窄会失效
-            const { paths } = event.payload;
+    const handleDragOver = (event: DragEvent) => {
+      // 必须 preventDefault：否则 webview 会认为这里不接受拖放（🚫 光标），drop 也不会触发
+      if (hasFiles(event) && event.dataTransfer) {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'copy';
+      }
+    };
 
-            try {
-              const result = await importWithFailureFeedback(
-                (options) => importPhotosViaPaths(paths, options),
-                {
-                  onProgress: (progress) => updateImportProgress('drop', progress),
-                  onPhotoImported: (photo) => addPhotos([photo]),
-                  onPhotoUpdated: updatePhoto,
-                },
-              );
-              selectImported(result);
-            } catch (error) {
-              notifyImportAborted(error);
-            } finally {
-              finishImport('drop');
-            }
-            break;
-          }
-        }
-      });
+    const handleDragLeave = (event: DragEvent) => {
+      // relatedTarget 为 null 表示离开了整个窗口；页面内部的移动不该把提示收起来
+      if (!event.relatedTarget) {
+        setIsDraggingOver(false);
+      }
+    };
 
-      cleanup = () => {
-        unlisten.then((fn) => fn());
-      };
-    } catch {
-      cleanup = undefined;
-    }
+    const handleDrop = (event: DragEvent) => {
+      const files = event.dataTransfer?.files;
+
+      if (!files || files.length === 0) {
+        return;
+      }
+
+      event.preventDefault();
+      setIsDraggingOver(false);
+      void importViaDrop(files);
+    };
+
+    document.addEventListener('dragenter', handleDragEnter);
+    document.addEventListener('dragover', handleDragOver);
+    document.addEventListener('dragleave', handleDragLeave);
+    document.addEventListener('drop', handleDrop);
 
     return () => {
-      cleanup?.();
+      document.removeEventListener('dragenter', handleDragEnter);
+      document.removeEventListener('dragover', handleDragOver);
+      document.removeEventListener('dragleave', handleDragLeave);
+      document.removeEventListener('drop', handleDrop);
     };
-  }, [
-    addPhotos,
-    finishImport,
-    pageActive,
-    selectImported,
-    startImport,
-    updateImportProgress,
-    updatePhoto,
-  ]);
+  }, [importViaDrop, pageActive]);
 
   const currentPhoto = photos[currentIndex] ?? null;
 

@@ -72,11 +72,4 @@ export const THIRD_PARTY_NOTICES: readonly ThirdPartyNoticeGroup[] = [
       { name: '@fontsource-variable/inter', license: 'OFL-1.1' },
     ],
   },
-  {
-    titleKey: 'settings.about.licenses.groups.metadataWasm',
-    items: [
-      { name: '@uswriting/exiftool', license: 'Apache-2.0' },
-      { name: '@6over3/zeroperl-ts', license: 'Apache-2.0' },
-    ],
-  },
 ];

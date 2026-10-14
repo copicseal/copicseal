@@ -131,6 +131,8 @@ const webRuntime = {
   extractJpegExif: async () => [],
   insertJpegExif: async (jpegData: number[]) => jpegData,
   openImageDialog: async () => null,
+  // 原生「选择相机文件」对话框：网页端没有，返回 null 让调用方回落到网页文件选择
+  openCameraFileDialog: async () => null,
   // 插件是桌面端能力：网页端没有本地可执行组件，列表为空、操作直接拒绝
   listPlugins: async () => [],
   fetchPluginManifest: async () => {
@@ -140,6 +142,13 @@ const webRuntime = {
     throw new Error(translate('common.error.webNoPlugins'));
   },
   removePlugin: async () => {
+    throw new Error(translate('common.error.webNoPlugins'));
+  },
+  readExiftoolMetadata: async () => {
+    throw new Error(translate('common.error.webNoPlugins'));
+  },
+  // 网页端没有本地可执行组件，落盘也没有意义
+  stageDroppedFile: async () => {
     throw new Error(translate('common.error.webNoPlugins'));
   },
   onPluginInstallProgress: async () => () => undefined,

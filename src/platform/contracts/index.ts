@@ -104,11 +104,20 @@ export interface InlineFont {
   data_url: string;
 }
 
-/** 插件目录里声明的「某平台对应哪个资产文件」 */
+/** 插件目录里声明的「某平台对应哪个资产文件」，以及装完后必须存在的文件 */
 export interface PluginAssetRef {
   /** 平台标识，如 `windows-x86_64` */
   platform: string;
   file: string;
+  /** 安装完成后必须存在的文件（相对安装根目录） */
+  required_files: string[];
+  /**
+   * 这份资产装完之后怎么运行。
+   *
+   * 组件形态并不统一：libheif 是直接的 exe，exiftool 在 macOS/Linux 上是需要系统 perl 的脚本。
+   * 声明放在资产上，插件层才能保持通用（它不认识任何具体组件）。
+   */
+  run: { kind: 'executable'; file: string } | { kind: 'perl'; script: string; lib: string };
 }
 
 /** 远端清单里的资产：下载地址由清单地址推导，这里带上大小与摘要用于校验 */
@@ -153,7 +162,7 @@ export interface PluginState {
   name: string;
   description: string;
   homepage: string;
-  /** 当前平台是否有可用资产；macOS 为 false（系统已内置 HEIC 支持） */
+  /** 当前平台是否有可用资产 */
   supported: boolean;
   platform: string;
   asset: PluginAssetRef | null;
@@ -161,6 +170,17 @@ export interface PluginState {
   active_version: string | null;
   /** 插件根目录（供「打开目录」） */
   directory: string;
+  /**
+   * 系统 PATH 里已有的同名可执行文件（如包管理器装的 exiftool）。
+   *
+   * 有它会提示「系统已安装」，但用户仍然可以装一份本地的：
+   * 装了就用装的那份，没装才回落到系统这份。
+   */
+  system_path: string | null;
+  /** 系统里那个可执行文件的版本（`exiftool -ver`）；取不到为 null */
+  system_version: string | null;
+  /** 该组件的资产是否需要系统 perl；null 表示这个组件与 perl 无关 */
+  perl_available: boolean | null;
 }
 
 export interface PluginInstallProgress {
@@ -180,6 +200,41 @@ export interface PluginInstallProgress {
 export interface PluginConfig {
   sources: string[];
 }
+
+/**
+ * 空 EXIF：所有字段为 null。
+ *
+ * 网页端（不再内置 ExifTool）与「还没读到 EXIF」的场景共用这一份，
+ * 避免各处再抄一遍 20 多个 null。
+ */
+export const EMPTY_EXIF: ExifData = {
+  make: null,
+  model: null,
+  lens_model: null,
+  aperture: null,
+  shutter_speed: null,
+  iso: null,
+  focal_length: null,
+  exposure_compensation: null,
+  date_taken: null,
+  white_balance: null,
+  metering_mode: null,
+  latitude: null,
+  longitude: null,
+  image_width: null,
+  image_height: null,
+  orientation: null,
+  exposure_program: null,
+  flash: null,
+  focal_length_35mm: null,
+  max_aperture: null,
+  software: null,
+  artist: null,
+  copyright: null,
+  body_serial: null,
+  lens_serial: null,
+  gps_altitude: null,
+};
 
 export interface ImageFileMeta {
   name: string;

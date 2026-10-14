@@ -1,14 +1,19 @@
 /**
  * 「快门数查询」的数据来源抽象。
  *
- * 现在只有 ExifTool(WASM) 一个实现，但**不要**让 UI 直接依赖它：
- * 以后要像 libheif 那样做插件（宿主侧原生实现、按需下载），只需给
- * `registerShutterCountProvider()` 注册一个更高优先级的实现，
- * 解析器会自动改用它，界面代码一行都不用动。
+ * 现在有两个实现：桌面端优先用**系统里已有或插件目录里安装的原生 ExifTool**，
+ * 拿不到时回退到内置的 WASM 版。UI 只认这里的接口：换实现（包括将来做成插件、
+ * 或干脆去掉随包的 WASM）都不需要改界面代码。
  */
 
 export interface ShutterCountInput {
-  bytes: Uint8Array;
+  /** 文件字节；网页端（没有磁盘路径）与 WASM 版需要 */
+  bytes?: Uint8Array;
+  /**
+   * 文件在磁盘上的路径；原生 ExifTool 必须在真实文件上跑。
+   * 只有字节时由 WASM 版解析。
+   */
+  path?: string;
   /** 带扩展名的文件名：ExifTool 靠它判断容器格式 */
   fileName: string;
 }
@@ -51,7 +56,9 @@ const providers: RegisteredProvider[] = [];
  * 插件实现以后也是往这个列表里加（或由插件宿主注册）。
  */
 const builtinProviderLoaders: Array<() => Promise<unknown>> = [
-  () => import('./providers/exiftool-wasm'),
+  // 原生 ExifTool：系统里已有，或用户在「设置 → 插件」里装了一份
+  //（内置的 WASM 版已移除：它给应用带来约 24 MB 的 wasm 资源，桌面端用不上）
+  () => import('./providers/native-exiftool'),
 ];
 
 let builtinsLoaded = false;
@@ -110,7 +117,9 @@ export async function readShutterCount(input: ShutterCountInput): Promise<Shutte
   const available = await listShutterCountProviders();
 
   if (available.length === 0) {
-    throw new Error('没有可用的快门数解析器');
+    throw new Error(
+      '没有可用的 ExifTool：系统里没找到，插件目录里也没装（可在「设置 → 插件」安装）',
+    );
   }
 
   let lastError: unknown = null;

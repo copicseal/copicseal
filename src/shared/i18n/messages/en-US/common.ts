@@ -59,6 +59,8 @@ export const common: Messages['common'] = {
     imageFilter: 'Images',
     /** File type filter name in the native “select logo” dialog */
     logoFilter: 'Logo image',
+    /** File type filter name in the native “select camera file” dialog (includes RAW) */
+    cameraFileFilter: 'Camera file',
   },
   tools: {
     title: 'More features',
@@ -82,7 +84,7 @@ export const common: Messages['common'] = {
       dropTitle: 'Drop a camera-original file here',
       dropHint: 'or pick one with the button below',
       supported: 'JPEG / HEIC / RAW and other camera originals',
-      parsing: 'Parsing… (the first run loads the parser, this can take a moment)',
+      parsing: 'Parsing…',
       readFailed: 'Could not parse the file',
       notFoundTitle: 'This file has no shutter count field',
       notFoundHint:

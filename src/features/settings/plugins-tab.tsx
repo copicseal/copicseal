@@ -354,7 +354,11 @@ export function PluginsTab({ sources, onChangeSources }: PluginsTabProps) {
             const installedBytes = plugin.installed[plugin.installed.length - 1]?.size ?? 0;
             const remoteVersion = manifest?.version ?? null;
             const busy = busyId === plugin.id;
-            const canInstall = plugin.supported && Boolean(manifest) && !busy;
+            /** 系统里已经有这个组件（例如包管理器装的 exiftool）：提示出来，但仍允许装一份本地的 */
+            const systemReady = Boolean(plugin.system_path);
+            /** 该组件靠系统 perl 跑，而系统里没有 perl：让用户去官网自取 */
+            const perlMissing = plugin.perl_available === false;
+            const canInstall = plugin.supported && Boolean(manifest) && !busy && !perlMissing;
             const hasUpdate = Boolean(remoteVersion && remoteVersion !== activeVersion);
 
             return (
@@ -368,18 +372,36 @@ export function PluginsTab({ sources, onChangeSources }: PluginsTabProps) {
                       <span className="truncate text-xs font-medium text-foreground">
                         {plugin.name}
                       </span>
-                      <span
-                        className={cn(
-                          'shrink-0 border px-1 text-[10px]',
-                          activeVersion
-                            ? 'border-border bg-muted/60 text-foreground'
-                            : 'border-dashed border-border text-muted-foreground',
-                        )}
-                      >
-                        {activeVersion
-                          ? t('settings.plugins.installedVersion', { version: activeVersion })
-                          : t('settings.plugins.notInstalled')}
-                      </span>
+                      {/* 系统里已经有、本地又没装时，不要再提「未安装」——只说系统那份 */}
+                      {systemReady && !activeVersion ? null : (
+                        <span
+                          className={cn(
+                            'shrink-0 border px-1 text-[10px]',
+                            activeVersion
+                              ? 'border-border bg-muted/60 text-foreground'
+                              : 'border-dashed border-border text-muted-foreground',
+                          )}
+                        >
+                          {activeVersion
+                            ? t('settings.plugins.installedVersion', { version: activeVersion })
+                            : t('settings.plugins.notInstalled')}
+                        </span>
+                      )}
+                      {/* 系统里已经有了（带版本号）；装一份本地的也仍然可以用 */}
+                      {systemReady ? (
+                        <span
+                          className="shrink-0 border border-primary/40 bg-primary/10 px-1 text-[10px] text-primary"
+                          title={t('settings.plugins.systemInstalledHint', {
+                            path: plugin.system_path ?? '',
+                          })}
+                        >
+                          {plugin.system_version
+                            ? t('settings.plugins.systemInstalledVersion', {
+                                version: plugin.system_version,
+                              })
+                            : t('settings.plugins.systemInstalled')}
+                        </span>
+                      ) : null}
                       {hasUpdate ? (
                         <span className="shrink-0 border border-primary/40 bg-primary/10 px-1 text-[10px] text-primary">
                           {t('settings.plugins.updateAvailable', { version: remoteVersion ?? '' })}
@@ -415,6 +437,25 @@ export function PluginsTab({ sources, onChangeSources }: PluginsTabProps) {
                             : t('settings.plugins.noAsset')}
                         </span>
                       )}
+                      {/* Perl 版组件在缺 perl 的系统上装不了，给一条官网自取的出路 */}
+                      {perlMissing ? (
+                        <>
+                          <span className="text-destructive">
+                            {t('settings.plugins.perlMissing')}
+                          </span>
+                          <button
+                            type="button"
+                            className="underline underline-offset-2 hover:text-foreground"
+                            onClick={() => {
+                              void platformRuntime
+                                .openExternal('https://exiftool.org/')
+                                .catch((error) => console.error('打开下载页失败:', error));
+                            }}
+                          >
+                            {t('settings.plugins.perlMissingLink')}
+                          </button>
+                        </>
+                      ) : null}
                       {manifestSources[plugin.id] ? (
                         <span>
                           {t('settings.plugins.fromSource', {

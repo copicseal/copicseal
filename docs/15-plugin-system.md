@@ -74,13 +74,15 @@
 配置项：`config.plugins.sources`，字符串数组，**顺序即优先级**。
 
 ```txt
-https://raw.githubusercontent.com/copicseal/copicseal-static/main   ← 内置官方源
-https://cdn.example.com/copicseal-static/main                        ← 用户 / 镜像自加的源
+https://static.copicseal.com                                     ← 内置源 1：静态仓库的自定义域名（CDN）
+https://raw.githubusercontent.com/copicseal/copicseal-static/main ← 内置源 2：GitHub raw 兜底
+https://cdn.example.com/copicseal-static                          ← 用户 / 镜像自加的源
 ```
 
 - 取清单：按顺序请求 `<源>/<插件 id>/manifest.json`，第一个成功的源胜出
 - 下载资产：沿用胜出的那个源，避免「清单来自 A、包来自 B」
-- 列表为空或全是不合法地址 → 回落到内置官方源，所以「默认有 GitHub 源」永远成立
+- 列表为空或全是不合法地址 → 回落到上面这两个内置源，所以「默认源可用」永远成立
+- 内置源的自定义域名与 GitHub raw 指向同一份静态仓库，镜像只要复刻目录结构即可
 - 界面：设置 → 插件 →「下载源」卡片，可添加 / 移除 / 置顶 / 恢复默认；地址必须以 `http(s)://` 开头
 - 镜像只要复刻同样的目录结构即可，客户端不需要为每个镜像改代码
 

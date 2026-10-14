@@ -122,9 +122,20 @@ impl Default for PluginConfig {
     }
 }
 
-/// 官方源：静态仓库 `main` 分支的原始文件地址。
+/// 静态仓库的自建域名（GitHub Pages + CDN），国内访问稳定。
+const CDN_STATIC_SOURCE: &str = "https://static.copicseal.com";
+/// 静态仓库的 GitHub raw 地址；CDN 不可用时兜底，也是老版本的默认源。
+const GITHUB_STATIC_SOURCE: &str =
+    "https://raw.githubusercontent.com/copicseal/copicseal-static/main";
+
+/// 内置下载源，**顺序即优先级**：先自建域名，再 GitHub raw 兜底。
+///
+/// 与前端 `plugins-tab.tsx` 的 `DEFAULT_SOURCES` 必须保持一致（配置为空时由前端回落）。
 pub fn default_plugin_sources() -> Vec<String> {
-    vec!["https://raw.githubusercontent.com/copicseal/copicseal-static/main".to_string()]
+    vec![
+        CDN_STATIC_SOURCE.to_string(),
+        GITHUB_STATIC_SOURCE.to_string(),
+    ]
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -603,6 +614,7 @@ fn load_from_db(app: &tauri::AppHandle) -> Result<AppConfig, String> {
 ///
 /// - 导出目录：老版本就是工作区目录（`<文档>/Copicseal`），现在成品挪进 `Output`
 /// - 缓存目录：老版本是工作区目录下的 `cache`，现在统一成首字母大写的 `Cache`
+/// - 插件下载源：老的默认只有一个 GitHub raw，现在补了自建域名（CDN）并把它排在前面
 fn migrate_legacy_defaults(config: &mut AppConfig) {
     let legacy_export = default_save_directory();
     let current_export = config.output.default_path.trim();
@@ -617,6 +629,12 @@ fn migrate_legacy_defaults(config: &mut AppConfig) {
         .to_string();
     if config.cache.directory.trim() == legacy_cache {
         config.cache.directory = default_cache_directory(&config.save_directory);
+    }
+
+    // 只有「恰好等于老默认」才换：用户自己加过镜像 / 调过顺序的列表原样保留
+    let legacy_sources = vec![GITHUB_STATIC_SOURCE.to_string()];
+    if config.plugins.sources == legacy_sources {
+        config.plugins.sources = default_plugin_sources();
     }
 }
 
@@ -673,6 +691,30 @@ pub fn get_device_id(app: tauri::AppHandle) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// 内置源顺序：自建域名优先，GitHub raw 兜底（国内访问 CDN 稳定得多）。
+    #[test]
+    fn default_plugin_sources_put_the_cdn_first() {
+        let sources = default_plugin_sources();
+        assert_eq!(sources[0], CDN_STATIC_SOURCE);
+        assert_eq!(sources[1], GITHUB_STATIC_SOURCE);
+    }
+
+    /// 老配置里恰好是「只有 GitHub raw」这份老默认时，迁移到新的两源；
+    /// 用户自己加过镜像 / 调过顺序则原样保留。
+    #[test]
+    fn migrates_the_legacy_single_source() {
+        let mut legacy = AppConfig::default();
+        legacy.plugins.sources = vec![GITHUB_STATIC_SOURCE.to_string()];
+        migrate_legacy_defaults(&mut legacy);
+        assert_eq!(legacy.plugins.sources, default_plugin_sources());
+
+        let custom = vec!["https://mirror.example.com/static".to_string()];
+        let mut configured = AppConfig::default();
+        configured.plugins.sources = custom.clone();
+        migrate_legacy_defaults(&mut configured);
+        assert_eq!(configured.plugins.sources, custom, "用户自己的列表不该被动");
+    }
 
     /// `exif` 段的线上字段名是前后端的约定，改名会让配置静默丢值。
     ///

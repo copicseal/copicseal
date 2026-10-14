@@ -10,8 +10,15 @@ import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 
-/** 内置官方源：配置为空时的回落值，与 Rust 侧 `config::default_plugin_sources()` 保持一致 */
-const DEFAULT_SOURCES = ['https://raw.githubusercontent.com/copicseal/copicseal-static/main'];
+/**
+ * 内置下载源：配置为空时的回落值，与 Rust 侧 `config::default_plugin_sources()` 保持一致。
+ *
+ * 顺序即优先级：先自建域名（CDN），再 GitHub raw 兜底。
+ */
+const DEFAULT_SOURCES = [
+  'https://static.copicseal.com',
+  'https://raw.githubusercontent.com/copicseal/copicseal-static/main',
+];
 
 /** 平台标识转展示名 */
 function systemLabel(platform: string): string {

@@ -643,8 +643,9 @@ const HEIC_PLUGIN_FAILED_CODE: &str = "heic-plugin-failed";
 
 /// 给错误串加机器可读标记，前端按码决定交互，不靠匹配文案。
 ///
-/// 只有 Windows 的解码链路与测试会用到，macOS 上不加 cfg 会被 clippy 判成 dead_code。
-#[cfg(any(target_os = "windows", test))]
+/// 只有 Windows 的解码链路会用到（测试只用上面的错误码常量），所以只按 Windows 门控：
+/// macOS 上不加 cfg 会被 clippy 判成 dead_code，加 `test` 又会在测试构建里报未使用。
+#[cfg(target_os = "windows")]
 fn coded_error(code: &str, message: String) -> String {
     format!("[[co:{code}]] {message}")
 }

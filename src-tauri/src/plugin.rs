@@ -721,21 +721,27 @@ async fn download_asset(
     Ok((downloaded, to_hex(&hasher.finalize())))
 }
 
-/// 条目名必须落在目标目录内：拒绝绝对路径、盘符与 `..`。
+/// 规范化 zip 条目名，得到落盘用的相对路径。
 ///
-/// zip crate 的 `enclosed_name` 已经做了一层，这里再显式过一遍（且有单测兜底）。
-fn safe_entry_path(name: &str) -> Option<PathBuf> {
+/// - `Ok(Some(path))`：可用的相对路径
+/// - `Ok(None)`：压缩包自带的「根目录」条目（`./` 这类）：跳过
+/// - `Err(name)`：真的非法（盘符 / 根目录 / 非 UTF-8），调用方连同条目名报错
+///
+/// **`./` 不是穿越**：macOS 的 `zip` 打包时一定会写一条根目录条目，真实的
+/// `exiftool-perl.zip` 第一个条目就是它，规范化后是空路径——原来把它判成非法路径，
+/// 整包会被拒（「插件包内包含非法路径」）。
+fn safe_entry_path(name: &str) -> Result<Option<PathBuf>, String> {
     let mut clean = PathBuf::new();
 
     for part in Path::new(name).components() {
         match part {
             std::path::Component::Normal(segment) => clean.push(segment),
             std::path::Component::CurDir => {}
-            _ => return None,
+            _ => return Err(name.to_string()),
         }
     }
 
-    (!clean.as_os_str().is_empty()).then_some(clean)
+    Ok((!clean.as_os_str().is_empty()).then_some(clean))
 }
 
 /// 解压到目标目录：拒绝路径穿越条目，目录结构原样保留。
@@ -748,11 +754,18 @@ fn extract_zip(zip_path: &Path, dest: &Path) -> Result<(), String> {
             .by_index(index)
             .map_err(|e| format!("读取插件包条目失败: {e}"))?;
 
-        let Some(name) = entry.enclosed_name() else {
-            return Err("插件包内包含非法路径".to_string());
+        // zip crate 自带的穿越检查（绝对路径、`..` 越界、含 NUL）
+        let Some(enclosed) = entry.enclosed_name() else {
+            return Err(format!("插件包内包含非法路径: {}", entry.name()));
         };
-        let Some(relative) = name.to_str().and_then(safe_entry_path) else {
-            return Err("插件包内包含非法路径".to_string());
+        // 非 UTF-8 名字没法在插件目录里稳定寻址，同样按非法处理
+        let Some(raw_name) = enclosed.to_str() else {
+            return Err(format!("插件包内包含非法路径: {}", entry.name()));
+        };
+        let relative = match safe_entry_path(raw_name) {
+            Ok(None) => continue,
+            Ok(Some(path)) => path,
+            Err(_) => return Err(format!("插件包内包含非法路径: {}", entry.name())),
         };
 
         let target = dest.join(relative);
@@ -965,6 +978,86 @@ mod tests {
         assert!(inner_gone, "空壳目录应删掉");
     }
 
+    /// 写一个测试用 zip。
+    fn write_test_zip(path: &Path, entries: &[(&str, &[u8])]) {
+        use std::io::Write;
+
+        let file = fs::File::create(path).unwrap();
+        let mut writer = zip::ZipWriter::new(file);
+        for (name, contents) in entries {
+            writer
+                .start_file(*name, zip::write::SimpleFileOptions::default())
+                .unwrap();
+            writer.write_all(contents).unwrap();
+        }
+        writer.finish().unwrap();
+    }
+
+    fn zip_probe_dir(name: &str) -> PathBuf {
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join(name);
+        let _ = fs::remove_dir_all(&dir);
+        fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    /// 压缩包自带的 `./` 根目录条目要跳过，不能判成路径穿越。
+    ///
+    /// 线上 `exiftool-perl.zip`（sha256 校验通过的那份）第一个条目就是 `./`，
+    /// 老逻辑因此整包被拒。
+    #[test]
+    fn skips_archive_root_entry() {
+        let dir = zip_probe_dir("plugin-zip-root-probe");
+        let zip_path = dir.join("pkg.zip");
+        write_test_zip(
+            &zip_path,
+            &[
+                ("./", b""),
+                ("./bin/tool.exe", b"binary"),
+                ("./README.txt", b"readme"),
+            ],
+        );
+
+        // 确认 writer 真的把 `./` 写进去了，否则这条测试就没覆盖到真实形状
+        let mut archive = zip::ZipArchive::new(fs::File::open(&zip_path).unwrap()).unwrap();
+        assert_eq!(archive.by_index(0).unwrap().name(), "./");
+        drop(archive);
+
+        let dest = dir.join("out");
+        fs::create_dir_all(&dest).unwrap();
+        extract_zip(&zip_path, &dest).unwrap();
+
+        assert!(
+            dest.join("bin/tool.exe").is_file(),
+            "嵌套文件要按原结构落地"
+        );
+        assert!(dest.join("README.txt").is_file(), "根目录下的文件也要落地");
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
+    /// 真正的穿越条目仍然要拦下来，且报错里带条目名。
+    #[test]
+    fn rejects_traversal_entries() {
+        let dir = zip_probe_dir("plugin-zip-traversal-probe");
+        let zip_path = dir.join("pkg.zip");
+        write_test_zip(&zip_path, &[("../evil.txt", b"x"), ("./ok.txt", b"ok")]);
+
+        let dest = dir.join("out");
+        fs::create_dir_all(&dest).unwrap();
+        let error = extract_zip(&zip_path, &dest).unwrap_err();
+
+        assert!(
+            error.contains("非法路径"),
+            "错误信息应说明非法路径: {error}"
+        );
+        assert!(error.contains("evil.txt"), "错误信息应带条目名: {error}");
+        assert!(!dir.join("evil.txt").exists(), "不能写到目标目录之外");
+
+        let _ = fs::remove_dir_all(&dir);
+    }
+
     #[test]
     fn finds_executables_in_path() {
         let known = if cfg!(target_os = "windows") {
@@ -1074,17 +1167,23 @@ mod tests {
 
     #[test]
     fn safe_entry_path_rejects_escapes() {
-        assert!(safe_entry_path("../evil.txt").is_none());
-        assert!(safe_entry_path("a/../../evil.txt").is_none());
-        assert!(safe_entry_path("/abs/evil.txt").is_none());
-        assert!(safe_entry_path("").is_none());
+        // 真的非法：盘符 / 根目录
+        assert!(safe_entry_path("../evil.txt").is_err());
+        assert!(safe_entry_path("a/../../evil.txt").is_err());
+        assert!(safe_entry_path("/abs/evil.txt").is_err());
+
+        // 压缩包自带的根目录条目：跳过（返回 Ok(None)），不是非法
+        assert_eq!(safe_entry_path("").unwrap(), None);
+        assert_eq!(safe_entry_path(".").unwrap(), None);
+        assert_eq!(safe_entry_path("./").unwrap(), None);
+
         assert_eq!(
             safe_entry_path("heif-dec.exe").unwrap(),
-            PathBuf::from("heif-dec.exe")
+            Some(PathBuf::from("heif-dec.exe"))
         );
         assert_eq!(
             safe_entry_path("./sub/heif-dec.exe").unwrap(),
-            PathBuf::from("sub").join("heif-dec.exe")
+            Some(PathBuf::from("sub").join("heif-dec.exe"))
         );
     }
 

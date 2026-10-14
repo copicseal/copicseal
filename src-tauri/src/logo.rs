@@ -196,7 +196,13 @@ mod tests {
         // 语义是「净化」而不是「拒绝」：目录部分被丢掉，结果永远落在 Logos/ 里逃不出去
         assert_eq!(safe_file_name("../evil.svg").unwrap(), "evil.svg");
         assert_eq!(safe_file_name("a/b.svg").unwrap(), "b.svg");
+        // Windows 路径两种平台语义不同，不能写死一个期望：
+        // Windows 上反斜杠是分隔符，目录部分被剥掉；Unix 上它是普通字符，
+        // 函数按安全策略（名字里不允许出现路径分隔符）直接拒绝。
+        #[cfg(windows)]
         assert_eq!(safe_file_name("C:\\tmp\\logo.svg").unwrap(), "logo.svg");
+        #[cfg(not(windows))]
+        assert!(safe_file_name("C:\\tmp\\logo.svg").is_none());
         // 隐藏文件与空名直接拒绝（`.incoming-*` 这类临时文件不该被当成 Logo）
         assert!(safe_file_name(".hidden.svg").is_none());
         assert!(safe_file_name("").is_none());

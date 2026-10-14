@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import type { PluginInstallProgress, PluginManifest, PluginState } from '@/platform';
 import { platformRuntime } from '@/platform/providers/platform-runtime';
 import { CoPanelSection } from '@/shared/components/co-panel-section';
-import { useTranslate } from '@/shared/i18n';
+import { type MessageKey, useTranslate } from '@/shared/i18n';
 import { formatFileSize } from '@/shared/lib/file-size';
 import { cn } from '@/shared/lib/utils';
 import { Button } from '@/shared/ui/button';
@@ -19,6 +19,17 @@ const DEFAULT_SOURCES = [
   'https://static.copicseal.com',
   'https://raw.githubusercontent.com/copicseal/copicseal-static/main',
 ];
+
+/**
+ * 卸载提示按插件 id 取。
+ *
+ * 不同插件卸载后受影响的能力完全不同（libheif 管 HEIC 解码、exiftool 管 MakerNote 读取），
+ * 共用一句话会在别的插件上串台；表里没有的插件回落到通用说法。
+ */
+const UNINSTALL_NOTE_KEYS: Record<string, MessageKey> = {
+  libheif: 'settings.plugins.uninstallNote.libheif',
+  exiftool: 'settings.plugins.uninstallNote.exiftool',
+};
 
 /** 平台标识转展示名 */
 function systemLabel(platform: string): string {
@@ -191,7 +202,7 @@ export function PluginsTab({ sources, onChangeSources }: PluginsTabProps) {
 
   const handleUninstall = (plugin: PluginState) => {
     toast(t('settings.plugins.uninstallConfirm', { name: plugin.name }), {
-      description: t('settings.plugins.uninstallConfirmDescription'),
+      description: t(UNINSTALL_NOTE_KEYS[plugin.id] ?? 'settings.plugins.uninstallNote.default'),
       action: {
         label: t('settings.plugins.uninstall'),
         onClick: () => void runUninstall(plugin),

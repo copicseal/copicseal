@@ -447,7 +447,17 @@ export const settings = {
     uninstallSuccess: '已卸载 {name}',
     uninstallFailed: '插件卸载失败',
     uninstallConfirm: '确定卸载 {name}？',
-    uninstallConfirmDescription: '卸载后相关能力回到系统默认实现，HEIC 可能又需要系统扩展。',
+    /**
+     * 卸载提示按插件给：各插件卸载后受影响的能力完全不同，
+     * 之前共用一句「HEIC 可能又需要系统扩展」，卸 ExifTool 时也这么说，明显串台。
+     */
+    uninstallNote: {
+      default: '卸载后相关能力回到系统默认实现。',
+      libheif:
+        '卸载后 HEIC/HEIF 预览回到系统实现；Windows 上可能又需要应用商店里的「HEIF 图像扩展」。',
+      exiftool:
+        '卸载后「快门数查询」读不到相机私有字段（ShutterCount 等）；照片的基础 EXIF（光圈、快门、ISO、时间、GPS）不受影响。',
+    },
     cancel: '取消',
     notNeeded: '{system} 已内置该能力，无需安装插件',
     noAsset: '当前系统没有该插件的版本',

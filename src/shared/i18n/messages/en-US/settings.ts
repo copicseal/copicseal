@@ -469,8 +469,14 @@ export const settings: Messages['settings'] = {
     uninstallSuccess: 'Uninstalled {name}',
     uninstallFailed: 'Failed to uninstall the plugin',
     uninstallConfirm: 'Uninstall {name}?',
-    uninstallConfirmDescription:
-      'The related capability falls back to the system default; HEIC may need the system extension again.',
+    /** Per-plugin: what actually breaks after uninstalling differs completely */
+    uninstallNote: {
+      default: 'The capability falls back to the system default.',
+      libheif:
+        'HEIC/HEIF previews fall back to the system decoder; on Windows the Store HEIF Image Extensions may be required again.',
+      exiftool:
+        'The shutter count tool can no longer read MakerNote fields (ShutterCount and friends); basic EXIF (aperture, shutter, ISO, time, GPS) is unaffected.',
+    },
     cancel: 'Cancel',
     notNeeded: '{system} supports this natively, no plugin needed',
     noAsset: 'No build of this plugin for the current system',

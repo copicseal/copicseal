@@ -118,6 +118,8 @@ pub struct PluginState {
     pub system_version: Option<String>,
     /// 当前平台这份资产是否需要系统 perl；None 表示与 perl 无关
     pub perl_available: Option<bool>,
+    /// 该组件在下载源里的子目录名：文件地址是 `<源>/<remote_dir>/<文件名>`
+    pub remote_dir: String,
 }
 
 /// 拉到的远端清单 + 实际生效的源（多源按顺序尝试，界面要显示是哪个源给的）。
@@ -414,6 +416,7 @@ fn plugin_state(app: &AppHandle, entry: &PluginCatalogEntry) -> Result<PluginSta
         system_path,
         system_version,
         perl_available,
+        remote_dir: entry.remote_dir.clone(),
     })
 }
 

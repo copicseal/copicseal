@@ -179,6 +179,8 @@ export interface PluginState {
   system_path: string | null;
   /** 系统里那个可执行文件的版本（`exiftool -ver`）；取不到为 null */
   system_version: string | null;
+  /** 该组件在下载源里的子目录名：文件地址是 `<源>/<remote_dir>/<文件名>` */
+  remote_dir: string;
   /** 该组件的资产是否需要系统 perl；null 表示这个组件与 perl 无关 */
   perl_available: boolean | null;
 }

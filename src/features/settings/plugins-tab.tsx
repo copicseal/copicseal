@@ -220,9 +220,21 @@ export function PluginsTab({ sources, onChangeSources }: PluginsTabProps) {
     }
   };
 
-  const handleOpenSource = async (plugin: PluginState) => {
+  /**
+   * 该插件的「来源」链接：指向**当前平台的安装包**（点了就是下载那个文件），
+   * 没有清单信息时退回项目主页。地址与 Rust 侧 `plugin::source_url` 的拼法一致：
+   * `<源>/<remote_dir>/<文件名>`。
+   */
+  const sourceUrl = (plugin: PluginState): string => {
+    const source = manifestSources[plugin.id];
+    const file = plugin.asset?.file;
+
+    return source && file ? `${source}/${plugin.remote_dir}/${file}` : plugin.homepage;
+  };
+
+  const handleOpenSource = async (url: string) => {
     try {
-      await platformRuntime.openExternal(plugin.homepage);
+      await platformRuntime.openExternal(url);
     } catch (error) {
       console.error('打开来源链接失败:', error);
       toast.error(t('settings.plugins.openSourceFailed'));
@@ -435,10 +447,12 @@ export function PluginsTab({ sources, onChangeSources }: PluginsTabProps) {
                     <p className="mt-1 text-xs text-muted-foreground">{plugin.description}</p>
 
                     <div className="mt-1 flex flex-wrap items-center gap-2 text-[10px] text-muted-foreground">
+                      {/* 「来源」两字即可：悬停显示完整地址，点击打开当前平台的安装包 */}
                       <button
                         type="button"
                         className="underline underline-offset-2 hover:text-foreground"
-                        onClick={() => void handleOpenSource(plugin)}
+                        title={sourceUrl(plugin)}
+                        onClick={() => void handleOpenSource(sourceUrl(plugin))}
                       >
                         {t('settings.plugins.source')}
                       </button>
@@ -473,13 +487,6 @@ export function PluginsTab({ sources, onChangeSources }: PluginsTabProps) {
                             {t('settings.plugins.perlMissingLink')}
                           </button>
                         </>
-                      ) : null}
-                      {manifestSources[plugin.id] ? (
-                        <span>
-                          {t('settings.plugins.fromSource', {
-                            source: sourceHost(manifestSources[plugin.id] as string),
-                          })}
-                        </span>
                       ) : null}
                       {remoteVersion ? (
                         <>

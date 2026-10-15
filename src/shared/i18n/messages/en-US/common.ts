@@ -95,6 +95,8 @@ export const common: Messages['common'] = {
       unknown: 'Unknown',
       provider: 'Parser',
       file: 'File',
+      missingToolHint: 'ExifTool is not on this system, and no copy is installed.',
+      installTool: 'Install it in Settings → Plugins',
       tooLarge: 'The file is larger than {limit}; parsing loads the whole file into memory',
       tag: {
         serialNumber: 'Body serial number',

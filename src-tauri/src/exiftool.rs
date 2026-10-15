@@ -6,6 +6,11 @@ use tauri::AppHandle;
 /// 插件层只提供通用的「装组件 / 解析怎么跑」能力，不认识任何具体组件。
 const EXIFTOOL_COMPONENT: &str = "exiftool";
 
+/// 错误码：系统里没有、插件目录里也没装 ExifTool。
+///
+/// 前端据此给出「去设置 → 插件安装」的入口（与 `shutter-count/provider.ts` 里那份一致）。
+pub(crate) const EXIFTOOL_MISSING_CODE: &str = "exiftool-missing";
+
 /// 用 ExifTool 读一个文件的元数据，返回原始 stdout（调用方自己解析 JSON）。
 ///
 /// 只读、不改文件；`args` 由调用方给（例如 `-json -n -ShutterCount`）。
@@ -19,8 +24,9 @@ pub async fn read_exiftool_metadata(
 ) -> Result<String, String> {
     let (program, prefix) = crate::plugin::component_command(&app, EXIFTOOL_COMPONENT)?
         .ok_or_else(|| {
-            "没有可用的 ExifTool：系统里没找到，插件目录里也没装（可在「设置 → 插件」安装）"
-                .to_string()
+            format!(
+                "[[co:{EXIFTOOL_MISSING_CODE}]]没有可用的 ExifTool：系统里没找到，插件目录里也没装"
+            )
         })?;
 
     tauri::async_runtime::spawn_blocking(move || {

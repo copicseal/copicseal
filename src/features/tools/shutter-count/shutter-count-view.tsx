@@ -1,14 +1,22 @@
-import { AlertTriangle, FileImage, Gauge, Loader2 } from 'lucide-react';
-import { Fragment, useRef, useState } from 'react';
+import { AlertTriangle, FileImage, Gauge, Loader2, Wrench } from 'lucide-react';
+import { Fragment, useEffect, useRef, useState } from 'react';
+import { parseFailureReason } from '@/platform/errors';
 import { platformRuntime } from '@/platform/providers/platform-runtime';
 import { CoDropZone } from '@/shared/components/co-drop-zone';
 // 懒加载块里不要从 i18n 的 barrel 取**运行时**导出：Rollup 会把 barrel 与懒加载块拆到不同 chunk，
 // 形成跨 chunk 循环并告警。运行时函数直接指向定义它的模块；类型是编译期擦除的，从 barrel 取无妨。
 import type { MessageKey } from '@/shared/i18n';
 import { useTranslate } from '@/shared/i18n/i18n-provider';
+import { appNavigate } from '@/shared/providers/navigation-provider';
+import { usePageActive } from '@/shared/providers/page-activity-provider';
 import { Button } from '@/shared/ui/button';
 import type { ToolViewProps } from '../registry';
-import { readShutterCount, type ShutterCountResult } from './provider';
+import {
+  EXIFTOOL_MISSING_CODE,
+  hasShutterCountProvider,
+  readShutterCount,
+  type ShutterCountResult,
+} from './provider';
 
 /** 可解析的文件类型：相机直出的 JPEG/HEIC/TIFF 与各家 RAW。 */
 const ACCEPT =
@@ -25,6 +33,9 @@ const EXTRA_LABEL_KEYS: Record<string, MessageKey> = {
 };
 
 type Status = 'idle' | 'loading' | 'done' | 'error';
+
+/** 设置页里「插件」锚点（与 `settings-page` 的 `ANCHOR_TABS`、`import-feedback` 里的一致）。 */
+const PLUGIN_SETTINGS_ANCHOR = 'plugins-section';
 
 /** 从路径里取文件名（两种分隔符都要处理） */
 function baseName(path: string): string {
@@ -47,11 +58,74 @@ const STAGE_MIN_HEIGHT = 'min-h-[320px]';
  */
 export default function ShutterCountView({ onBack }: ToolViewProps) {
   const t = useTranslate();
+  const pageActive = usePageActive();
   const inputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<Status>('idle');
   const [fileName, setFileName] = useState('');
   const [result, setResult] = useState<ShutterCountResult | null>(null);
   const [message, setMessage] = useState('');
+  /** 失败原因是「系统与插件都没有 ExifTool」：界面要给一条直达插件面板的入口 */
+  const [missingTool, setMissingTool] = useState(false);
+
+  /**
+   * 进页面（以及每次切回来）先探一次有没有可用的 ExifTool。
+   *
+   * 「没装」是**结论性**判断，不能凭一次探测就下：
+   *
+   * - 刚启动时后端状态可能还没就绪，`scan_installed` 读不到目录会**安静地回报「没装」**
+   *   （而不是报错），一次就提示必然误报 —— 用户明明装了却看到提示
+   * - 所以要求**连续两次**都明确「没有」才提示，两次之间隔 0.7 秒让后端就绪；
+   *   一旦探测**抛异常**就把「连续」打断，不下结论
+   * - 顺带把体感做快：只要能确认「有」立刻返回（正常情况瞬间出结果），
+   *   真的没有也在约 0.7 秒内提示
+   * - 装完插件切回本页时 `pageActive` 会再次变化，提示会自动消失
+   */
+  useEffect(() => {
+    if (!pageActive) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const probe = async (): Promise<boolean | null> => {
+      let confirmedMissing = 0;
+
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+          if (await hasShutterCountProvider()) {
+            return true;
+          }
+
+          confirmedMissing += 1;
+
+          if (confirmedMissing >= 2) {
+            return false;
+          }
+        } catch (error) {
+          // 探测失败会把「连续没有」打断：宁可这次不提示，也不要误报
+          console.warn('探测 ExifTool 可用性失败，稍后重试:', error);
+          confirmedMissing = 0;
+        }
+
+        if (attempt < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 700));
+        }
+      }
+
+      return null;
+    };
+
+    void probe().then((available) => {
+      // null 表示一直没能确认：保持现状，不要误报成「没装」
+      if (!cancelled && available !== null) {
+        setMissingTool(!available);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pageActive]);
 
   /**
    * 读一份文件。两种入口：
@@ -62,6 +136,7 @@ export default function ShutterCountView({ onBack }: ToolViewProps) {
     setFileName(input.name);
     setResult(null);
     setMessage('');
+    setMissingTool(false);
 
     if (input.file && input.file.size > MAX_BYTES) {
       setStatus('error');
@@ -82,8 +157,10 @@ export default function ShutterCountView({ onBack }: ToolViewProps) {
       setStatus('done');
     } catch (error) {
       console.error('读取快门数失败:', error);
+      const failure = parseFailureReason(error);
       setStatus('error');
-      setMessage(error instanceof Error ? error.message : String(error));
+      setMissingTool(failure.code === EXIFTOOL_MISSING_CODE);
+      setMessage(failure.message);
     }
   };
 
@@ -161,6 +238,24 @@ export default function ShutterCountView({ onBack }: ToolViewProps) {
         }}
       />
 
+      {status === 'idle' && missingTool ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2">
+          <p className="flex items-center gap-2 text-xs text-destructive">
+            <AlertTriangle className="size-4 shrink-0" />
+            {t('common.tools.shutterCount.missingToolHint')}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => appNavigate('/settings', PLUGIN_SETTINGS_ANCHOR)}
+          >
+            <Wrench data-icon="inline-start" />
+            {t('common.tools.shutterCount.installTool')}
+          </Button>
+        </div>
+      ) : null}
+
       {status === 'idle' ? (
         <CoDropZone
           /*
@@ -236,7 +331,20 @@ export default function ShutterCountView({ onBack }: ToolViewProps) {
           <p className="text-sm font-medium text-destructive">
             {t('common.tools.shutterCount.readFailed')}
           </p>
-          <p className="max-w-md text-xs leading-5 break-all text-muted-foreground">{message}</p>
+          <p className="max-w-md text-xs leading-5 break-all text-muted-foreground">
+            {missingTool ? t('common.tools.shutterCount.missingToolHint') : message}
+          </p>
+          {missingTool ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => appNavigate('/settings', PLUGIN_SETTINGS_ANCHOR)}
+            >
+              <Wrench data-icon="inline-start" />
+              {t('common.tools.shutterCount.installTool')}
+            </Button>
+          ) : null}
         </div>
       ) : null}
 

@@ -422,9 +422,6 @@ fn active_version(installed: &[InstalledPlugin]) -> Option<String> {
     installed.last().map(|item| item.version.clone())
 }
 
-/// 已安装的 `heif-dec.exe`：Windows 且装了插件才返回。
-///
-/// 给 HEIC 预览转换用；未安装/非 Windows 返回 `None`，调用方自然回落到 WIC。
 /// 在 PATH 里找一个可执行文件（Windows 额外试 `.exe`）。
 ///
 /// 用于判「系统里已经装好了」：用 Homebrew / 包管理器装过 exiftool 的用户不该再被要求下载一份。

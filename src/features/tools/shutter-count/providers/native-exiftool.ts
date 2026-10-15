@@ -1,5 +1,5 @@
 import { platformRuntime } from '@/platform/providers/platform-runtime';
-import { findComponent, isComponentReady } from '@/shared/lib/components';
+import { isComponentReady } from '@/shared/lib/components';
 import {
   registerShutterCountProvider,
   type ShutterCountProvider,
@@ -26,7 +26,24 @@ const nativeExiftoolProvider: ShutterCountProvider = {
   id: 'native-exiftool',
   label: 'ExifTool（系统 / 插件安装）',
 
-  isAvailable: async () => isComponentReady(await findComponent(EXIFTOOL_COMPONENT)),
+  /**
+   * 可用性探测**不吞异常**。
+   *
+   * 读组件状态失败（例如刚启动时后端还没就绪）必须与「确实没装」区分开：
+   * 一旦在这里吞掉，上层只会看到一个「成功的 false」，就变成误报「没装 ExifTool」。
+   * 另外打印一次组件状态，误报时能直接看出是没装、版本没扫到、还是命令失败。
+   */
+  isAvailable: async () => {
+    const components = await platformRuntime.listPlugins();
+    const component = components.find((item) => item.id === EXIFTOOL_COMPONENT) ?? null;
+    const ready = isComponentReady(component);
+
+    if (!ready) {
+      console.info('[shutter] 未发现可用的 ExifTool，组件状态:', component);
+    }
+
+    return ready;
+  },
 
   async read({ path }): Promise<ShutterCountResult> {
     if (!path) {

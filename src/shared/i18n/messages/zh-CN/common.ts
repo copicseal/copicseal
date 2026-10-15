@@ -94,6 +94,8 @@ export const common = {
       unknown: '未识别',
       provider: '解析器',
       file: '文件',
+      missingToolHint: '系统里没有 ExifTool，插件目录里也没装。',
+      installTool: '去设置 → 插件安装',
       tooLarge: '文件超过 {limit}，请换一张（解析要把整份文件读进内存）',
       tag: {
         serialNumber: '机身序列号',

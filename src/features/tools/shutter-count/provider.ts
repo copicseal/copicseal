@@ -1,17 +1,26 @@
 /**
  * 「快门数查询」的数据来源抽象。
  *
- * 现在有两个实现：桌面端优先用**系统里已有或插件目录里安装的原生 ExifTool**，
- * 拿不到时回退到内置的 WASM 版。UI 只认这里的接口：换实现（包括将来做成插件、
- * 或干脆去掉随包的 WASM）都不需要改界面代码。
+ * 目前只有一个实现：`providers/native-exiftool.ts` —— 用**系统里已有、或插件目录里安装的
+ * 原生 ExifTool**（「用哪一份」由 Rust 侧统一决定）。UI 只认这里的接口，
+ * 将来换实现（做成插件、换别的元数据库）都不需要改界面代码。
  */
 
+/**
+ * 错误码：系统里没有、插件目录里也没装 ExifTool。
+ *
+ * 与 Rust 侧 `exiftool.rs::EXIFTOOL_MISSING_CODE` 一致。带上这个标记，
+ * 界面就能把「去设置 → 插件安装」的入口显示出来（见 `platform/errors` 的 `parseFailureReason`）。
+ */
+export const EXIFTOOL_MISSING_CODE = 'exiftool-missing';
+
 export interface ShutterCountInput {
-  /** 文件字节；网页端（没有磁盘路径）与 WASM 版需要 */
+  /** 文件字节：只有「没有磁盘路径、也没有原生 ExifTool」的网页端才用得上 */
   bytes?: Uint8Array;
   /**
    * 文件在磁盘上的路径；原生 ExifTool 必须在真实文件上跑。
-   * 只有字节时由 WASM 版解析。
+   *
+   * 拖入的文件只有字节，界面会先按原样落成一个临时文件再把路径传进来。
    */
   path?: string;
   /** 带扩展名的文件名：ExifTool 靠它判断容器格式 */
@@ -109,6 +118,43 @@ export async function listShutterCountProviders(): Promise<ShutterCountProvider[
 }
 
 /**
+ * 当前是否有可用的解析器。
+ *
+ * 与 `listShutterCountProviders` 的区别：**探测失败**（而不是「确实没装」）会抛出来。
+ * 应用刚启动时 `list_plugins` 可能还没就绪，把这种瞬时失败当成「没装 ExifTool」
+ * 会误报，界面据此可以重试，而不是直接提示用户去安装。
+ */
+export async function hasShutterCountProvider(): Promise<boolean> {
+  await ensureBuiltinProviders();
+
+  let probeFailed = false;
+  let available = false;
+
+  await Promise.all(
+    providers.map(async (item) => {
+      try {
+        if (await item.provider.isAvailable()) {
+          available = true;
+        }
+      } catch (error) {
+        probeFailed = true;
+        console.warn(`探测解析器 ${item.provider.id} 可用性失败:`, error);
+      }
+    }),
+  );
+
+  if (available) {
+    return true;
+  }
+
+  if (probeFailed) {
+    throw new Error('探测 ExifTool 可用性失败（可能是应用刚启动、插件状态还没就绪）');
+  }
+
+  return false;
+}
+
+/**
  * 读快门数：按优先级依次尝试，第一个成功的实现胜出。
  *
  * 全部失败时抛出**最后一个**错误（最可能是「文件里没有这个字段」这类可解释的原因）。
@@ -118,7 +164,7 @@ export async function readShutterCount(input: ShutterCountInput): Promise<Shutte
 
   if (available.length === 0) {
     throw new Error(
-      '没有可用的 ExifTool：系统里没找到，插件目录里也没装（可在「设置 → 插件」安装）',
+      `[[co:${EXIFTOOL_MISSING_CODE}]]没有可用的 ExifTool：系统里没找到，插件目录里也没装`,
     );
   }
 

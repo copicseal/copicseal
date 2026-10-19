@@ -167,8 +167,12 @@ export function dateTimeOf(entry: DirectoryEntry): {
 /** 预览里的一行。 */
 export interface PreviewRow {
   entry: DirectoryEntry;
-  /** 新文件名（含扩展名） */
+  /** 新文件名（含扩展名）；手动改过时是改后的值 */
   target: string;
+  /** 规则本来会生成的名字（手动改为「恢复」时用） */
+  generated: string;
+  /** 这一行是否被手动改过 */
+  edited: boolean;
   /** 预览阶段能看出来的问题；最终以 Rust 校验为准 */
   conflict: string | null;
   /** `{date}` / `{time}` 是否退回了修改时间 */
@@ -179,13 +183,28 @@ export interface BuildPreviewOptions {
   pattern: string;
   start: number;
   padding: number;
+  /**
+   * 目标位置已经存在的文件名（小写）。
+   *
+   * 复制模式下列出目标目录里现有的名字，预览就能提前标出「会覆盖已有文件」；
+   * 改名模式不传——那种情况下目标落在源集合里属于合法的环，由 Rust 的
+   * `find_conflicts` 区分「集合内」与「集合外占用」。
+   */
+  reserved?: ReadonlySet<string>;
+  /**
+   * 手动改过的文件名（键是原文件名，值是完整新名）。
+   *
+   * 有手动值时以它为准，规则只作为默认值；键用**原文件名**而不是行号，
+   * 这样改排序、筛扩展名、套别的规则都不会丢。
+   */
+  overrides?: ReadonlyMap<string, string>;
 }
 
 /**
  * 生成预览：按已排好的顺序逐个套模板。
  *
- * 冲突这里只查「目标重复」与「非法目标名」；「目标被别处的文件占用」需要问磁盘，
- * 由 `apply_batch_rename` 统一校验（有冲突时它一条都不改）。
+ * 冲突这里只查「目标重复」「非法目标名」与（复制模式下）「目标已存在」；
+ * 其余占用情况由 Rust 侧统一校验（有冲突时它一条都不写）。
  */
 export function buildPreview(
   entries: readonly DirectoryEntry[],
@@ -203,22 +222,34 @@ export function buildPreview(
       date,
       time,
     });
-    const target = entry.ext ? `${rendered}.${entry.ext}` : rendered;
+    const generated = entry.ext ? `${rendered}.${entry.ext}` : rendered;
+    // 手动编辑优先；冲突判定对最终名字做，所以手改出的重名/非法名也会被拦下
+    const edited = options.overrides?.get(entry.name);
+    const target = edited ?? generated;
     const key = target.toLowerCase();
     const seen = used.get(key);
 
     let conflict: string | null = null;
 
-    if (!rendered.trim()) {
+    if (!target.trim()) {
       conflict = 'empty';
-    } else if (rendered.includes('/') || rendered.includes('\\')) {
+    } else if (target.includes('/') || target.includes('\\')) {
       conflict = 'separator';
     } else if (seen !== undefined) {
       conflict = 'duplicate';
+    } else if (options.reserved?.has(key)) {
+      conflict = 'taken';
     }
 
     used.set(key, offset);
-    rows.push({ entry, target, conflict, usedFallbackTime: !fromExif });
+    rows.push({
+      entry,
+      target,
+      generated,
+      edited: edited !== undefined,
+      conflict,
+      usedFallbackTime: !fromExif,
+    });
   });
 
   return rows;

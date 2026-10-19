@@ -12,6 +12,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
+use tauri::Emitter;
 
 /// 排序依据。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -322,6 +323,163 @@ pub fn undo_batch_rename(dir: String, pairs: Vec<RenamePair>) -> Result<RenameOu
     run_renames(Path::new(&dir), &reversed)
 }
 
+/// 复制模式的冲突检查：目标目录里已有同名文件（大小写不敏感）、批次内重名、名字非法。
+///
+/// 与改名不同，这里不存在「目标正好是本次的源」：源在另一个目录，目标目录里留下的
+/// 任何同名文件都不归我们处置，一律算冲突。
+fn find_copy_conflicts(target_dir: &Path, pairs: &[RenamePair]) -> Vec<String> {
+    let mut seen: Vec<String> = Vec::new();
+    let mut conflicts: Vec<String> = Vec::new();
+
+    for pair in pairs {
+        let target = pair.to.to_lowercase();
+
+        if !valid_target(&pair.to) {
+            conflicts.push(pair.to.clone());
+            continue;
+        }
+
+        if seen.contains(&target) || target_dir.join(&pair.to).exists() {
+            conflicts.push(pair.to.clone());
+            continue;
+        }
+
+        seen.push(target);
+    }
+
+    conflicts.sort();
+    conflicts.dedup();
+    conflicts
+}
+
+const COPY_PROGRESS_EVENT: &str = "rename://copy-progress";
+
+/// 复制进度：前端据此显示「已复制 n/N」，否则几百个大文件会把界面憋住。
+#[derive(Debug, Clone, Serialize)]
+struct CopyProgress {
+    done: usize,
+    total: usize,
+}
+
+/// 复制模式：原文件不动，把按新名字复制出来的文件放进 `target_dir`。
+///
+/// 冲突时整体拒绝（与改名同一口径），一个字节都不写；逐文件失败（某个源读不了等）
+/// 会记进 `failed` 并继续复制其余的——原文件没动，半成品最多是目标目录里多几个副本，
+/// 可以用「撤销」清掉。
+#[tauri::command]
+pub fn copy_batch_rename(
+    app: tauri::AppHandle,
+    dir: String,
+    target_dir: String,
+    pairs: Vec<RenamePair>,
+) -> Result<RenameOutcome, String> {
+    let source_dir = Path::new(&dir);
+    let target = Path::new(&target_dir);
+
+    if !source_dir.is_dir() {
+        return Err(format!("不是一个目录: {dir}"));
+    }
+    if !target.is_dir() {
+        return Err(format!("目标不是一个目录: {target_dir}"));
+    }
+
+    // 复制到同一个目录等于「同目录里多一份副本」，与「不动原文件」的语义相悖
+    if same_directory(source_dir, target) {
+        return Err("目标目录不能是源目录本身".to_string());
+    }
+
+    let conflicts = find_copy_conflicts(target, &pairs);
+    if !conflicts.is_empty() {
+        return Ok(RenameOutcome {
+            renamed: Vec::new(),
+            failed: Vec::new(),
+            conflicts,
+        });
+    }
+
+    Ok(run_copy(source_dir, target, &pairs, |done, total| {
+        let _ = app.emit(COPY_PROGRESS_EVENT, CopyProgress { done, total });
+    }))
+}
+
+/// 两个路径是否指向同一个目录（canonicalize 后比较，`a/../a` 这类写法也能认出来）。
+fn same_directory(left: &Path, right: &Path) -> bool {
+    matches!(
+        (fs::canonicalize(left), fs::canonicalize(right)),
+        (Ok(a), Ok(b)) if a == b
+    )
+}
+
+/// 复制主体：逐条复制并回调进度。
+///
+/// 抽出来是为了让单测不必造 `AppHandle`；命令层只负责把回调接到事件上。
+fn run_copy(
+    source_dir: &Path,
+    target: &Path,
+    pairs: &[RenamePair],
+    mut on_progress: impl FnMut(usize, usize),
+) -> RenameOutcome {
+    let total = pairs.len();
+    let mut renamed: Vec<RenamePair> = Vec::new();
+    let mut failed: Vec<RenameIssue> = Vec::new();
+
+    for pair in pairs {
+        match fs::copy(source_dir.join(&pair.from), target.join(&pair.to)) {
+            Ok(_) => renamed.push(pair.clone()),
+            Err(error) => failed.push(RenameIssue {
+                name: pair.from.clone(),
+                reason: format!("复制失败: {error}"),
+            }),
+        }
+
+        on_progress(renamed.len() + failed.len(), total);
+    }
+
+    RenameOutcome {
+        renamed,
+        failed,
+        conflicts: Vec::new(),
+    }
+}
+
+/// 撤销复制模式：删掉本次复制出来的文件（原文件本来就没动）。
+///
+/// 只删「这次确实复制成功、且现在还在目标目录里」的那些；删除失败逐条报出来。
+#[tauri::command]
+pub fn undo_copy_batch(
+    target_dir: String,
+    pairs: Vec<RenamePair>,
+) -> Result<RenameOutcome, String> {
+    let target = Path::new(&target_dir);
+
+    if !target.is_dir() {
+        return Err(format!("目标不是一个目录: {target_dir}"));
+    }
+
+    let mut removed: Vec<RenamePair> = Vec::new();
+    let mut failed: Vec<RenameIssue> = Vec::new();
+
+    for pair in pairs.iter().rev() {
+        if !target.join(&pair.to).exists() {
+            continue;
+        }
+
+        match fs::remove_file(target.join(&pair.to)) {
+            Ok(()) => removed.push(pair.clone()),
+            Err(error) => failed.push(RenameIssue {
+                name: pair.to.clone(),
+                reason: format!("删除副本失败: {error}"),
+            }),
+        }
+    }
+
+    Ok(RenameOutcome {
+        renamed: removed,
+        failed,
+        conflicts: Vec::new(),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -349,6 +507,139 @@ mod tests {
         fs::create_dir_all(&dir).expect("创建测试目录失败");
 
         dir
+    }
+
+    /// 复制模式：原文件不动，新名字落在目标目录；撤销只删副本。
+    #[test]
+    fn copy_keeps_originals_and_undo_removes_copies() {
+        let source = probe_dir("copy-source");
+        let target = probe_dir("copy-target");
+        fs::write(source.join("a.jpg"), b"aaa").unwrap();
+        fs::write(source.join("b.jpg"), b"bbb").unwrap();
+
+        let pairs = vec![
+            RenamePair {
+                from: "a.jpg".into(),
+                to: "IMG_1.jpg".into(),
+            },
+            RenamePair {
+                from: "b.jpg".into(),
+                to: "IMG_2.jpg".into(),
+            },
+        ];
+
+        let outcome = run_copy(&source, &target, &pairs, |_, _| {});
+
+        assert!(
+            outcome.conflicts.is_empty(),
+            "不该有冲突: {:?}",
+            outcome.conflicts
+        );
+        assert_eq!(outcome.renamed.len(), 2);
+        assert!(outcome.failed.is_empty());
+
+        // 副本在目标目录，内容一致；原目录一个字节都没动
+        assert_eq!(fs::read(target.join("IMG_1.jpg")).unwrap(), b"aaa");
+        assert_eq!(fs::read(target.join("IMG_2.jpg")).unwrap(), b"bbb");
+        assert_eq!(fs::read(source.join("a.jpg")).unwrap(), b"aaa");
+        assert!(source.join("b.jpg").is_file());
+
+        // 撤销：副本消失，原文件仍在
+        let undone =
+            undo_copy_batch(target.to_string_lossy().to_string(), outcome.renamed).unwrap();
+        assert_eq!(undone.renamed.len(), 2);
+        assert!(!target.join("IMG_1.jpg").exists());
+        assert!(!target.join("IMG_2.jpg").exists());
+        assert!(source.join("a.jpg").is_file());
+    }
+
+    /// 目标目录已有同名文件 → 算冲突（命令层据此整批拒绝，什么都不复制）。
+    #[test]
+    fn copy_rejects_taken_target_names() {
+        let target = probe_dir("copy-taken-target");
+        fs::write(target.join("IMG_1.jpg"), b"already here").unwrap();
+
+        let pairs = [RenamePair {
+            from: "a.jpg".into(),
+            to: "IMG_1.jpg".into(),
+        }];
+
+        assert_eq!(
+            find_copy_conflicts(&target, &pairs),
+            vec!["IMG_1.jpg".to_string()]
+        );
+        // 目标里那份文件没被动过
+        assert_eq!(fs::read(target.join("IMG_1.jpg")).unwrap(), b"already here");
+    }
+
+    /// 批次内重名同样算冲突（大小写不敏感）。
+    #[test]
+    fn copy_rejects_duplicate_targets() {
+        let target = probe_dir("copy-dup-target");
+
+        let conflicts = find_copy_conflicts(
+            &target,
+            &[
+                RenamePair {
+                    from: "a.jpg".into(),
+                    to: "IMG.jpg".into(),
+                },
+                RenamePair {
+                    from: "b.jpg".into(),
+                    to: "img.jpg".into(),
+                },
+            ],
+        );
+
+        // 与改名模式同一口径：只报「后来重复的那个」，够定位就行
+        assert_eq!(
+            conflicts,
+            vec!["img.jpg".to_string()],
+            "大小写不同的同名也算重复"
+        );
+    }
+
+    /// 复制到源目录本身没有意义：canonicalize 后应认成同一个目录。
+    #[test]
+    fn detects_the_same_directory() {
+        let source = probe_dir("copy-same-dir");
+        let target = probe_dir("copy-other-dir");
+
+        assert!(same_directory(&source, &source));
+        assert!(
+            same_directory(&source, &source.join(".")),
+            "带 . 的等价写法也要认出来"
+        );
+        assert!(!same_directory(&source, &target));
+    }
+
+    /// 源文件缺失：记进 failed，其余照常复制（原文件没动，半成品可撤销）。
+    #[test]
+    fn copy_reports_missing_source_and_continues() {
+        let source = probe_dir("copy-missing-source");
+        let target = probe_dir("copy-missing-target");
+        fs::write(source.join("a.jpg"), b"a").unwrap();
+
+        let outcome = run_copy(
+            &source,
+            &target,
+            &[
+                RenamePair {
+                    from: "gone.jpg".into(),
+                    to: "IMG_1.jpg".into(),
+                },
+                RenamePair {
+                    from: "a.jpg".into(),
+                    to: "IMG_2.jpg".into(),
+                },
+            ],
+            |_, _| {},
+        );
+
+        assert_eq!(outcome.failed.len(), 1);
+        assert_eq!(outcome.failed[0].name, "gone.jpg");
+        assert_eq!(outcome.renamed.len(), 1);
+        assert!(target.join("IMG_2.jpg").is_file());
     }
 
     #[test]

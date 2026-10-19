@@ -13,6 +13,7 @@ import type {
   CachedImageMeta,
   CacheOverview,
   ComarkTemplateRecord,
+  CopyRenameProgress,
   DirectoryEntry,
   ExifData,
   FontInfo,
@@ -221,6 +222,9 @@ export function insertJpegExif(
   return invoke('insert_jpeg_exif', { jpegData, exifSegment, alignDimensions });
 }
 
+/** 复制进度事件名，与 Rust 侧 `rename.rs` 保持一致 */
+const COPY_PROGRESS_EVENT = 'rename://copy-progress';
+
 /** 插件安装进度事件名，与 Rust 侧 `plugin.rs` 保持一致 */
 const PLUGIN_PROGRESS_EVENT = 'plugin://install-progress';
 
@@ -273,6 +277,23 @@ export function applyBatchRename(dir: string, pairs: RenamePair[]): Promise<Rena
 /** 撤销一批改名（把 from / to 反过来执行）。 */
 export function undoBatchRename(dir: string, pairs: RenamePair[]): Promise<RenameOutcome> {
   return invoke('undo_batch_rename', { dir, pairs });
+}
+/** 复制模式：原文件不动，按新名字把副本放进 targetDir（冲突则一个都不写）。 */
+export function copyBatchRename(
+  dir: string,
+  targetDir: string,
+  pairs: RenamePair[],
+): Promise<RenameOutcome> {
+  return invoke('copy_batch_rename', { dir, targetDir, pairs });
+}
+/** 撤销复制模式：删掉这批副本（原文件本来就没动）。 */
+export function undoCopyBatch(targetDir: string, pairs: RenamePair[]): Promise<RenameOutcome> {
+  return invoke('undo_copy_batch', { targetDir, pairs });
+}
+/** 订阅复制进度；返回取消订阅函数 */
+export function onCopyRenameProgress(handler: (progress: CopyRenameProgress) => void) {
+  if (!isNativeWindowAvailable()) return Promise.resolve(() => undefined);
+  return listen<CopyRenameProgress>(COPY_PROGRESS_EVENT, (event) => handler(event.payload));
 }
 /** 订阅插件安装进度；返回取消订阅函数 */
 export function onPluginInstallProgress(handler: (progress: PluginInstallProgress) => void) {

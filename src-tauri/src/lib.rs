@@ -53,6 +53,8 @@ pub fn run() {
             rename::read_directory_entries,
             rename::apply_batch_rename,
             rename::undo_batch_rename,
+            rename::copy_batch_rename,
+            rename::undo_copy_batch,
             config::get_config,
             config::update_config,
             config::get_device_id,

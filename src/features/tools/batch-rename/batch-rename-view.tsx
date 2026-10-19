@@ -1,7 +1,24 @@
-import { ChevronDown, FolderOpen, Loader2, RotateCcw, Tags, Trash2 } from 'lucide-react';
+import {
+  Check,
+  ChevronDown,
+  FolderOpen,
+  Loader2,
+  RefreshCw,
+  RotateCcw,
+  Tags,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import type { DirectoryEntry, RenamePair, RenamePreset, RenameSortBy } from '@/platform/contracts';
+import type {
+  CopyRenameProgress,
+  DirectoryEntry,
+  RenameOutcome,
+  RenamePair,
+  RenamePreset,
+  RenameSortBy,
+} from '@/platform/contracts';
 import { platformRuntime } from '@/platform/providers/platform-runtime';
 import type { MessageKey } from '@/shared/i18n';
 import { useTranslate } from '@/shared/i18n/i18n-provider';
@@ -40,13 +57,18 @@ const SORT_LABEL_KEYS: Record<RenameSortBy, MessageKey> = {
   taken: 'common.tools.batchRename.sort.taken',
 };
 
-type ConflictKind = 'duplicate' | 'empty' | 'separator';
+type ConflictKind = 'duplicate' | 'empty' | 'separator' | 'taken';
 
 const CONFLICT_KEYS: Record<ConflictKind, MessageKey> = {
   duplicate: 'common.tools.batchRename.conflictDuplicate',
   empty: 'common.tools.batchRename.conflictEmpty',
   separator: 'common.tools.batchRename.conflictSeparator',
+  // 只在复制模式下出现：目标目录里已经有同名文件
+  taken: 'common.tools.batchRename.conflictTaken',
 };
+
+/** 写入方式：原地改名，或把改名后的副本放进另一个目录（原文件不动）。 */
+type RenameMode = 'rename' | 'copy';
 
 /**
  * 批量改文件名。
@@ -73,8 +95,24 @@ export default function BatchRenameView(_props: ToolViewProps) {
   const [savePresetOpen, setSavePresetOpen] = useState(false);
   const [presetDraft, setPresetDraft] = useState('');
 
+  /** 手动改过的文件名：键是原文件名，值是完整新名（规则只当默认值） */
+  const [overrides, setOverrides] = useState<Record<string, string>>({});
+
+  /** 写入方式与复制目标 */
+  const [mode, setMode] = useState<RenameMode>('rename');
+  const [targetDir, setTargetDir] = useState<string | null>(null);
+  /** 目标目录里已有的文件名（小写）：复制模式用来在预览里提前标出「会覆盖」 */
+  const [targetNames, setTargetNames] = useState<Set<string>>(new Set());
+  /** 复制进度（Rust 侧逐文件推送） */
+  const [copyProgress, setCopyProgress] = useState<CopyRenameProgress | null>(null);
+
   /** 上一次执行成功的那批（用于撤销；只在本次会话内有效） */
-  const [lastApplied, setLastApplied] = useState<{ dir: string; pairs: RenamePair[] } | null>(null);
+  const [lastApplied, setLastApplied] = useState<{
+    mode: RenameMode;
+    /** 改名模式是源目录；复制模式是目标目录（撤销要在那边删副本） */
+    dir: string;
+    pairs: RenamePair[];
+  } | null>(null);
   const [savedPresets, setSavedPresets] = useState<RenamePreset[]>([]);
 
   useEffect(() => {
@@ -111,6 +149,25 @@ export default function BatchRenameView(_props: ToolViewProps) {
     void loadEntries();
   }, [loadEntries]);
 
+  const loadTargetNames = useCallback(async () => {
+    if (mode !== 'copy' || !targetDir) {
+      setTargetNames(new Set());
+      return;
+    }
+
+    try {
+      const list = await platformRuntime.readDirectoryEntries(targetDir, 'name', false, []);
+      setTargetNames(new Set(list.map((entry) => entry.name.toLowerCase())));
+    } catch (error) {
+      console.warn('读取目标目录失败:', error);
+      setTargetNames(new Set());
+    }
+  }, [mode, targetDir]);
+
+  useEffect(() => {
+    void loadTargetNames();
+  }, [loadTargetNames]);
+
   /** 目录里实际出现过的扩展名（自动汇总、按字母序） */
   const availableExts = useMemo(() => {
     const unique = new Set(entries.map((entry) => entry.ext).filter(Boolean));
@@ -131,12 +188,52 @@ export default function BatchRenameView(_props: ToolViewProps) {
     [entries, selectedExts],
   );
 
+  const overrideMap = useMemo(() => new Map(Object.entries(overrides)), [overrides]);
+
   const rows: PreviewRow[] = useMemo(
-    () => buildPreview(visibleEntries, { pattern, start, padding }),
-    [visibleEntries, pattern, start, padding],
+    () =>
+      buildPreview(visibleEntries, {
+        pattern,
+        start,
+        padding,
+        // 复制到另一个目录时，「目标已存在」要提前提示；改名模式的占用判定交给 Rust
+        reserved: mode === 'copy' ? targetNames : undefined,
+        overrides: overrideMap,
+      }),
+    [visibleEntries, pattern, start, padding, mode, targetNames, overrideMap],
   );
-  const conflicts = rows.filter((row) => row.conflict !== null);
+  /**
+   * 上一次成功的那批里，哪些行「就是这一批」。
+   *
+   * 复制模式最明显：原文件没动、预览也一模一样，只是目标目录里已经躺着副本，
+   * 若按「目标已存在」判成冲突，成功后满屏红字——所以这些行改成绿色对号。
+   */
+  const doneKeys = useMemo(() => {
+    if (!lastApplied || lastApplied.mode !== mode) {
+      return new Set<string>();
+    }
+
+    const sameDir =
+      lastApplied.mode === 'copy' ? lastApplied.dir === targetDir : lastApplied.dir === folder;
+
+    return sameDir
+      ? new Set(lastApplied.pairs.map((pair) => `${pair.from}\u0000${pair.to}`))
+      : new Set<string>();
+  }, [lastApplied, mode, targetDir, folder]);
+
+  const isDone = (row: PreviewRow) => doneKeys.has(`${row.entry.name}\u0000${row.target}`);
+  const conflicts = rows.filter((row) => row.conflict !== null && !isDone(row));
+  /** 全部行都已完成 → 这一批没有可执行的东西了 */
+  const allDone = rows.length > 0 && rows.every((row) => isDone(row));
   const fallbackCount = rows.filter((row) => row.usedFallbackTime).length;
+
+  /** 目标目录与源目录相同（只做粗比较，最终由 Rust canonicalize 后拒绝） */
+  const targetIsSource = Boolean(
+    folder &&
+      targetDir &&
+      folder.replace(/[/\\]+$/, '').toLowerCase() ===
+        targetDir.replace(/[/\\]+$/, '').toLowerCase(),
+  );
 
   const extLabel =
     selectedExts.length === 0
@@ -152,6 +249,8 @@ export default function BatchRenameView(_props: ToolViewProps) {
       if (picked) {
         setFolder(picked);
         setLastApplied(null);
+        // 换目录后原文件名全变了，手动改名的键对不上，直接清掉
+        setOverrides({});
       }
     } catch (error) {
       console.error('打开目录选择失败:', error);
@@ -161,18 +260,75 @@ export default function BatchRenameView(_props: ToolViewProps) {
     }
   };
 
+  /** 点路径直接打开所在目录（Finder / 资源管理器） */
+  const openFolder = async (path: string) => {
+    try {
+      await platformRuntime.openDirectory(path);
+    } catch (error) {
+      console.error('打开目录失败:', error);
+      toast.error(t('common.tools.batchRename.openFolderFailed'), {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
+
+  const setOverride = (name: string, value: string) => {
+    setOverrides((previous) => ({ ...previous, [name]: value }));
+  };
+
+  const clearOverride = (name: string) => {
+    setOverrides((previous) => {
+      const next = { ...previous };
+      delete next[name];
+      return next;
+    });
+  };
+
+  const pickTargetDir = async () => {
+    try {
+      const picked = await platformRuntime.openDirectoryDialog();
+
+      if (picked) {
+        setTargetDir(picked);
+      }
+    } catch (error) {
+      console.error('打开目录选择失败:', error);
+      toast.error(t('common.tools.batchRename.openFailed'), {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
+
+  /** 执行：改名模式原地改；复制模式把副本写进目标目录（原文件不动）。 */
   const applyRename = async () => {
     if (!folder || conflicts.length > 0) {
       return;
     }
 
+    if (mode === 'copy' && (!targetDir || targetIsSource)) {
+      return;
+    }
+
     setApplying(true);
+    setCopyProgress(null);
 
     try {
-      const outcome = await platformRuntime.applyBatchRename(
-        folder,
-        rows.map((row) => ({ from: row.entry.name, to: row.target })),
-      );
+      const pairs = rows.map((row) => ({ from: row.entry.name, to: row.target }));
+      let outcome: RenameOutcome;
+
+      if (mode === 'copy' && targetDir) {
+        // 复制可能很慢（几百个大文件），跟着 Rust 的逐文件进度显示「已复制 n/N」
+        const unsubscribe = await platformRuntime.onCopyRenameProgress(setCopyProgress);
+
+        try {
+          outcome = await platformRuntime.copyBatchRename(folder, targetDir, pairs);
+        } finally {
+          unsubscribe();
+          setCopyProgress(null);
+        }
+      } else {
+        outcome = await platformRuntime.applyBatchRename(folder, pairs);
+      }
 
       if (outcome.conflicts.length > 0) {
         toast.error(t('common.tools.batchRename.blocked'), {
@@ -180,8 +336,17 @@ export default function BatchRenameView(_props: ToolViewProps) {
         });
       } else {
         if (outcome.renamed.length > 0) {
-          setLastApplied({ dir: folder, pairs: outcome.renamed });
-          toast.success(t('common.tools.batchRename.applied', { count: outcome.renamed.length }));
+          setLastApplied({
+            mode,
+            // 复制模式的副本在目标目录，撤销要去那边删
+            dir: mode === 'copy' && targetDir ? targetDir : folder,
+            pairs: outcome.renamed,
+          });
+          toast.success(
+            mode === 'copy'
+              ? t('common.tools.batchRename.copied', { count: outcome.renamed.length })
+              : t('common.tools.batchRename.applied', { count: outcome.renamed.length }),
+          );
         }
 
         if (outcome.failed.length > 0) {
@@ -191,12 +356,25 @@ export default function BatchRenameView(_props: ToolViewProps) {
         }
       }
 
-      await loadEntries();
+      // 成功时保留列表（绿勾＝这一批已完成），点「重新开始」再刷新。
+      // 复制模式仍刷新目标目录的名字：用户改规则后要按最新状态判冲突
+      //（当前这批因为已记进 lastApplied，会被当成「已完成」而不是冲突）。
+      if (mode === 'copy') {
+        await loadTargetNames();
+      } else if (outcome.failed.length > 0) {
+        // 改名有失败时磁盘状态已经和预览不一致，立刻重读
+        await loadEntries();
+      }
     } catch (error) {
-      console.error('执行重命名失败:', error);
-      toast.error(t('common.tools.batchRename.applyFailed'), {
-        description: error instanceof Error ? error.message : String(error),
-      });
+      console.error('执行批量改名失败:', error);
+      toast.error(
+        t(
+          mode === 'copy'
+            ? 'common.tools.batchRename.copyFailed'
+            : 'common.tools.batchRename.applyFailed',
+        ),
+        { description: error instanceof Error ? error.message : String(error) },
+      );
     } finally {
       setApplying(false);
     }
@@ -210,10 +388,18 @@ export default function BatchRenameView(_props: ToolViewProps) {
     setApplying(true);
 
     try {
-      const outcome = await platformRuntime.undoBatchRename(lastApplied.dir, lastApplied.pairs);
+      // 改名模式反向改名；复制模式删掉那批复本（原文件本来就没动）
+      const outcome =
+        lastApplied.mode === 'copy'
+          ? await platformRuntime.undoCopyBatch(lastApplied.dir, lastApplied.pairs)
+          : await platformRuntime.undoBatchRename(lastApplied.dir, lastApplied.pairs);
 
       if (outcome.renamed.length > 0) {
-        toast.success(t('common.tools.batchRename.undone', { count: outcome.renamed.length }));
+        toast.success(
+          lastApplied.mode === 'copy'
+            ? t('common.tools.batchRename.undoneCopy', { count: outcome.renamed.length })
+            : t('common.tools.batchRename.undone', { count: outcome.renamed.length }),
+        );
       }
 
       if (outcome.failed.length > 0) {
@@ -222,15 +408,33 @@ export default function BatchRenameView(_props: ToolViewProps) {
         });
       }
 
+      const undoneMode = lastApplied.mode;
       setLastApplied(null);
-      await loadEntries();
+
+      if (undoneMode === 'copy') {
+        await loadTargetNames();
+      } else {
+        await loadEntries();
+      }
     } catch (error) {
-      console.error('撤销重命名失败:', error);
+      console.error('撤销批量改名失败:', error);
       toast.error(t('common.tools.batchRename.applyFailed'), {
         description: error instanceof Error ? error.message : String(error),
       });
     } finally {
       setApplying(false);
+    }
+  };
+
+  /** 重新开始：清掉「上一批已完成」的状态，重新读一遍目录 */
+  const restart = () => {
+    setLastApplied(null);
+    setCopyProgress(null);
+
+    if (mode === 'copy') {
+      void loadTargetNames();
+    } else {
+      void loadEntries();
     }
   };
 
@@ -307,9 +511,14 @@ export default function BatchRenameView(_props: ToolViewProps) {
             <FolderOpen data-icon="inline-start" />
             {t('common.tools.batchRename.changeFolder')}
           </Button>
-          <span className="min-w-0 truncate text-xs text-muted-foreground" title={folder}>
+          <button
+            type="button"
+            onClick={() => void openFolder(folder)}
+            className="min-w-0 truncate text-left text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+            title={`${folder}\n${t('common.tools.batchRename.openFolder')}`}
+          >
             {folder}
-          </span>
+          </button>
           {loading ? <Loader2 className="size-3.5 animate-spin text-muted-foreground" /> : null}
         </div>
       ) : (
@@ -554,27 +763,60 @@ export default function BatchRenameView(_props: ToolViewProps) {
                 </div>
                 <ScrollArea className="min-h-0 flex-1">
                   <div className="p-1">
-                    {rows.map((row) => (
-                      <div
-                        key={row.entry.name}
-                        className={cn(
-                          'grid grid-cols-2 items-center gap-2 rounded-md px-2 py-1 text-[11px]',
-                          row.conflict ? 'bg-destructive/10 text-destructive' : 'odd:bg-muted/20',
-                        )}
-                      >
-                        <span className="truncate" title={row.entry.name}>
-                          {row.entry.name}
-                        </span>
-                        <span className="truncate" title={row.target}>
-                          {row.target}
-                          {row.conflict ? (
-                            <span className="ml-2 text-[10px] opacity-80">
-                              {t(CONFLICT_KEYS[row.conflict as ConflictKind])}
-                            </span>
-                          ) : null}
-                        </span>
-                      </div>
-                    ))}
+                    {rows.map((row) => {
+                      const done = isDone(row);
+
+                      return (
+                        <div
+                          key={row.entry.name}
+                          className={cn(
+                            'grid grid-cols-2 items-center gap-2 rounded-md px-2 py-1 text-[11px]',
+                            done
+                              ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+                              : row.conflict
+                                ? 'bg-destructive/10 text-destructive'
+                                : 'odd:bg-muted/20',
+                          )}
+                        >
+                          <span className="truncate" title={row.entry.name}>
+                            {row.entry.name}
+                          </span>
+                          <span className="flex min-w-0 items-center gap-1">
+                            <Input
+                              aria-label={t('common.tools.batchRename.newName')}
+                              value={row.target}
+                              onChange={(event) => setOverride(row.entry.name, event.target.value)}
+                              className="h-6 min-w-0 flex-1 border-transparent bg-transparent px-1 text-[11px] shadow-none hover:border-border focus-visible:border-ring"
+                              title={row.edited ? `${row.generated}` : undefined}
+                            />
+                            {row.edited ? (
+                              <Button
+                                type="button"
+                                variant="plain"
+                                size="icon-sm"
+                                aria-label={t('common.tools.batchRename.resetName')}
+                                title={t('common.tools.batchRename.resetName')}
+                                onClick={() => clearOverride(row.entry.name)}
+                              >
+                                <X className="size-3" />
+                              </Button>
+                            ) : null}
+                            {done ? (
+                              <span className="inline-flex shrink-0 items-center gap-1 text-[10px]">
+                                <Check className="size-3" />
+                                {mode === 'copy'
+                                  ? t('common.tools.batchRename.rowCopied')
+                                  : t('common.tools.batchRename.rowRenamed')}
+                              </span>
+                            ) : row.conflict ? (
+                              <span className="shrink-0 text-[10px] opacity-80">
+                                {t(CONFLICT_KEYS[row.conflict as ConflictKind])}
+                              </span>
+                            ) : null}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </ScrollArea>
               </div>
@@ -582,31 +824,127 @@ export default function BatchRenameView(_props: ToolViewProps) {
           </div>
 
           {/* 执行（固定在底部，不被预览挤压） */}
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              size="sm"
-              disabled={applying || rows.length === 0 || conflicts.length > 0}
-              onClick={() => void applyRename()}
-            >
-              <Tags data-icon="inline-start" />
-              {t('common.tools.batchRename.apply')}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={applying || !lastApplied}
-              onClick={() => void undoRename()}
-            >
-              <RotateCcw data-icon="inline-start" />
-              {t('common.tools.batchRename.undo')}
-            </Button>
-            {conflicts.length > 0 ? (
-              <span className="text-[10px] text-destructive">
-                {t('common.tools.batchRename.blocked')}
+          <div className="shrink-0 space-y-2">
+            {/* 写入方式：就地改名，或把改名后的副本放进另一个目录（原文件不动） */}
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="text-muted-foreground">
+                {t('common.tools.batchRename.writeMode')}
               </span>
+              <Select value={mode} onValueChange={(value) => setMode(value as RenameMode)}>
+                <SelectTrigger size="sm" className="w-44">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="rename">
+                      {t('common.tools.batchRename.modeRename')}
+                    </SelectItem>
+                    <SelectItem value="copy">{t('common.tools.batchRename.modeCopy')}</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              {mode === 'copy' ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void pickTargetDir()}
+                  >
+                    <FolderOpen data-icon="inline-start" />
+                    {targetDir
+                      ? t('common.tools.batchRename.changeTarget')
+                      : t('common.tools.batchRename.chooseTarget')}
+                  </Button>
+                  {targetDir ? (
+                    <button
+                      type="button"
+                      onClick={() => void openFolder(targetDir)}
+                      className="min-w-0 max-w-full truncate text-left text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                      title={`${targetDir}\n${t('common.tools.batchRename.openFolder')}`}
+                    >
+                      {targetDir}
+                    </button>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      {t('common.tools.batchRename.noTarget')}
+                    </span>
+                  )}
+                </>
+              ) : null}
+            </div>
+            {mode === 'copy' ? (
+              <p className="text-[10px] text-muted-foreground">
+                {t('common.tools.batchRename.copyHint')}
+              </p>
             ) : null}
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                disabled={
+                  applying ||
+                  rows.length === 0 ||
+                  allDone ||
+                  conflicts.length > 0 ||
+                  (mode === 'copy' && (!targetDir || targetIsSource))
+                }
+                onClick={() => void applyRename()}
+              >
+                <Tags data-icon="inline-start" />
+                {mode === 'copy'
+                  ? t('common.tools.batchRename.copyAction')
+                  : t('common.tools.batchRename.apply')}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={applying || !lastApplied}
+                onClick={() => void undoRename()}
+              >
+                <RotateCcw data-icon="inline-start" />
+                {lastApplied?.mode === 'copy'
+                  ? t('common.tools.batchRename.undoCopy')
+                  : t('common.tools.batchRename.undo')}
+              </Button>
+              {lastApplied ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={applying}
+                  onClick={restart}
+                >
+                  <RefreshCw data-icon="inline-start" />
+                  {t('common.tools.batchRename.restart')}
+                </Button>
+              ) : null}
+              {allDone ? (
+                <span className="text-[10px] text-emerald-700 dark:text-emerald-400">
+                  {t('common.tools.batchRename.doneSummary', { count: rows.length })}
+                </span>
+              ) : null}
+              {copyProgress ? (
+                <span className="text-[10px] text-muted-foreground">
+                  {t('common.tools.batchRename.copyProgress', {
+                    done: copyProgress.done,
+                    total: copyProgress.total,
+                  })}
+                </span>
+              ) : null}
+              {conflicts.length > 0 ? (
+                <span className="text-[10px] text-destructive">
+                  {t('common.tools.batchRename.blocked')}
+                </span>
+              ) : null}
+              {mode === 'copy' && targetIsSource ? (
+                <span className="text-[10px] text-destructive">
+                  {t('common.tools.batchRename.targetSameAsSource')}
+                </span>
+              ) : null}
+            </div>
           </div>
         </>
       ) : null}

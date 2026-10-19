@@ -503,6 +503,12 @@ export interface RenameIssue {
   reason: string;
 }
 
+/** 复制模式的进度（`onCopyRenameProgress` 推送）；几百个大文件时不至于变成假死界面。 */
+export interface CopyRenameProgress {
+  done: number;
+  total: number;
+}
+
 /** 执行/撤销结果。 */
 export interface RenameOutcome {
   renamed: RenamePair[];

@@ -42,6 +42,13 @@ const webRuntime = {
   undoBatchRename: async () => {
     throw new Error(translate('common.error.webNoLocalFiles'));
   },
+  copyBatchRename: async () => {
+    throw new Error(translate('common.error.webNoLocalFiles'));
+  },
+  undoCopyBatch: async () => {
+    throw new Error(translate('common.error.webNoLocalFiles'));
+  },
+  onCopyRenameProgress: async () => () => undefined,
   readExif: async () => ({
     make: null,
     model: null,

@@ -97,7 +97,59 @@ ShutterCount → ShutterCount2 → ShutterCount3 → MechanicalShutterCount
 | 文件超过 100 MB | 直接拒绝（整份文件要进 JS 内存） |
 | 解析抛错 | 显示可读错误 + 保留「换一个文件」入口 |
 
-## 5. 相关文件
+## 5. 批量改文件名
+
+把目录里的文件按某个依据排好序，再重排成连续编号（`a1, a3, a6` → `b1, b2, b3`）。
+
+### 5.1 排序依据
+
+| 依据 | 口径 | 备注 |
+|------|------|------|
+| 修改时间 | 文件系统的 `modified` | 最通用 |
+| 创建时间 | `created`，取不到时回落到修改时间 | 部分文件系统没有创建时间 |
+| 文件名 | 字典序（`a1, a10, a3` → `a1, a10, a3`） | 想按"自然序"排时应该用这个再手工调规则 |
+| 拍摄时间 | EXIF 的 `DateTimeOriginal` | 读不到的**统一排在后面**，组内按修改时间 |
+
+> 拍摄时间的比较用规范化串 `YYYYMMDDHHMMSS`（字典序即时间序），**不与毫秒时间戳混比**：
+> 有 EXIF 的按拍摄时间排，没有的另成一组，否则两种单位混在一个键里会整体错位。
+
+升序 / 降序对分组同样生效（降序时"没有拍摄时间"的组会排到最前）。
+
+### 5.2 命名规则
+
+模板支持四个变量，渲染在前端完成（日期要用**本地时区**，文件修改时间靠 JS 的 `Date` 格式化）：
+
+```txt
+{n}      序号（位数用界面上的「位数」字段）
+{n:3}    序号，至少 3 位、不足补零 → 001（最主流的写法；{n:03} 等价，前导零按 C 习惯忽略）
+{00n}    同样意思的所见即所得写法：写几个 0 就是几位（{00n} → 001，{000n} → 0001）
+{name}   原文件名（不含扩展名）
+{date}   YYYYMMDD（优先拍摄时间，回退修改时间）
+{time}   HHMMSS
+```
+
+不采用 `%03d`（printf 风格）：和 `{…}` 模板混在一起容易看错，且不像同一套语法。
+
+内置「常用规则」（只读，代码里维护，见 `batch-rename/naming.ts`）：顺序编号、IMG_ 编号、
+DSC_ 编号、日期_编号、日期_时间_编号、原名_编号。
+
+用户可以把当前规则和排序一起**保存**成自己的规则（`config.rename.presets`），也能删除；
+内置规则不占配置，也不可改。
+
+### 5.3 安全边界（Rust `rename.rs`）
+
+| 环节 | 做法 |
+|------|------|
+| 预览 | 前端生成 `旧名 → 新名`；能看出的问题（空名字、含路径分隔符、目标重复）当场标红 |
+| 执行前校验 | Rust 侧再查一遍：目标重复、目标被**集合外**的文件占用（大小写不敏感）→ 有冲突就**一个都不改** |
+| 环状改名 | `a→b, b→c` 用**临时名两阶段**，不会互相覆盖 |
+| 单条失败 | 收集到 `failed`（文件名 + 原因），其余继续，并在提示里点名 |
+| 撤销 | 保留本次成功的 `(from, to)`，反向执行；**只在本次会话内有效** |
+| 范围 | 只处理**当前目录一层**，不递归；只改名，不改内容、不改扩展名 |
+
+网页端没有本地文件权限，整条链路不可用（`platformRuntime` 的 web 实现直接报错）。
+
+## 6. 相关文件
 
 | 区域 | 文件 |
 |------|------|
@@ -106,5 +158,6 @@ ShutterCount → ShutterCount2 → ShutterCount3 → MechanicalShutterCount
 | 面板（管理入口） | `src/features/tools/more-tools-dialog.tsx` |
 | 开关持久化 | `src/features/tools/lib/tool-settings.ts`、`config.tools`（Rust `ToolConfig`） |
 | 快门数 | `src/features/tools/shutter-count/{provider.ts,tags.ts,shutter-count-view.tsx}`、`providers/native-exiftool.ts` |
+| 批量改名 | `src/features/tools/batch-rename/{naming.ts,batch-rename-view.tsx}`、Rust `rename.rs`、`config.rename`（`RenameConfig`） |
 | 组件（插件）能力 | `src/shared/lib/components.ts`（`findComponent` / `isComponentReady`）、Rust `plugin.rs` + `exiftool.rs` |
 | 入口 | `src/shared/components/co-sidebar.tsx` |

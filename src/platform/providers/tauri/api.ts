@@ -13,6 +13,7 @@ import type {
   CachedImageMeta,
   CacheOverview,
   ComarkTemplateRecord,
+  DirectoryEntry,
   ExifData,
   FontInfo,
   ImageFileMeta,
@@ -23,6 +24,9 @@ import type {
   PluginInstallProgress,
   PluginManifestResult,
   PluginState,
+  RenameOutcome,
+  RenamePair,
+  RenameSortBy,
   UpsertComarkTemplatePayload,
   WindowFrameMode,
 } from '@/platform/contracts';
@@ -252,6 +256,23 @@ export function stageDroppedFile(
   contents: Uint8Array,
 ): Promise<string> {
   return invoke('stage_dropped_file', { cacheDir, fileName, contents });
+}
+/** 读目录并按依据排好序（`taken` 会在 Rust 侧顺带读 EXIF 拍摄时间）。 */
+export function readDirectoryEntries(
+  path: string,
+  sortBy: RenameSortBy,
+  descending: boolean,
+  extensions: string[],
+): Promise<DirectoryEntry[]> {
+  return invoke('read_directory_entries', { path, sortBy, descending, extensions });
+}
+/** 执行批量改名（Rust 侧先全量校验冲突，有冲突则一个都不改）。 */
+export function applyBatchRename(dir: string, pairs: RenamePair[]): Promise<RenameOutcome> {
+  return invoke('apply_batch_rename', { dir, pairs });
+}
+/** 撤销一批改名（把 from / to 反过来执行）。 */
+export function undoBatchRename(dir: string, pairs: RenamePair[]): Promise<RenameOutcome> {
+  return invoke('undo_batch_rename', { dir, pairs });
 }
 /** 订阅插件安装进度；返回取消订阅函数 */
 export function onPluginInstallProgress(handler: (progress: PluginInstallProgress) => void) {

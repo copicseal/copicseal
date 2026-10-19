@@ -364,6 +364,23 @@ EXIF 的显示口径是独立的一段配置，见下面的 EXIF 小节。
   配置里出现注册表已删掉的 id：前端忽略，数据保留（降级/回滚不会连累用户配置）
 - 详见 [docs/16-more-tools.md](16-more-tools.md)
 
+### Rename
+
+「批量改文件名」保存的命名规则；Rust 侧 `RenameConfig`，字段名与 Rust 结构体逐字一致。
+
+| 字段 | 默认 | 说明 |
+|------|------|------|
+| presets | `[]` | 用户保存的规则列表 |
+
+每条规则（`RenamePreset`）：`id` / `name` / `pattern`（支持 `{n}` `{name}` `{date}` `{time}`）/
+`start` / `padding` / `sort_by` / `descending`（保存时用哪套排序，套用规则时一并还原）。
+
+约束：
+
+- **内置规则不写进配置**（前端 `batch-rename/naming.ts` 里的只读常量），这里只存用户自己的
+- 配置里没有 `rename` 段（老配置）：按空列表处理，不影响使用
+- 详见 [docs/16-more-tools.md](16-more-tools.md)
+
 ### Collage
 
 设置 → 拼图（「默认项 / 导出」两页）写的就是这里；Rust 侧 `CollageConfig`，缺字段按 `Default` 补齐。

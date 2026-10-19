@@ -1,4 +1,4 @@
-import { Gauge, type LucideIcon } from 'lucide-react';
+import { Gauge, type LucideIcon, Tags } from 'lucide-react';
 import type { ComponentType } from 'react';
 import type { MessageKey } from '@/shared/i18n';
 
@@ -26,6 +26,13 @@ export interface ToolDefinition {
    * 未来换成插件实现时，这里改成「向插件宿主请求组件」即可。
    */
   load: () => Promise<{ default: ComponentType<ToolViewProps> }>;
+  /**
+   * 视图布局：
+   * - `center`（默认）：内容整体上下居中，内容变高时从顶部排（适合「空态 + 一张结果卡」）
+   * - `fill`：内容撑满可视高度，视图内部用 `flex-1` 分区（适合「列表/预览占剩余空间」，
+   *   这样行数变化不会让页面高度跳动）
+   */
+  layout?: 'center' | 'fill';
 }
 
 /** 小功能注册表：面板按这里的顺序展示「未添加功能」。 */
@@ -37,6 +44,16 @@ export const TOOLS: readonly ToolDefinition[] = [
     icon: Gauge,
     defaultEnabled: true,
     load: () => import('./shutter-count/shutter-count-view'),
+  },
+  {
+    id: 'batch-rename',
+    nameKey: 'common.tools.batchRename.name',
+    descriptionKey: 'common.tools.batchRename.description',
+    icon: Tags,
+    defaultEnabled: true,
+    load: () => import('./batch-rename/batch-rename-view'),
+    // 预览列表吃满剩余高度：行数变化（筛扩展名）时不希望整页跟着跳
+    layout: 'fill',
   },
 ];
 

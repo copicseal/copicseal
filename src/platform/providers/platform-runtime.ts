@@ -26,11 +26,22 @@ const defaultConfig = {
   devices: { items: [] },
   logos: { items: [] },
   tools: { enabled: [] },
+  rename: { presets: [] },
   device_id: 'web-device',
 };
 
 const webRuntime = {
   ...tauriApi,
+  // 网页端没有本地文件系统权限，批量改文件名整条链路都不可用
+  readDirectoryEntries: async () => {
+    throw new Error(translate('common.error.webNoLocalFiles'));
+  },
+  applyBatchRename: async () => {
+    throw new Error(translate('common.error.webNoLocalFiles'));
+  },
+  undoBatchRename: async () => {
+    throw new Error(translate('common.error.webNoLocalFiles'));
+  },
   readExif: async () => ({
     make: null,
     model: null,

@@ -27,6 +27,8 @@ pub struct AppConfig {
     pub logos: LogoConfig,
     /// 「更多功能」面板里已添加（启用）的小功能
     pub tools: ToolConfig,
+    /// 批量改文件名：用户保存的命名规则（内置规则在前端代码里）
+    pub rename: RenameConfig,
     pub device_id: String,
 }
 
@@ -411,6 +413,33 @@ pub struct ToolConfig {
     pub enabled: Vec<String>,
 }
 
+/// 批量改文件名的设置：只存**用户自己保存的**命名规则。
+///
+/// 常见的内置规则（顺序编号、日期 + 编号……）写在前端代码里（`batch-rename/presets.ts`），
+/// 用户改不了也不需要备份；这里只保留他自定义的那几条。
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
+pub struct RenameConfig {
+    pub presets: Vec<RenamePreset>,
+}
+
+/// 一条用户保存的命名规则。
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct RenamePreset {
+    pub id: String,
+    /// 规则名称（用户自己起）
+    pub name: String,
+    /// 命名模板，支持 `{n}` 序号、`{name}` 原名、`{date}` 日期、`{time}` 时间
+    pub pattern: String,
+    /// 起始序号
+    pub start: u32,
+    /// 序号补零位数
+    pub padding: u32,
+    /// 保存时用的排序依据（`modified` / `created` / `name` / `taken`），便于一并复用
+    pub sort_by: String,
+    pub descending: bool,
+}
+
 impl Default for AppConfig {
     fn default() -> Self {
         let save_directory = default_save_directory();
@@ -431,6 +460,7 @@ impl Default for AppConfig {
             devices: DeviceConfig::default(),
             logos: LogoConfig::default(),
             tools: ToolConfig::default(),
+            rename: RenameConfig::default(),
             device_id: String::new(),
         }
     }
@@ -601,6 +631,7 @@ fn load_from_db(app: &tauri::AppHandle) -> Result<AppConfig, String> {
         devices: read_json_value(&conn, "devices")?.unwrap_or(defaults.devices),
         logos: read_json_value(&conn, "logos")?.unwrap_or(defaults.logos),
         tools: read_json_value(&conn, "tools")?.unwrap_or(defaults.tools),
+        rename: read_json_value(&conn, "rename")?.unwrap_or(defaults.rename),
         device_id: read_json_value(&conn, "device_id")?.unwrap_or_default(),
     };
 
@@ -663,6 +694,7 @@ fn save_to_db(app: &tauri::AppHandle, config: &AppConfig) -> Result<(), String> 
     write_json_value(&tx, "devices", &config.devices)?;
     write_json_value(&tx, "logos", &config.logos)?;
     write_json_value(&tx, "tools", &config.tools)?;
+    write_json_value(&tx, "rename", &config.rename)?;
     write_json_value(&tx, "device_id", &config.device_id)?;
 
     tx.commit().map_err(|e| format!("提交配置事务失败: {e}"))

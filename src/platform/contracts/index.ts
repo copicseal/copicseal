@@ -455,6 +455,62 @@ export interface ToolConfig {
   enabled: string[];
 }
 
+/** 批量改文件名的设置：只存用户自己保存的命名规则（内置规则在前端代码里）。 */
+export interface RenameConfig {
+  presets: RenamePreset[];
+}
+
+/** 一条用户保存的命名规则。 */
+export interface RenamePreset {
+  id: string;
+  name: string;
+  /** 命名模板，支持 `{n}` / `{name}` / `{date}` / `{time}` */
+  pattern: string;
+  start: number;
+  padding: number;
+  /** 保存时的排序依据 */
+  sort_by: RenameSortBy;
+  descending: boolean;
+}
+
+/** 批量改文件名的排序依据。 */
+export type RenameSortBy = 'modified' | 'created' | 'name' | 'taken';
+
+/** 目录里的一个候选文件（与 Rust `rename::DirectoryEntry` 对应）。 */
+export interface DirectoryEntry {
+  name: string;
+  path: string;
+  /** 小写、不带点的扩展名；没有扩展名时为空串 */
+  ext: string;
+  /** 不含扩展名的文件名（规则里的 `{name}`） */
+  stem: string;
+  size: number;
+  modified_ms: number | null;
+  created_ms: number | null;
+  /** EXIF 拍摄时间的规范化形式 `YYYYMMDDHHMMSS`；没读到为 null */
+  taken_at: string | null;
+}
+
+/** 一对改名。 */
+export interface RenamePair {
+  from: string;
+  to: string;
+}
+
+/** 被跳过的文件与原因。 */
+export interface RenameIssue {
+  name: string;
+  reason: string;
+}
+
+/** 执行/撤销结果。 */
+export interface RenameOutcome {
+  renamed: RenamePair[];
+  failed: RenameIssue[];
+  /** 非空表示校验不通过，**一个都没改** */
+  conflicts: string[];
+}
+
 /** 导入一条自定义 Logo 后的落盘结果（配置条目由前端补全 id / 关键字等）。 */
 export interface ImportedLogo {
   file_name: string;
@@ -483,6 +539,8 @@ export interface AppConfig {
   logos: LogoConfig;
   /** 「更多功能」面板已启用的小功能 */
   tools: ToolConfig;
+  /** 批量改文件名保存的命名规则 */
+  rename: RenameConfig;
   device_id: string;
 }
 

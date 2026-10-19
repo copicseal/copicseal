@@ -7,6 +7,7 @@ mod font;
 mod fs;
 mod logo;
 mod plugin;
+mod rename;
 mod system;
 mod window;
 
@@ -49,6 +50,9 @@ pub fn run() {
             fs::path_exists,
             fs::open_directory,
             fs::stage_dropped_file,
+            rename::read_directory_entries,
+            rename::apply_batch_rename,
+            rename::undo_batch_rename,
             config::get_config,
             config::update_config,
             config::get_device_id,

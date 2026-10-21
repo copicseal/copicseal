@@ -144,13 +144,18 @@
 开关在设置 → 边框水印 → EXIF →「导出携带原图 EXIF」（默认开，存储字段是 `output.retain_exif`），
 只对**模板导出**与 **JPEG** 生效：拼图导出不写元数据，PNG 也没有可写的 EXIF 段。
 
-打开时把原图的 APP1 EXIF 段整段搬到导出文件上，但会就地纠正三处，让元数据与画面自洽：
+打开时把原图的 APP1 EXIF 段整段搬到导出文件上，但会就地纠正四处，让元数据与画面自洽：
 
 | 处理 | 原因 |
 |------|------|
 | 宽高改成导出画面的实际像素（`ImageWidth` / `ImageLength` / `PixelXDimension` / `PixelYDimension`） | 原段里写的是原图尺寸，导出已经缩放/改了画幅 |
 | `Orientation` 归一为 1 | 导出的像素已经是正立的，再留「顺时针 90°」会让看图软件转错 |
 | IFD0 的 next-IFD 指针清零 | 指向的是**原图**的缩略图，尺寸与内容都对不上，白占十几 KB |
+| `Software` 写成 `Copicseal v<应用版本>` | 标注产物来源；版本取自 `env!("CARGO_PKG_VERSION")`，与 `tauri.conf.json` / `package.json` 同源，**随版本自动变** |
+
+`Software` 的写法不改动任何既有标签与偏移：把**新的 IFD0 追加到段尾**（原条目逐条拷贝、
+只换掉 Software 那条），再改一次 TIFF 头里的 IFD0 指针。数据区、Exif SubIFD、MakerNote、
+缩略图的绝对偏移都不变，因此不会被破坏；代价只是旧 IFD0 变成几十字节无人引用的垃圾。
 
 尺寸取自导出 JPEG 自身的 SOF 帧头（不是前端传参），所以导出倍率、尺寸适配器怎么算都不会错。
 段结构不认（缺 TIFF 头、类型不是 SHORT/LONG、标签不存在）时跳过对应处理，照常注入原段——

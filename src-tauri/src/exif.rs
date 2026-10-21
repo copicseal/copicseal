@@ -376,6 +376,12 @@ pub fn insert_jpeg_exif(
                 println!("EXIF 段没有可对齐的尺寸标签，按原样注入");
             }
         }
+
+        // 导出产物统一标注生成工具与版本（版本号跟随 Cargo.toml，与 tauri.conf.json 同源）
+        let software = format!("Copicseal v{}", env!("CARGO_PKG_VERSION"));
+        if !write_software_tag(&mut segment, &software) {
+            println!("EXIF 段里写不进 Software 标签，按原样注入");
+        }
     }
 
     let mut result = Vec::with_capacity(jpeg_data.len() + segment.len());
@@ -452,6 +458,114 @@ fn write_u32(bytes: &mut [u8], offset: usize, value: u32, big_endian: bool) -> b
 fn tiff_start(segment: &[u8]) -> Option<usize> {
     let marker = segment.windows(6).position(|w| w == b"Exif\0\0")?;
     Some(marker + 6)
+}
+
+const TIFF_TAG_SOFTWARE: u16 = 0x0131;
+const TIFF_TYPE_ASCII: u16 = 2;
+
+fn push_u16(bytes: &mut Vec<u8>, value: u16, big_endian: bool) {
+    let raw = if big_endian {
+        value.to_be_bytes()
+    } else {
+        value.to_le_bytes()
+    };
+    bytes.extend_from_slice(&raw);
+}
+
+fn push_u32(bytes: &mut Vec<u8>, value: u32, big_endian: bool) {
+    let raw = if big_endian {
+        value.to_be_bytes()
+    } else {
+        value.to_le_bytes()
+    };
+    bytes.extend_from_slice(&raw);
+}
+
+/// 把 `Software` 标签写进 EXIF 段（导出产物标注生成工具与版本）。
+///
+/// **不改动任何既有标签与偏移**：做法是把新的 IFD0 追加到段尾 —— 原条目逐条拷贝，
+/// 只把 Software 那条换掉（没有就补一条）—— 然后把 TIFF 头里的「IFD0 偏移」改一次指向它。
+/// 数据区、Exif SubIFD、MakerNote、缩略图用的都是相对 TIFF 头的**绝对偏移**，全部不变，
+/// 因此不会被破坏；代价只是旧 IFD0 变成几十字节无人引用的垃圾，
+/// 远比搬移整个数据区（要重写所有偏移）安全。
+///
+/// 段结构：`FF E1` + 段长(2) + `Exif\0\0` + TIFF。返回是否写入成功。
+fn write_software_tag(segment: &mut Vec<u8>, software: &str) -> bool {
+    let Some(tiff) = tiff_start(segment) else {
+        return false;
+    };
+
+    let big_endian = match segment.get(tiff..tiff + 2) {
+        Some([0x49, 0x49]) => false, // "II"
+        Some([0x4D, 0x4D]) => true,  // "MM"
+        _ => return false,
+    };
+
+    let Some(ifd0) = read_u32(segment, tiff + 4, big_endian).map(|value| value as usize) else {
+        return false;
+    };
+    let Some(ifd0_start) = tiff.checked_add(ifd0) else {
+        return false;
+    };
+    let Some(count) = read_u16(segment, ifd0_start, big_endian).map(|value| value as usize) else {
+        return false;
+    };
+
+    let entries_start = ifd0_start + 2;
+    let next_ifd_at = entries_start + count * 12;
+    if next_ifd_at + 4 > segment.len() {
+        return false;
+    }
+
+    // 追加位置按字对齐：TIFF 的值要求偶数偏移
+    if !(segment.len() - tiff).is_multiple_of(2) {
+        segment.push(0);
+    }
+
+    // 老条目里丢掉旧的 Software，下面统一补一条新的
+    let mut entries: Vec<u8> = Vec::with_capacity(count * 12);
+    for index in 0..count {
+        let entry = entries_start + index * 12;
+        let tag = read_u16(segment, entry, big_endian).unwrap_or(0);
+
+        if tag != TIFF_TAG_SOFTWARE {
+            entries.extend_from_slice(&segment[entry..entry + 12]);
+        }
+    }
+
+    let next_ifd = segment[next_ifd_at..next_ifd_at + 4].to_vec();
+    let entry_count = entries.len() / 12 + 1;
+    let new_ifd0 = segment.len();
+    let string_at = new_ifd0 + 2 + entry_count * 12 + 4;
+
+    push_u16(segment, entry_count as u16, big_endian);
+    segment.extend_from_slice(&entries);
+    push_u16(segment, TIFF_TAG_SOFTWARE, big_endian);
+    push_u16(segment, TIFF_TYPE_ASCII, big_endian);
+    // ASCII 的 count 含结尾的 NUL
+    push_u32(segment, (software.len() + 1) as u32, big_endian);
+    push_u32(segment, (string_at - tiff) as u32, big_endian);
+    segment.extend_from_slice(&next_ifd);
+    segment.extend_from_slice(software.as_bytes());
+    segment.push(0);
+    if !(segment.len() - tiff).is_multiple_of(2) {
+        segment.push(0);
+    }
+
+    // 头里的 IFD0 指针改指向新副本
+    if !write_u32(segment, tiff + 4, (new_ifd0 - tiff) as u32, big_endian) {
+        return false;
+    }
+
+    // APP1 段长 = 段内总字节 - marker 的 2 字节
+    let length = segment.len().saturating_sub(2);
+    if length > u16::MAX as usize {
+        return false;
+    }
+    segment[2] = (length >> 8) as u8;
+    segment[3] = (length & 0xFF) as u8;
+
+    true
 }
 
 struct IfdPatchResult {
@@ -853,5 +967,55 @@ mod tests {
         let jpeg = [0xFF, 0xD8, 0xFF, 0xDA, 0x00, 0x02];
         assert_eq!(jpeg_frame_size(&jpeg), None);
         assert_eq!(jpeg_frame_size(&[]), None);
+    }
+
+    #[test]
+    fn writes_the_software_tag_into_ifd0() {
+        let software = "Copicseal v1.2.3";
+
+        // 最小的 APP1 段：marker + 段长占位 + "Exif\0\0" + 小端 TIFF（IFD0 里只有 Make）
+        let mut segment: Vec<u8> = vec![0xFF, 0xE1, 0x00, 0x00];
+        segment.extend_from_slice(b"Exif\0\0");
+        segment.extend_from_slice(b"II\x2A\x00");
+        segment.extend_from_slice(&8u32.to_le_bytes());
+
+        let make = b"Canon\0";
+        let value_offset = 8 + 2 + 12 + 4;
+        segment.extend_from_slice(&1u16.to_le_bytes());
+        segment.extend_from_slice(&0x010Fu16.to_le_bytes()); // Make
+        segment.extend_from_slice(&TIFF_TYPE_ASCII.to_le_bytes());
+        segment.extend_from_slice(&(make.len() as u32).to_le_bytes());
+        segment.extend_from_slice(&(value_offset as u32).to_le_bytes());
+        segment.extend_from_slice(&0u32.to_le_bytes()); // 没有 IFD1
+        segment.extend_from_slice(make);
+
+        assert!(write_software_tag(&mut segment, software));
+
+        // 段长与内容自洽
+        let length = ((segment[2] as usize) << 8) | segment[3] as usize;
+        assert_eq!(length, segment.len() - 2);
+
+        // 新 IFD0 里 Make 还在，并多了一条 Software
+        let tiff = tiff_start(&segment).unwrap();
+        let ifd0 = read_u32(&segment, tiff + 4, false).unwrap() as usize;
+        let base = tiff + ifd0;
+        assert_eq!(read_u16(&segment, base, false), Some(2));
+
+        let tags: Vec<u16> = (0..2)
+            .map(|index| read_u16(&segment, base + 2 + index * 12, false).unwrap())
+            .collect();
+        assert!(tags.contains(&0x010F), "Make 应该保留");
+        assert!(tags.contains(&TIFF_TAG_SOFTWARE), "应该写入 Software");
+
+        // Software 的 count 与内容都按字符串算，不手数
+        let software_entry = base + 2 + 12;
+        let offset = read_u32(&segment, software_entry + 8, false).unwrap() as usize;
+        let count = read_u32(&segment, software_entry + 4, false).unwrap() as usize;
+        let expected = format!("{software}\0");
+        assert_eq!(count, expected.len(), "ASCII 的 count 应含结尾 NUL");
+        assert_eq!(
+            &segment[tiff + offset..][..expected.len()],
+            expected.as_bytes()
+        );
     }
 }

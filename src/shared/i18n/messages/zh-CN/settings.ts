@@ -94,6 +94,18 @@ export const settings = {
       light: '浅色',
       dark: '深色',
     },
+    accent: {
+      label: '主题色',
+      description: '只换强调色，中性色与明暗外观不变；切换后立即生效。',
+      blue: '雾蓝',
+      indigo: '靛青',
+      violet: '紫罗兰',
+      teal: '青碧',
+      emerald: '松绿',
+      amber: '琥珀',
+      terracotta: '陶土',
+      graphite: '石墨',
+    },
     language: {
       label: '语言',
       description: '切换后立即生效；「跟随系统」会按系统语言选择界面文案。',

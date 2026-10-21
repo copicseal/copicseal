@@ -8,6 +8,9 @@ use std::path::{Path, PathBuf};
 pub struct AppConfig {
     pub language: String,
     pub theme: String,
+    /// 主题色（强调色的色相）：`blue` / `indigo` / `violet` / `teal` / `emerald` / `amber` /
+    /// `terracotta` / `graphite`。只影响 CSS 里的强调色族，中性色与明暗外观不变。
+    pub accent: String,
     pub window_frame_mode: String,
     pub save_directory: String,
     pub cache: CacheConfig,
@@ -447,6 +450,7 @@ impl Default for AppConfig {
         Self {
             language: "zh-CN".to_string(),
             theme: "system".to_string(),
+            accent: "blue".to_string(),
             window_frame_mode: "frameless".to_string(),
             save_directory: save_directory.clone(),
             cache: CacheConfig::with_save_directory(&save_directory),
@@ -616,6 +620,7 @@ fn load_from_db(app: &tauri::AppHandle) -> Result<AppConfig, String> {
     let mut config = AppConfig {
         language: read_json_value(&conn, "language")?.unwrap_or(defaults.language),
         theme: read_json_value(&conn, "theme")?.unwrap_or(defaults.theme),
+        accent: read_json_value(&conn, "accent")?.unwrap_or(defaults.accent),
         window_frame_mode: read_json_value(&conn, "window_frame_mode")?
             .unwrap_or(defaults.window_frame_mode),
         save_directory,
@@ -681,6 +686,7 @@ fn save_to_db(app: &tauri::AppHandle, config: &AppConfig) -> Result<(), String> 
 
     write_json_value(&tx, "language", &config.language)?;
     write_json_value(&tx, "theme", &config.theme)?;
+    write_json_value(&tx, "accent", &config.accent)?;
     write_json_value(&tx, "window_frame_mode", &config.window_frame_mode)?;
     write_json_value(&tx, "save_directory", &config.save_directory)?;
     write_json_value(&tx, "cache", &config.cache)?;

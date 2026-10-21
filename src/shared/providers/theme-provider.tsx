@@ -9,10 +9,14 @@ import {
 } from 'react';
 import { platformRuntime } from '@/platform/providers/platform-runtime';
 import {
+  type AccentTheme,
+  applyAccentTheme,
   applyResolvedTheme,
   DEFAULT_THEME,
   getSystemTheme,
+  isAccentTheme,
   type ResolvedTheme,
+  readCachedAccent,
   resolveTheme,
   type Theme,
 } from '@/shared/lib/theme';
@@ -24,12 +28,17 @@ type ThemeContextValue = {
   resolvedTheme: ResolvedTheme;
   /** 只切当前会话（立即生效） */
   setTheme: (theme: Theme) => void;
+  /** 主题色：强调色的色相 */
+  accent: AccentTheme;
+  /** 只切当前会话（立即生效） */
+  setAccent: (accent: AccentTheme) => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME);
+  const [accent, setAccentState] = useState<AccentTheme>(readCachedAccent);
   const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(getSystemTheme);
   const resolvedTheme = resolveTheme(theme, systemTheme);
 
@@ -40,8 +49,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     void platformRuntime
       .getConfig()
       .then((config) => {
-        if (!cancelled && config?.theme) {
+        if (cancelled) {
+          return;
+        }
+
+        if (config?.theme) {
           setThemeState(config.theme as Theme);
+        }
+
+        if (isAccentTheme(config?.accent)) {
+          setAccentState(config.accent);
         }
       })
       .catch((error) => {
@@ -70,13 +87,22 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     applyResolvedTheme(resolvedTheme);
   }, [resolvedTheme]);
 
+  // 主题色落后于配置之后生效；首帧由 index.html 的内联脚本先按缓存上色
+  useEffect(() => {
+    applyAccentTheme(accent);
+  }, [accent]);
+
   const setTheme = useCallback((next: Theme) => {
     setThemeState(next);
   }, []);
 
+  const setAccent = useCallback((next: AccentTheme) => {
+    setAccentState(next);
+  }, []);
+
   const value = useMemo<ThemeContextValue>(
-    () => ({ theme, resolvedTheme, setTheme }),
-    [theme, resolvedTheme, setTheme],
+    () => ({ accent, resolvedTheme, setAccent, setTheme, theme }),
+    [accent, resolvedTheme, setAccent, setTheme, theme],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

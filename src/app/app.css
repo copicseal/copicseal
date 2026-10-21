@@ -131,6 +131,178 @@
   --sidebar-ring: oklch(0.72 0.17 252);
 }
 
+/*
+ * 主题色（强调色族）。
+ *
+ * 只覆盖「强调色」相关的变量：primary / ring / accent / sidebar-primary / sidebar-accent /
+ * sidebar-ring / chart-*。中性灰、边框、阴影、以及亮暗两套外观都不动，所以对比度与层次保持一致。
+ *
+ * 默认的蓝色直接写在 `:root` / `.dark` 里，因此这些块只列其余的；
+ * 由 `applyAccentTheme()` 写到 `<html data-accent="…">`。
+ */
+[data-accent="indigo"] {
+  --primary: oklch(0.66 0.17 275);
+  --ring: oklch(0.66 0.17 275);
+  --accent: oklch(0.93 0.03 275);
+  --sidebar-primary: oklch(0.66 0.17 275);
+  --sidebar-accent: oklch(0.93 0.03 275);
+  --sidebar-ring: oklch(0.66 0.17 275);
+  --chart-1: oklch(0.82 0.1 275);
+  --chart-2: oklch(0.75 0.13 275);
+  --chart-3: oklch(0.7 0.16 275);
+  --chart-4: oklch(0.66 0.18 275);
+  --chart-5: oklch(0.58 0.14 275);
+}
+
+.dark[data-accent="indigo"] {
+  --primary: oklch(0.72 0.17 275);
+  --ring: oklch(0.72 0.17 275);
+  --accent: oklch(0.32 0.02 275);
+  --sidebar-primary: oklch(0.72 0.17 275);
+  --sidebar-accent: oklch(0.32 0.02 275);
+  --sidebar-ring: oklch(0.72 0.17 275);
+}
+
+[data-accent="violet"] {
+  --primary: oklch(0.66 0.17 300);
+  --ring: oklch(0.66 0.17 300);
+  --accent: oklch(0.93 0.03 300);
+  --sidebar-primary: oklch(0.66 0.17 300);
+  --sidebar-accent: oklch(0.93 0.03 300);
+  --sidebar-ring: oklch(0.66 0.17 300);
+  --chart-1: oklch(0.82 0.1 300);
+  --chart-2: oklch(0.75 0.13 300);
+  --chart-3: oklch(0.7 0.16 300);
+  --chart-4: oklch(0.66 0.18 300);
+  --chart-5: oklch(0.58 0.14 300);
+}
+
+.dark[data-accent="violet"] {
+  --primary: oklch(0.72 0.17 300);
+  --ring: oklch(0.72 0.17 300);
+  --accent: oklch(0.32 0.02 300);
+  --sidebar-primary: oklch(0.72 0.17 300);
+  --sidebar-accent: oklch(0.32 0.02 300);
+  --sidebar-ring: oklch(0.72 0.17 300);
+}
+
+[data-accent="teal"] {
+  --primary: oklch(0.66 0.13 195);
+  --ring: oklch(0.66 0.13 195);
+  --accent: oklch(0.93 0.03 195);
+  --sidebar-primary: oklch(0.66 0.13 195);
+  --sidebar-accent: oklch(0.93 0.03 195);
+  --sidebar-ring: oklch(0.66 0.13 195);
+  --chart-1: oklch(0.82 0.08 195);
+  --chart-2: oklch(0.75 0.1 195);
+  --chart-3: oklch(0.7 0.12 195);
+  --chart-4: oklch(0.66 0.13 195);
+  --chart-5: oklch(0.58 0.11 195);
+}
+
+.dark[data-accent="teal"] {
+  --primary: oklch(0.72 0.13 195);
+  --ring: oklch(0.72 0.13 195);
+  --accent: oklch(0.32 0.02 195);
+  --sidebar-primary: oklch(0.72 0.13 195);
+  --sidebar-accent: oklch(0.32 0.02 195);
+  --sidebar-ring: oklch(0.72 0.13 195);
+}
+
+[data-accent="emerald"] {
+  --primary: oklch(0.66 0.14 158);
+  --ring: oklch(0.66 0.14 158);
+  --accent: oklch(0.93 0.03 158);
+  --sidebar-primary: oklch(0.66 0.14 158);
+  --sidebar-accent: oklch(0.93 0.03 158);
+  --sidebar-ring: oklch(0.66 0.14 158);
+  --chart-1: oklch(0.82 0.08 158);
+  --chart-2: oklch(0.75 0.1 158);
+  --chart-3: oklch(0.7 0.12 158);
+  --chart-4: oklch(0.66 0.14 158);
+  --chart-5: oklch(0.58 0.12 158);
+}
+
+.dark[data-accent="emerald"] {
+  --primary: oklch(0.72 0.14 158);
+  --ring: oklch(0.72 0.14 158);
+  --accent: oklch(0.32 0.02 158);
+  --sidebar-primary: oklch(0.72 0.14 158);
+  --sidebar-accent: oklch(0.32 0.02 158);
+  --sidebar-ring: oklch(0.72 0.14 158);
+}
+
+/* 琥珀：L 比其他几套低一档，否则白字按钮的对比度明显不够 */
+[data-accent="amber"] {
+  --primary: oklch(0.63 0.15 75);
+  --ring: oklch(0.63 0.15 75);
+  --accent: oklch(0.93 0.04 75);
+  --sidebar-primary: oklch(0.63 0.15 75);
+  --sidebar-accent: oklch(0.93 0.04 75);
+  --sidebar-ring: oklch(0.63 0.15 75);
+  --chart-1: oklch(0.82 0.09 75);
+  --chart-2: oklch(0.75 0.12 75);
+  --chart-3: oklch(0.7 0.14 75);
+  --chart-4: oklch(0.63 0.15 75);
+  --chart-5: oklch(0.55 0.12 75);
+}
+
+.dark[data-accent="amber"] {
+  --primary: oklch(0.69 0.15 75);
+  --ring: oklch(0.69 0.15 75);
+  --accent: oklch(0.32 0.03 75);
+  --sidebar-primary: oklch(0.69 0.15 75);
+  --sidebar-accent: oklch(0.32 0.03 75);
+  --sidebar-ring: oklch(0.69 0.15 75);
+}
+
+[data-accent="terracotta"] {
+  --primary: oklch(0.66 0.13 45);
+  --ring: oklch(0.66 0.13 45);
+  --accent: oklch(0.93 0.04 45);
+  --sidebar-primary: oklch(0.66 0.13 45);
+  --sidebar-accent: oklch(0.93 0.04 45);
+  --sidebar-ring: oklch(0.66 0.13 45);
+  --chart-1: oklch(0.82 0.08 45);
+  --chart-2: oklch(0.75 0.1 45);
+  --chart-3: oklch(0.7 0.12 45);
+  --chart-4: oklch(0.66 0.13 45);
+  --chart-5: oklch(0.58 0.11 45);
+}
+
+.dark[data-accent="terracotta"] {
+  --primary: oklch(0.72 0.13 45);
+  --ring: oklch(0.72 0.13 45);
+  --accent: oklch(0.32 0.03 45);
+  --sidebar-primary: oklch(0.72 0.13 45);
+  --sidebar-accent: oklch(0.32 0.03 45);
+  --sidebar-ring: oklch(0.72 0.13 45);
+}
+
+/* 石墨：几乎无彩度，靠明度差做强调；适合"不想被颜色打扰"的场景 */
+[data-accent="graphite"] {
+  --primary: oklch(0.6 0.02 250);
+  --ring: oklch(0.6 0.02 250);
+  --accent: oklch(0.93 0.01 250);
+  --sidebar-primary: oklch(0.6 0.02 250);
+  --sidebar-accent: oklch(0.93 0.01 250);
+  --sidebar-ring: oklch(0.6 0.02 250);
+  --chart-1: oklch(0.82 0.02 250);
+  --chart-2: oklch(0.75 0.02 250);
+  --chart-3: oklch(0.7 0.03 250);
+  --chart-4: oklch(0.6 0.02 250);
+  --chart-5: oklch(0.5 0.02 250);
+}
+
+.dark[data-accent="graphite"] {
+  --primary: oklch(0.74 0.02 250);
+  --ring: oklch(0.74 0.02 250);
+  --accent: oklch(0.32 0.01 250);
+  --sidebar-primary: oklch(0.74 0.02 250);
+  --sidebar-accent: oklch(0.32 0.01 250);
+  --sidebar-ring: oklch(0.74 0.02 250);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

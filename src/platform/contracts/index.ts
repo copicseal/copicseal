@@ -526,6 +526,8 @@ export interface ImportedLogo {
 export interface AppConfig {
   language: string;
   theme: string;
+  /** 主题色（强调色的色相）：blue / indigo / violet / teal / emerald / amber / terracotta / graphite */
+  accent: string;
   window_frame_mode: WindowFrameMode;
   save_directory: string;
   cache: CacheConfig;

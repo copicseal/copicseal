@@ -8,6 +8,7 @@ const webStorage = new WebStorageAdapter();
 const defaultConfig = {
   language: 'zh-CN',
   theme: 'system',
+  accent: 'blue',
   window_frame_mode: 'frameless' as const,
   save_directory: '',
   cache: { directory: '', auto_cleanup_on_startup: true, max_age_days: 30 },

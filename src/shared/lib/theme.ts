@@ -59,3 +59,77 @@ export function applyResolvedTheme(resolved: ResolvedTheme): void {
     console.warn('缓存主题失败:', error);
   }
 }
+
+/**
+ * 主题色（强调色族）。
+ *
+ * 只换强调色的色相：`primary` / `ring` / `accent` / `sidebar-*` / `chart-*`。
+ * 中性灰与亮暗两套外观不变，所以各主题色之间的对比度、层次完全一致。
+ * 取值与 `app.css` 里的 `[data-accent='…']` 块一一对应；`blue` 是默认值，不落属性。
+ */
+export type AccentTheme =
+  | 'blue'
+  | 'indigo'
+  | 'violet'
+  | 'teal'
+  | 'emerald'
+  | 'amber'
+  | 'terracotta'
+  | 'graphite';
+
+/** 设置页里的展示顺序（按色相绕一圈）。 */
+export const ACCENT_THEMES: readonly AccentTheme[] = [
+  'blue',
+  'indigo',
+  'violet',
+  'teal',
+  'emerald',
+  'amber',
+  'terracotta',
+  'graphite',
+];
+
+export const DEFAULT_ACCENT: AccentTheme = 'blue';
+
+/** 首帧用的主题色缓存（与 `THEME_STORAGE_KEY` 同一套防白闪思路）。 */
+export const ACCENT_STORAGE_KEY = 'copicseal-accent';
+
+export function isAccentTheme(value: unknown): value is AccentTheme {
+  return typeof value === 'string' && (ACCENT_THEMES as readonly string[]).includes(value);
+}
+
+/** 读首帧缓存；没有或非法都回落到默认值。 */
+export function readCachedAccent(): AccentTheme {
+  if (typeof window === 'undefined') {
+    return DEFAULT_ACCENT;
+  }
+
+  try {
+    const cached = window.localStorage.getItem(ACCENT_STORAGE_KEY);
+
+    return isAccentTheme(cached) ? cached : DEFAULT_ACCENT;
+  } catch {
+    return DEFAULT_ACCENT;
+  }
+}
+
+/** 把主题色落到 `<html data-accent>`：默认蓝色由 `:root` 提供，所以默认值要把属性删掉。 */
+export function applyAccentTheme(accent: AccentTheme): void {
+  if (typeof document === 'undefined') {
+    return;
+  }
+
+  const root = document.documentElement;
+
+  if (accent === DEFAULT_ACCENT) {
+    delete root.dataset.accent;
+  } else {
+    root.dataset.accent = accent;
+  }
+
+  try {
+    window.localStorage.setItem(ACCENT_STORAGE_KEY, accent);
+  } catch (error) {
+    console.warn('缓存主题色失败:', error);
+  }
+}

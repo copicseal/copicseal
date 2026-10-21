@@ -92,7 +92,7 @@ import {
   useI18n,
   useTranslate,
 } from '@/shared/i18n';
-import { THEME_OPTIONS, type Theme } from '@/shared/lib/theme';
+import { ACCENT_THEMES, type AccentTheme, THEME_OPTIONS, type Theme } from '@/shared/lib/theme';
 import { cn } from '@/shared/lib/utils';
 import { useAppNavigation } from '@/shared/providers/navigation-provider';
 import { usePageActive } from '@/shared/providers/page-activity-provider';
@@ -362,22 +362,48 @@ const THEME_LABEL_KEYS: Record<Theme, MessageKey> = {
   dark: 'settings.general.theme.dark',
 };
 
+/** 主题色 → 文案 key：同样显式列出，避免动态拼 key 失去类型保护 */
+const ACCENT_LABEL_KEYS: Record<AccentTheme, MessageKey> = {
+  blue: 'settings.general.accent.blue',
+  indigo: 'settings.general.accent.indigo',
+  violet: 'settings.general.accent.violet',
+  teal: 'settings.general.accent.teal',
+  emerald: 'settings.general.accent.emerald',
+  amber: 'settings.general.accent.amber',
+  terracotta: 'settings.general.accent.terracotta',
+  graphite: 'settings.general.accent.graphite',
+};
+
+/** 色块用亮色主题的 primary 值，与 `app.css` 里 `[data-accent='…']` 一一对应 */
+const ACCENT_SWATCHES: Record<AccentTheme, string> = {
+  blue: 'oklch(0.66 0.18 252)',
+  indigo: 'oklch(0.66 0.17 275)',
+  violet: 'oklch(0.66 0.17 300)',
+  teal: 'oklch(0.66 0.13 195)',
+  emerald: 'oklch(0.66 0.14 158)',
+  amber: 'oklch(0.63 0.15 75)',
+  terracotta: 'oklch(0.66 0.13 45)',
+  graphite: 'oklch(0.6 0.02 250)',
+};
+
 function GeneralTab({
   config,
   onSelectWorkspaceDirectory,
   onOpenWorkspaceDirectory,
   onLanguageChange,
   onThemeChange,
+  onAccentChange,
 }: {
   config: AppConfig;
   onSelectWorkspaceDirectory: () => Promise<void>;
   onOpenWorkspaceDirectory: () => Promise<void>;
   onLanguageChange: (language: Language) => void;
   onThemeChange: (theme: Theme) => void;
+  onAccentChange: (accent: AccentTheme) => void;
 }) {
   const t = useTranslate();
   const { language } = useI18n();
-  const { theme } = useTheme();
+  const { accent, theme } = useTheme();
   const { frameMode, frameModePending, setFrameMode } = useWindowStyle();
 
   return (
@@ -443,6 +469,33 @@ function GeneralTab({
               </SelectGroup>
             </SelectContent>
           </Select>
+        </SettingField>
+
+        <SettingField
+          label={t('settings.general.accent.label')}
+          description={t('settings.general.accent.description')}
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            {ACCENT_THEMES.map((item) => (
+              <button
+                key={item}
+                type="button"
+                aria-label={t(ACCENT_LABEL_KEYS[item])}
+                aria-pressed={accent === item}
+                title={t(ACCENT_LABEL_KEYS[item])}
+                className={cn(
+                  'flex size-7 items-center justify-center rounded-full border-2 transition-transform hover:scale-105',
+                  accent === item ? 'border-foreground' : 'border-transparent',
+                )}
+                onClick={() => onAccentChange(item)}
+              >
+                <span
+                  className="size-5 rounded-full"
+                  style={{ backgroundColor: ACCENT_SWATCHES[item] }}
+                />
+              </button>
+            ))}
+          </div>
         </SettingField>
 
         <SettingField
@@ -1991,7 +2044,7 @@ export function SettingsPage() {
   const [tab, setTab] = useState('general');
   const [config, setConfig] = useState<AppConfig | null>(null);
   const { setLanguage } = useI18n();
-  const { setTheme } = useTheme();
+  const { setAccent, setTheme } = useTheme();
   const [overview, setOverview] = useState<CacheOverview | null>(null);
   const [loading, setLoading] = useState(true);
   const [cacheActionPending, setCacheActionPending] = useState(false);
@@ -2210,6 +2263,15 @@ export function SettingsPage() {
       void patchConfig((current) => ({ ...current, theme: next }));
     },
     [patchConfig, setTheme],
+  );
+
+  /** 切主题色：同样先立即生效，再落库 */
+  const handleAccentChange = useCallback(
+    (next: AccentTheme) => {
+      setAccent(next);
+      void patchConfig((current) => ({ ...current, accent: next }));
+    },
+    [patchConfig, setAccent],
   );
 
   /**
@@ -2638,6 +2700,7 @@ export function SettingsPage() {
                 config={config}
                 onLanguageChange={handleLanguageChange}
                 onThemeChange={handleThemeChange}
+                onAccentChange={handleAccentChange}
                 onSelectWorkspaceDirectory={handleSelectWorkspaceDirectory}
                 onOpenWorkspaceDirectory={handleOpenWorkspaceDirectory}
               />

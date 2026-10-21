@@ -20,8 +20,14 @@
           var root = document.documentElement;
           root.classList.toggle('dark', dark);
           root.style.colorScheme = dark ? 'dark' : 'light';
+
+          // 主题色（强调色）同理：默认蓝色不落属性，其余写到 data-accent 上
+          var accent = localStorage.getItem('copicseal-accent');
+          if (accent && accent !== 'blue') {
+            root.setAttribute('data-accent', accent);
+          }
         } catch (error) {
-          /* 读不到就按默认浅色 */
+          /* 读不到就按默认浅色 + 默认蓝色 */
         }
       })();
     </script>

@@ -95,6 +95,18 @@ export const settings: Messages['settings'] = {
       light: 'Light',
       dark: 'Dark',
     },
+    accent: {
+      label: 'Accent colour',
+      description: 'Changes the accent only; neutrals and light/dark keep their contrast.',
+      blue: 'Blue',
+      indigo: 'Indigo',
+      violet: 'Violet',
+      teal: 'Teal',
+      emerald: 'Emerald',
+      amber: 'Amber',
+      terracotta: 'Terracotta',
+      graphite: 'Graphite',
+    },
     language: {
       label: 'Language',
       description: 'Applies immediately. “Follow system” picks copy based on your system language.',

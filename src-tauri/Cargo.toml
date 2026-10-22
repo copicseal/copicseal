@@ -54,3 +54,33 @@ windows = { version = "0.61", features = [
   "Win32_Graphics_Imaging",
   "Win32_System_Com",
 ] }
+
+# ---------------------------------------------------------------------------
+# 构建档位
+# ---------------------------------------------------------------------------
+# 图片解码 / 重采样 / JPEG 编码都是纯 Rust 的大循环：debug（opt-level = 0）比 release
+# 慢一个数量级，开发时「压缩一张图要好几秒」主要就是这个原因。
+#
+# 只给图像处理相关的 crate 打开优化（它们编译一次就缓存，增量编译不受影响），
+# 本 crate 轻度优化。**不要写成 `package."*"`**：那会连 C/C++ 依赖的编译参数一起改，
+# 已经踩过 `vswhom-sys` 构建失败的坑。
+[profile.dev]
+opt-level = 2
+
+[profile.dev.package.image]
+opt-level = 3
+[profile.dev.package.image-webp]
+opt-level = 3
+[profile.dev.package.zune-jpeg]
+opt-level = 3
+[profile.dev.package.zune-core]
+opt-level = 3
+[profile.dev.package.png]
+opt-level = 3
+[profile.dev.package.miniz_oxide]
+opt-level = 3
+[profile.dev.package.fast_image_resize]
+opt-level = 3
+[profile.dev.package.kamadak-exif]
+opt-level = 3
+

@@ -32,6 +32,8 @@ pub struct AppConfig {
     pub tools: ToolConfig,
     /// 批量改文件名：用户保存的命名规则（内置规则在前端代码里）
     pub rename: RenameConfig,
+    /// 图片压缩：用户保存的压缩预设（内置预设在前端代码里）
+    pub compress: CompressConfig,
     pub device_id: String,
 }
 
@@ -448,6 +450,44 @@ pub struct RenamePreset {
     pub descending: bool,
 }
 
+/// 图片压缩的设置：只存**用户自己保存的**压缩预设。
+///
+/// 内置预设（网页用、社交分享、压到固定体积……）写在前端代码里，用户改不了也不需要备份；
+/// 这里只保留他自定义的那几条，字段与 `compress.rs` 的 `CompressOptions` 同源。
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
+pub struct CompressConfig {
+    pub presets: Vec<CompressPreset>,
+}
+
+/// 一条用户保存的压缩预设。
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
+pub struct CompressPreset {
+    pub id: String,
+    /// 预设名称（用户自己起）
+    pub name: String,
+    /// `custom` / `source`
+    pub output_mode: String,
+    /// `keep` / `jpeg` / `png`
+    pub output_format: String,
+    pub quality: u8,
+    /// `original` / `max_edge` / `box`
+    pub resize_mode: String,
+    pub max_edge: u32,
+    pub box_width: u32,
+    pub box_height: u32,
+    /// 目标体积（字节）；None 表示按质量压
+    pub target_bytes: Option<u64>,
+    /// `keep` / `essential` / `strip`
+    pub metadata: String,
+    /// 透明图转 JPEG 的背景色
+    pub background: String,
+    pub suffix: String,
+    /// `rename` / `skip` / `overwrite`
+    pub on_conflict: String,
+}
+
 impl Default for AppConfig {
     fn default() -> Self {
         let save_directory = default_save_directory();
@@ -470,6 +510,7 @@ impl Default for AppConfig {
             logos: LogoConfig::default(),
             tools: ToolConfig::default(),
             rename: RenameConfig::default(),
+            compress: CompressConfig::default(),
             device_id: String::new(),
         }
     }
@@ -642,6 +683,7 @@ fn load_from_db(app: &tauri::AppHandle) -> Result<AppConfig, String> {
         logos: read_json_value(&conn, "logos")?.unwrap_or(defaults.logos),
         tools: read_json_value(&conn, "tools")?.unwrap_or(defaults.tools),
         rename: read_json_value(&conn, "rename")?.unwrap_or(defaults.rename),
+        compress: read_json_value(&conn, "compress")?.unwrap_or(defaults.compress),
         device_id: read_json_value(&conn, "device_id")?.unwrap_or_default(),
     };
 
@@ -706,6 +748,7 @@ fn save_to_db(app: &tauri::AppHandle, config: &AppConfig) -> Result<(), String> 
     write_json_value(&tx, "logos", &config.logos)?;
     write_json_value(&tx, "tools", &config.tools)?;
     write_json_value(&tx, "rename", &config.rename)?;
+    write_json_value(&tx, "compress", &config.compress)?;
     write_json_value(&tx, "device_id", &config.device_id)?;
 
     tx.commit().map_err(|e| format!("提交配置事务失败: {e}"))

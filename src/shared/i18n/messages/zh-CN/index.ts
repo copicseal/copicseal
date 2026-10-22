@@ -1,6 +1,7 @@
 import { app } from './app';
 import { collage } from './collage';
 import { common } from './common';
+import { compress } from './compress';
 import { fonts } from './fonts';
 import { settings } from './settings';
 import { template } from './template';
@@ -15,4 +16,5 @@ export const zhCN = {
   template,
   templateExport,
   fonts,
+  compress,
 };

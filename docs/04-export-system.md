@@ -116,9 +116,12 @@ macOS 端渲染在 WKWebView 里，它不支持用 canvas 编码 WebP：请求 `
 （体积与 PNG 相同，质量参数完全无效）。Windows 端的 WebView2 支持该编码，但当前
 按统一行为处理。
 
-因此在 WebP 编码挪到宿主侧（Rust 侧 `image` crate 已支持有损 WebP）之前，`format`
-只开放 PNG 与 JPG。扩展名映射同时做了运行期收敛，避免持久化的历史配置再产出后缀与
-内容不符的文件。
+因此在 WebP 编码挪到宿主侧之前，`format` 只开放 PNG 与 JPG。扩展名映射同时做了运行期收敛，
+避免持久化的历史配置再产出后缀与内容不符的文件。
+
+> 事实核对：`image` 0.25 的 WebP 编码器只有**无损**实现（`WebPEncoder::new_lossless`），
+> 没有质量参数；要做有损 WebP 得另引 libwebp 绑定。所以「挪到 Rust 侧」也不能直接解决这个问题，
+> 需要单独评估依赖与构建成本。
 
 ---
 

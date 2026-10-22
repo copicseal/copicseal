@@ -199,6 +199,10 @@ export const common = {
         keepName: '原名_编号',
       },
     },
+    imageCompress: {
+      name: '图片压缩',
+      description: '批量压缩 JPEG / PNG，支持质量、尺寸与目标体积',
+    },
   },
   error: {
     /** Web 端（没有工作区目录）才会出现的错误 */
@@ -210,5 +214,6 @@ export const common = {
     },
     webNoPlugins: '网页端不支持插件',
     webNoLocalFiles: '网页端没有本地文件权限，批量改名只能在桌面版使用',
+    webNoCompress: '网页端没有本地文件权限，图片压缩只能在桌面版使用',
   },
 };

@@ -170,7 +170,84 @@ DSC_ 编号、日期_编号、日期_时间_编号、原名_编号。
 
 网页端没有本地文件权限，整条链路不可用（`platformRuntime` 的 web 实现直接报错）。
 
-## 6. 相关文件
+## 6. 图片压缩
+
+真实解码 → 方向纠正 → 重采样 → 重编码 → 元数据 → 安全写盘，编解码全部在 Rust 侧
+（`src-tauri/src/compress.rs`），前端只做任务编排与展示。
+
+### 6.1 页面结构
+
+三栏 + 底栏（`layout: 'full'`，不受其它小工具的 `max-w-3xl` 限制）：
+
+```txt
+[选择图片] [导入文件夹]                        共 N 张 · [清空]
+┌────────────┬──────────────────────────┬──────────────┐
+│ 任务列表    │ 前后对比（滑动分割 / 缩放）  │ 压缩参数 + 预设 │
+└────────────┴──────────────────────────┴──────────────┘
+等待 / 处理 / 成功 / 失败 / 取消   进度条   [开始压缩][取消][重试失败]
+```
+
+- **导入**：原生多选对话框（拿磁盘路径）、原生目录对话框（递归列图，深度上限 12、跳过符号链接）、
+  拖入（HTML5 只给字节 → 先落到 `<cache>/Dropped/` 再走同一条链路）
+- **列表**：缩略图、文件名、尺寸、体积、状态；按规范化路径去重，重复/不支持的数量用 toast 说明；
+  不支持的格式（HEIC / AVIF / 动图 WebP / CMYK JPEG / 损坏文件）作为「被拦下」的行显示原因，
+  不进入批次
+- **对比**：原图与结果都来自**真实文件**（Rust 按长边 1600 生成预览，带缓存键 path+mtime+size+edge）；
+  拖动分割线对比、适应 / 100% / 200% 三档缩放；显示前后体积、分辨率、压缩率（负收益照样显示）
+- **参数**：三种模式共用同一执行链路 ——
+  - **快速**：推荐参数（保持原格式、质量 80、不缩放、保留元数据）一键执行
+  - **自定义**：完整参数（格式 / 质量 / 尺寸 / 目标体积 / 元数据 / 透明背景 / 后缀 / 输出位置 / 重名）
+  - **批量规则**：内置预设 + 用户保存的预设，套用到全部任务
+
+### 6.2 格式能力（诚实矩阵）
+
+| 输入 | 解码 | 保持原格式 | 输出 JPEG | 输出 PNG | 说明 |
+|------|------|-----------|-----------|----------|------|
+| JPEG | ✅ | ✅ | ✅ | ✅ | EXIF / ICC 可保留；CMYK 拒绝（避免偏色） |
+| PNG | ✅ | ✅ | ✅ | ✅ | 转 JPEG 时透明像素按背景色合成；无质量参数 |
+| WebP | ✅（仅静态） | ❌ | ✅ | ✅ | `image` 只有无损 WebP 编码，故不作为输出格式；动图拒绝 |
+| AVIF / HEIC / HEIF | ❌ | — | — | — | 未编译对应解码器，导入时明确提示 |
+
+### 6.3 参数口径
+
+| 参数 | 口径 |
+|------|------|
+| 质量 1–100 | **只对 JPEG 输出生效**；PNG 是无损优化，UI 直接隐藏质量控件（不做假调节） |
+| 尺寸 | 保持原尺寸 / 限制最长边 / 自定义宽高；一律**等比装入，不放大** |
+| 目标体积 | 按 `size ∝ quality²` 估算下一个质量再验证（≤6 次编码，通常 2~4 次）→ 仍超标则逐级缩小（0.85×，≤4 轮，长边 ≥320px）；达不到取最小结果并标记「未达标」；原图已小于目标时直接复制字节、不重编码 |
+| 元数据 | `keep`（源 EXIF + ICC）/ `essential`（自建最小 EXIF：宽高 + 朝向 + Software）/ `strip`（都不写）；只作用于 JPEG 输出 |
+| EXIF 朝向 | 解码后按 Orientation(1–8) 旋转/翻转像素，输出方向归一为 1 —— 压缩后不会转错 |
+| 透明背景 | 透明图转 JPEG 时按 `#rrggbb` 合成（默认白） |
+| 文件名后缀 | 默认 `-compressed`；留空即同名（仍不会覆盖源文件） |
+| 输出位置 | 统一目录（默认取设置的导出目录）/ 各自原目录 |
+| 重名处理 | `rename`（默认，自动 `-1/-2`…）/ `skip` / `overwrite`；**任何策略都不会写到源路径上** |
+
+### 6.4 任务与安全边界（Rust `compress.rs`）
+
+| 环节 | 做法 |
+|------|------|
+| 并发 | 线程池取号消费，路数 `min(核心数-1, 6)`；单个文件 >40 MB 时压到 2 路（峰值内存 ≈ 路数 × 单图）；单张解码-编码-写盘串行 |
+| 上限 | 单文件 ≤ 256 MB、单图像素 ≤ 120 MP；超出直接拒绝并说明 |
+| 进度 | 每张的阶段（解码 / 缩放 / 编码 / 试压 / 写入）与整批 done/total 走 `compress://progress` 事件；结果里带 `elapsed_ms`，界面直接显示单张耗时 |
+| 编码器 | 解码 zune-jpeg、重采样 fast_image_resize（都已随 `image` 在依赖里）；**编码是 `image` 自带的纯 Rust JPEG 编码器**，比 libjpeg-turbo / mozjpeg 慢，是当前的主要瓶颈。换成 C 编码器需新增构建依赖，暂不引入 |
+| 取消 | `cancel_compress` 置 `AtomicBool`；排队项标记 cancelled，进行中的那张做完才停，**不产出半成品** |
+| 写盘 | 先写 `.<name>.copicseal-tmp-<ts>` 再 rename；覆盖场景先删旧文件再改名，失败清理临时文件 |
+| 失败 | 单张失败只记 `failed` + 原因，整批继续；结果里带上实际质量、编码次数、warning |
+| 统计 | 整批返回成功/失败/跳过/取消数量、原始与输出总字节，压缩率由前端按需求公式计算 |
+
+> **为什么 dev 下更慢**：图片编解码是纯 Rust 的大循环，debug（`opt-level = 0`）比 release 慢一个
+> 数量级。`src-tauri/Cargo.toml` 现在给依赖开 `opt-level = 3`、本 crate 开 `opt-level = 1`
+> （`[profile.dev]` 段），所以 `pnpm tauri dev` 也能拿到接近 release 的压缩速度；打包产物不受影响。
+
+### 6.5 预设（`config.compress`）
+
+内置预设只读（网页用 JPEG 80%、社交分享最长边 2048、压到 500 KB、PNG 无损优化），写在
+`image-compress/utils/presets.ts`；用户可把当前参数存成预设（`config.compress.presets`）并删除。
+参数本身**不持久化**：一次性的压缩不该改变下次打开工具时的默认值。
+
+网页端没有本地文件权限，整条链路不可用（web 实现抛 `common.error.webNoCompress`）。
+
+## 7. 相关文件
 
 | 区域 | 文件 |
 |------|------|
@@ -181,5 +258,6 @@ DSC_ 编号、日期_编号、日期_时间_编号、原名_编号。
 | 显隐持久化 | `src/features/tools/lib/tool-settings.ts`、`config.tools`（Rust `ToolConfig`） |
 | 快门数 | `src/features/tools/shutter-count/{provider.ts,tags.ts,shutter-count-view.tsx}`、`providers/native-exiftool.ts` |
 | 批量改名 | `src/features/tools/batch-rename/{naming.ts,batch-rename-view.tsx}`、Rust `rename.rs`、`config.rename`（`RenameConfig`） |
+| 图片压缩 | `src/features/tools/image-compress/**`（view / components / hooks / utils / lib）、Rust `compress.rs`、`config.compress`（`CompressConfig`） |
 | 组件（插件）能力 | `src/shared/lib/components.ts`（`findComponent` / `isComponentReady`）、Rust `plugin.rs` + `exiftool.rs` |
 | 入口（侧栏） | `src/shared/components/co-sidebar.tsx` |

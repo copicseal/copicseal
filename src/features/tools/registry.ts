@@ -1,4 +1,4 @@
-import { Gauge, type LucideIcon, Tags } from 'lucide-react';
+import { Gauge, ImageDown, type LucideIcon, Tags } from 'lucide-react';
 import type { ComponentType } from 'react';
 import type { MessageKey } from '@/shared/i18n';
 
@@ -31,8 +31,9 @@ export interface ToolDefinition {
    * - `center`（默认）：内容整体上下居中，内容变高时从顶部排（适合「空态 + 一张结果卡」）
    * - `fill`：内容撑满可视高度，视图内部用 `flex-1` 分区（适合「列表/预览占剩余空间」，
    *   这样行数变化不会让页面高度跳动）
+   * - `full`：撑满整宽 + 整高（多栏页面用，如「图片压缩」的 列表 / 对比 / 参数 三栏）
    */
-  layout?: 'center' | 'fill';
+  layout?: 'center' | 'fill' | 'full';
 }
 
 /** 小功能注册表：面板按这里的顺序展示「未添加功能」。 */
@@ -54,6 +55,16 @@ export const TOOLS: readonly ToolDefinition[] = [
     load: () => import('./batch-rename/batch-rename-view'),
     // 预览列表吃满剩余高度：行数变化（筛扩展名）时不希望整页跟着跳
     layout: 'fill',
+  },
+  {
+    id: 'image-compress',
+    nameKey: 'common.tools.imageCompress.name',
+    descriptionKey: 'common.tools.imageCompress.description',
+    icon: ImageDown,
+    defaultEnabled: true,
+    load: () => import('./image-compress/image-compress-view'),
+    // 列表 / 前后对比 / 参数三栏，要整宽，且列表与参数各自滚动
+    layout: 'full',
   },
 ];
 

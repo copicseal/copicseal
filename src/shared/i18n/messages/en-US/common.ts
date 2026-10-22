@@ -198,6 +198,10 @@ export const common: Messages['common'] = {
         keepName: 'Original_number',
       },
     },
+    imageCompress: {
+      name: 'Image compression',
+      description: 'Batch compress JPEG / PNG by quality, size and target file size',
+    },
   },
   error: {
     /** Web build only (no workspace folder) */
@@ -209,5 +213,6 @@ export const common: Messages['common'] = {
     },
     webNoPlugins: 'Plugins are not supported in the web build.',
     webNoLocalFiles: 'The web build cannot access local files, so batch rename is desktop only.',
+    webNoCompress: 'The web build cannot access local files, so image compression is desktop only.',
   },
 };

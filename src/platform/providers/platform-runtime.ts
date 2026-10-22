@@ -28,6 +28,7 @@ const defaultConfig = {
   logos: { items: [] },
   tools: { enabled: [], hidden: [] },
   rename: { presets: [] },
+  compress: { presets: [] },
   device_id: 'web-device',
 };
 
@@ -50,6 +51,23 @@ const webRuntime = {
     throw new Error(translate('common.error.webNoLocalFiles'));
   },
   onCopyRenameProgress: async () => () => undefined,
+  // 图片压缩同样依赖本地文件系统（解码、写盘），网页端整条链路不可用
+  listImages: async () => {
+    throw new Error(translate('common.error.webNoCompress'));
+  },
+  probeImages: async () => {
+    throw new Error(translate('common.error.webNoCompress'));
+  },
+  createImagePreview: async () => {
+    throw new Error(translate('common.error.webNoCompress'));
+  },
+  compressImages: async () => {
+    throw new Error(translate('common.error.webNoCompress'));
+  },
+  cancelCompress: async () => {
+    throw new Error(translate('common.error.webNoCompress'));
+  },
+  onCompressProgress: async () => () => undefined,
   readExif: async () => ({
     make: null,
     model: null,

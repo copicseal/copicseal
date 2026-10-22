@@ -525,6 +525,137 @@ export interface ImportedLogo {
   size: number;
 }
 
+// ---------------------------------------------------------------------------
+// 图片压缩（与 Rust `compress.rs` 逐字对应）
+// ---------------------------------------------------------------------------
+
+/** 只读文件头得到的探测结果：能压的为空 error，不能压的给出原因。 */
+export interface ImageProbe {
+  path: string;
+  name: string;
+  ext: string;
+  size: number;
+  width: number;
+  height: number;
+  /** `jpeg` / `png` / `webp`；识别不出时为空串 */
+  format: string;
+  /** 动图 WebP：本工具不处理（避免丢帧） */
+  animated: boolean;
+  warning: string | null;
+  error: string | null;
+}
+
+/** 递归列图时被跳过的文件。 */
+export interface SkippedFile {
+  path: string;
+  reason: string;
+}
+
+export interface ImageScanResult {
+  paths: string[];
+  skipped: SkippedFile[];
+}
+
+export interface CompressItem {
+  id: string;
+  path: string;
+}
+
+export type CompressOutputMode = 'custom' | 'source';
+export type CompressOutputFormat = 'keep' | 'jpeg' | 'png';
+export type CompressResizeMode = 'original' | 'max_edge' | 'box';
+export type CompressMetadataPolicy = 'keep' | 'essential' | 'strip';
+export type CompressConflictPolicy = 'rename' | 'skip' | 'overwrite';
+
+export interface CompressOptions {
+  /** `custom`：统一输出到 outputDir；`source`：各自源目录 */
+  output_mode: CompressOutputMode;
+  output_format: CompressOutputFormat;
+  /** 1..=100，仅 JPEG 输出生效 */
+  quality: number;
+  resize_mode: CompressResizeMode;
+  max_edge: number;
+  box_width: number;
+  box_height: number;
+  /** 目标体积（字节）；null 表示按质量压 */
+  target_bytes: number | null;
+  metadata: CompressMetadataPolicy;
+  /** 透明图转 JPEG 的背景色，`#rrggbb` */
+  background: string;
+  suffix: string;
+  on_conflict: CompressConflictPolicy;
+}
+
+export type CompressStatus = 'ok' | 'failed' | 'skipped' | 'cancelled';
+
+export interface CompressResult {
+  id: string;
+  name: string;
+  source_path: string;
+  status: CompressStatus;
+  output_path: string | null;
+  output_name: string | null;
+  original_bytes: number;
+  output_bytes: number;
+  original_width: number;
+  original_height: number;
+  output_width: number;
+  output_height: number;
+  /** `jpeg` / `png` / 空 */
+  output_format: string;
+  quality_used: number | null;
+  attempts: number;
+  reached_target: boolean;
+  /** 这一张实际耗时（毫秒） */
+  elapsed_ms: number;
+  warnings: string[];
+  message: string | null;
+}
+
+export interface CompressOutcome {
+  results: CompressResult[];
+  cancelled: boolean;
+  total_original: number;
+  total_output: number;
+  succeeded: number;
+  failed: number;
+  skipped: number;
+  cancelled_count: number;
+}
+
+export interface CompressProgress {
+  done: number;
+  total: number;
+  succeeded: number;
+  failed: number;
+  current_id: string | null;
+  /** `decoding` / `resizing` / `encoding` / `measuring` / `writing` / 空 */
+  current_stage: string;
+  cancelled: boolean;
+}
+
+/** 用户保存的一条压缩预设（与 `CompressOptions` 同源，省掉输出目录）。 */
+export interface CompressPreset {
+  id: string;
+  name: string;
+  output_mode: CompressOutputMode;
+  output_format: CompressOutputFormat;
+  quality: number;
+  resize_mode: CompressResizeMode;
+  max_edge: number;
+  box_width: number;
+  box_height: number;
+  target_bytes: number | null;
+  metadata: CompressMetadataPolicy;
+  background: string;
+  suffix: string;
+  on_conflict: CompressConflictPolicy;
+}
+
+export interface CompressConfig {
+  presets: CompressPreset[];
+}
+
 export interface AppConfig {
   language: string;
   theme: string;
@@ -551,6 +682,8 @@ export interface AppConfig {
   tools: ToolConfig;
   /** 批量改文件名保存的命名规则 */
   rename: RenameConfig;
+  /** 图片压缩保存的预设（内置预设在代码里） */
+  compress: CompressConfig;
   device_id: string;
 }
 

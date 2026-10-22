@@ -89,7 +89,9 @@ export function ToolPage({ toolId }: { toolId: string }) {
           从顶部开始排（不会像 `items-center` 那样把顶部顶到滚动区外面够不到）。
       */}
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {tool.layout === 'fill' ? (
+        {tool.layout === 'full' ? (
+          <div className="flex h-full min-h-0 w-full flex-col p-4">{content}</div>
+        ) : tool.layout === 'fill' ? (
           <div className="mx-auto flex h-full min-h-0 w-full max-w-3xl flex-col p-6">{content}</div>
         ) : (
           <div className="flex min-h-full flex-col justify-center p-6">

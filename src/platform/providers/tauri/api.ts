@@ -13,11 +13,17 @@ import type {
   CachedImageMeta,
   CacheOverview,
   ComarkTemplateRecord,
+  CompressItem,
+  CompressOptions,
+  CompressOutcome,
+  CompressProgress,
   CopyRenameProgress,
   DirectoryEntry,
   ExifData,
   FontInfo,
   ImageFileMeta,
+  ImageProbe,
+  ImageScanResult,
   ImportedFont,
   ImportedLogo,
   InlineFont,
@@ -225,6 +231,9 @@ export function insertJpegExif(
 /** 复制进度事件名，与 Rust 侧 `rename.rs` 保持一致 */
 const COPY_PROGRESS_EVENT = 'rename://copy-progress';
 
+/** 压缩进度事件名，与 Rust 侧 `compress.rs` 保持一致 */
+const COMPRESS_PROGRESS_EVENT = 'compress://progress';
+
 /** 插件安装进度事件名，与 Rust 侧 `plugin.rs` 保持一致 */
 const PLUGIN_PROGRESS_EVENT = 'plugin://install-progress';
 
@@ -294,6 +303,39 @@ export function undoCopyBatch(targetDir: string, pairs: RenamePair[]): Promise<R
 export function onCopyRenameProgress(handler: (progress: CopyRenameProgress) => void) {
   if (!isNativeWindowAvailable()) return Promise.resolve(() => undefined);
   return listen<CopyRenameProgress>(COPY_PROGRESS_EVENT, (event) => handler(event.payload));
+}
+/** 递归列出目录里的图片（JPEG / PNG / WebP）；不支持的项连同原因一起返回。 */
+export function listImages(dir: string, recursive: boolean): Promise<ImageScanResult> {
+  return invoke('list_images', { dir, recursive });
+}
+/** 只读文件头探测尺寸 / 格式 / 是否动图；不能压的项带 `error`。 */
+export function probeImages(paths: string[]): Promise<ImageProbe[]> {
+  return invoke('probe_images', { paths });
+}
+/** 生成预览图（真实解码 + 缩放），返回缓存文件路径，可直接交给 asset 协议显示。 */
+export function createImagePreview(
+  path: string,
+  cacheDir: string,
+  maxEdge: number,
+): Promise<string> {
+  return invoke('create_image_preview', { path, cacheDir, maxEdge });
+}
+/** 批量压缩：真实解码 / 编码 / 写盘，进度通过 `onCompressProgress` 推送。 */
+export function compressImages(
+  items: CompressItem[],
+  options: CompressOptions,
+  outputDir: string,
+): Promise<CompressOutcome> {
+  return invoke('compress_images', { items, options, outputDir });
+}
+/** 请求取消当前压缩批次（正在处理的那张会做完，排队中的标记为取消）。 */
+export function cancelCompress(): Promise<void> {
+  return invoke('cancel_compress');
+}
+/** 订阅压缩进度；返回取消订阅函数 */
+export function onCompressProgress(handler: (progress: CompressProgress) => void) {
+  if (!isNativeWindowAvailable()) return Promise.resolve(() => undefined);
+  return listen<CompressProgress>(COMPRESS_PROGRESS_EVENT, (event) => handler(event.payload));
 }
 /** 订阅插件安装进度；返回取消订阅函数 */
 export function onPluginInstallProgress(handler: (progress: PluginInstallProgress) => void) {

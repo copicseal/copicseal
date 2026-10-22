@@ -1,4 +1,5 @@
 mod comark;
+mod compress;
 mod config;
 mod db;
 mod exif;
@@ -17,6 +18,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .manage(thumbnail_scheduler)
+        .manage(compress::CompressState::default())
         .plugin(
             tauri_plugin_sql::Builder::default()
                 .add_migrations(db::DATABASE_URL, db::migrations())
@@ -55,6 +57,11 @@ pub fn run() {
             rename::undo_batch_rename,
             rename::copy_batch_rename,
             rename::undo_copy_batch,
+            compress::list_images,
+            compress::probe_images,
+            compress::create_image_preview,
+            compress::compress_images,
+            compress::cancel_compress,
             config::get_config,
             config::update_config,
             config::get_device_id,

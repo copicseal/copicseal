@@ -386,6 +386,26 @@ EXIF 的显示口径是独立的一段配置，见下面的 EXIF 小节。
 - 配置里没有 `rename` 段（老配置）：按空列表处理，不影响使用
 - 详见 [docs/16-more-tools.md](16-more-tools.md)
 
+### Compress
+
+「图片压缩」保存的压缩预设；Rust 侧 `CompressConfig`，字段名与 Rust 结构体逐字一致。
+
+| 字段 | 默认 | 说明 |
+|------|------|------|
+| presets | `[]` | 用户保存的预设列表 |
+
+每条预设（`CompressPreset`）与压缩参数同源：`id` / `name` / `output_mode`（custom / source）/
+`output_format`（keep / jpeg / png）/ `quality` / `resize_mode`（original / max_edge / box）/
+`max_edge` / `box_width` / `box_height` / `target_bytes` / `metadata`（keep / essential / strip）/
+`background` / `suffix` / `on_conflict`（rename / skip / overwrite）。
+
+约束：
+
+- **只存预设**：本次压缩用的参数不落配置（一次性操作不该改变下次打开工具时的默认值）
+- **内置预设不写进配置**（前端 `image-compress/utils/presets.ts` 里的只读常量）
+- 配置里没有 `compress` 段（老配置）：按空列表处理，不影响使用
+- 详见 [docs/16-more-tools.md](16-more-tools.md)
+
 ### Collage
 
 设置 → 拼图（「默认项 / 导出」两页）写的就是这里；Rust 侧 `CollageConfig`，缺字段按 `Default` 补齐。

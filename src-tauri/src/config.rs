@@ -405,15 +405,20 @@ pub struct LogoConfig {
     pub items: Vec<CustomLogo>,
 }
 
-/// 「更多功能」面板里已启用的小功能。
+/// 左侧导航入口的显隐设置（「更多功能」面板管理的就是它）。
 ///
-/// 只记 id（功能本身是前端静态注册表，见 `src/features/tools/registry.ts`）：
+/// 只记 id（入口本身是前端静态注册表，见 `src/app/nav-entries.ts`）：
 /// 注册表里删掉某个 id 时，配置里的残留项会被前端忽略，不报错。
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
 #[serde(default)]
 pub struct ToolConfig {
-    /// 已添加（启用）的功能 id，顺序即面板里的展示顺序
+    /// 已添加（启用）的小功能 id，顺序即侧栏里的展示顺序
     pub enabled: Vec<String>,
+    /// 被隐藏的常驻页面 id（目前只有 `collage`）。
+    ///
+    /// 常驻页面默认就该显示，所以记的是「隐藏」而不是「启用」：老配置里没有这个字段时，
+    /// 拼图照旧出现在侧栏。「边框水印」是主界面、不可隐藏，前端不会写进来。
+    pub hidden: Vec<String>,
 }
 
 /// 批量改文件名的设置：只存**用户自己保存的**命名规则。
@@ -947,16 +952,27 @@ mod tests {
             .map(String::as_str)
             .collect();
 
-        assert_eq!(keys, vec!["enabled"]);
+        assert_eq!(keys, vec!["enabled", "hidden"]);
     }
 
-    /// 前端载荷（已启用功能 id 数组）要能原样读回来；注册表里已删掉的 id 也不丢，
+    /// 前端载荷（启用 / 隐藏两个 id 数组）要能原样读回来；注册表里已删掉的 id 也不丢，
     /// 由前端忽略（这样降级/回滚版本时不会连累用户配置）。
     #[test]
     fn tool_config_accepts_the_frontend_payload() {
-        let payload = r#"{ "enabled": ["shutter-count", "removed-tool"] }"#;
+        let payload = r#"{ "enabled": ["shutter-count", "removed-tool"], "hidden": ["collage"] }"#;
         let config: ToolConfig = serde_json::from_str(payload).unwrap();
 
         assert_eq!(config.enabled, vec!["shutter-count", "removed-tool"]);
+        assert_eq!(config.hidden, vec!["collage"]);
+    }
+
+    /// 老配置里没有 `hidden` 字段（拼图还不可隐藏时写的）：缺字段按空列表补齐，
+    /// 常驻页面默认显示，不会被误当成「用户隐藏了」。
+    #[test]
+    fn tool_config_tolerates_missing_hidden_field() {
+        let config: ToolConfig =
+            serde_json::from_str(r#"{ "enabled": ["batch-rename"] }"#).unwrap();
+
+        assert!(config.hidden.is_empty());
     }
 }

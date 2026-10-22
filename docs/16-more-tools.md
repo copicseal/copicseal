@@ -1,47 +1,68 @@
-# 更多功能（小工具面板）
+# 更多功能（导航入口面板）
 
 ## 1. 定位
 
-左侧导航栏的 **更多功能** 图标打开一个面板，用来收纳「不值得占一个一级入口、但偶尔要用」的小工具。
+左侧导航栏的 **更多功能** 图标打开一个面板，用来管理**侧栏入口的显隐**：既包括「不值得占一个一级入口、
+但偶尔要用」的小工具，也包括常驻页面（边框水印、拼图）。入口都收敛成同一种形状
+（`src/app/nav-entries.ts` 的 `NavEntry`），侧栏只渲染可见项，面板只负责开关。
 面板结构参考常见客户端：
 
 ```txt
 更多功能                                    [管理]
-已添加功能
-  ┌──────┐ ┌──────┐
-  │ 快门数 │ │  …   │
-  └──────┘ └──────┘
-未添加功能
-  ┌──────┐ ┌──────┐
-  │  …   │ │  …   │
-  └──────┘ └──────┘
+已显示入口
+  ┌────────┐ ┌──────┐ ┌────────┐
+  │边框水印│ │ 拼图 │ │ 快门数 │ …
+  └────────┘ └──────┘ └────────┘
+未显示入口
+  ┌──────┐
+  │  …   │
+  └──────┘
 ```
 
-- **管理** 切换管理态：管理态下点格子就在两边来回移动（启用 / 停用），格子右上角显示 `+` / `−`
-- **已添加的功能会出现在左侧导航栏**（与「边框」「拼图」同级），点进去是**独立页面** `/tools/<id>`
-  （`tool-page.tsx`，带自己的窗口头与滚动容器）；面板非管理态点格子＝直接进入该页面，
+- **两类入口**：常驻页面（`/template`、`/collage`，由 `app.tsx` 直接渲染）与小工具
+  （`/tools/<id>`，按需懒加载）
+- **边框水印不可隐藏**：它是应用的主界面，隐藏后就没有默认落地页。管理态里它的格子右上角是锁，
+  点了只提示原因；即使配置文件里被手写进 `hidden`，前端也照样显示
+- **拼图可以隐藏**：默认显示，管理态里点 `−` 收进「未显示入口」，再点 `+` 恢复（顺序固定，
+  不会因为它被隐藏过就跑到侧栏最后）
+- **管理** 切换管理态：管理态下点格子就在两边来回移动（显示 / 隐藏），可隐藏的格子右上角显示 `+` / `−`
+- **已显示的入口会出现在左侧导航栏**，顺序固定为「边框水印 → 拼图 → 已启用的小工具」；
+  点进去是**独立页面**（小工具页见 `tool-page.tsx`，带自己的窗口头与滚动容器）。
+  面板非管理态点格子＝直接进入该页面（未显示的入口也能进，只是侧栏暂时不占图标），
   面板本身只做「加 / 减」，不在这里展开功能内容
+- **当前页面被隐藏时**（管理态里把「拼图」点掉，或停用了正在看的小工具），侧栏把人送回默认页，
+  不会停在「高亮全无、也点不回自己」的中间态
 
 ## 2. 数据与状态
 
 | 位置 | 内容 |
 |------|------|
-| `config.tools.enabled` | 已添加（启用）的功能 id 数组，**顺序即展示顺序** |
-| `src/features/tools/registry.ts` | 功能注册表（静态）：id、名称/说明文案 key、图标、默认启用状态、懒加载入口 |
-| `useTemplateStore` | `enabledTools` / `setEnabledTools`：面板与侧栏共享的镜像 |
+| `config.tools.enabled` | 已启用（显示的小工具）id 数组，**顺序即侧栏顺序** |
+| `config.tools.hidden` | 被隐藏的常驻页面 id 数组（目前只有 `collage`） |
+| `src/app/nav-entries.ts` | 入口注册表：常驻页面 + 小工具统一成 `NavEntry`，并给出默认显隐与可见项计算 |
+| `src/features/tools/registry.ts` | 小工具注册表（静态）：id、名称/说明文案 key、图标、默认启用状态、懒加载入口 |
+| `useTemplateStore` | `enabledTools` / `hiddenNavEntries`（及各自的 setter）：面板与侧栏共享的镜像 |
 
 约定：
 
-- 配置里**没有** `tools` 段（老配置）→ 按注册表里的 `defaultEnabled` 渲染，且**不写回配置**；只有用户真的动过开关才落盘
-- 配置里出现注册表已不存在的 id → 前端忽略（不报错、不丢数据）
-- Rust 侧只存字符串数组（`ToolConfig`），不认识具体功能，因此新增功能**不需要改 Rust**
+- 显隐记法分两种：**小工具记「启用列表」**、**常驻页面记「隐藏列表」**。常驻页面默认就该显示，
+  用隐藏列表才不需要给老配置做迁移（缺 `hidden` 字段＝空列表＝拼图照旧出现）
+- 配置里**没有** `tools` 段（老配置）→ 常驻页面全部显示、小工具按注册表里的 `defaultEnabled` 渲染，
+  且**不写回配置**；只有用户真的动过开关才落盘
+- 配置里出现注册表已不存在的 id → 前端忽略（不报错、不丢数据；停用/恢复其它入口时也不会把它抹掉）
+- Rust 侧只存字符串数组（`ToolConfig`），不认识具体入口，因此新增页面或小工具**不需要改 Rust**
 
 ## 3. 新增一个功能
 
 1. 在 `src/features/tools/registry.ts` 里加一条：`id`、`nameKey` / `descriptionKey`（i18n）、`icon`、`defaultEnabled`、`load`
+   （`src/app/nav-entries.ts` 会自动把它变成一条可隐藏的侧栏入口，不用另外注册）
 2. 实现 `load()` 指向的组件，签名是 `({ onBack }: ToolViewProps) => ReactNode`
 3. `load()` 必须**动态 import** 重依赖；主包不能带上它们
 4. 需要新的配置项时，走 `config.<section>` + Rust 镜像（照 `devices` / `logos` / `tools` 的写法）
+
+新增一个**常驻页面**（与边框水印、拼图同级）时：在 `CORE_NAV_ENTRIES` 里加一条 `NavEntry`，
+并把路由加进 `src/app/routes.ts` 的 `AppRoute` / `normalizeRoute`；`hideable` 决定它能否被隐藏
+（主界面这类不允许隐藏的入口设 `false`，面板里会显示锁）。
 
 ## 4. 快门数查询（第一个功能）
 
@@ -153,11 +174,12 @@ DSC_ 编号、日期_编号、日期_时间_编号、原名_编号。
 
 | 区域 | 文件 |
 |------|------|
-| 注册表 | `src/features/tools/registry.ts` |
+| 入口注册表（页面 + 小工具） | `src/app/nav-entries.ts`（`NavEntry`、`CORE_NAV_ENTRIES`、`visibleNavEntries`） |
+| 小工具注册表 | `src/features/tools/registry.ts` |
 | 功能页面 | `src/features/tools/tool-page.tsx`；路由 `src/app/routes.ts`（`/tools/<id>`）与 `src/app/app.tsx` 的 `renderPage` |
 | 面板（管理入口） | `src/features/tools/more-tools-dialog.tsx` |
-| 开关持久化 | `src/features/tools/lib/tool-settings.ts`、`config.tools`（Rust `ToolConfig`） |
+| 显隐持久化 | `src/features/tools/lib/tool-settings.ts`、`config.tools`（Rust `ToolConfig`） |
 | 快门数 | `src/features/tools/shutter-count/{provider.ts,tags.ts,shutter-count-view.tsx}`、`providers/native-exiftool.ts` |
 | 批量改名 | `src/features/tools/batch-rename/{naming.ts,batch-rename-view.tsx}`、Rust `rename.rs`、`config.rename`（`RenameConfig`） |
 | 组件（插件）能力 | `src/shared/lib/components.ts`（`findComponent` / `isComponentReady`）、Rust `plugin.rs` + `exiftool.rs` |
-| 入口 | `src/shared/components/co-sidebar.tsx` |
+| 入口（侧栏） | `src/shared/components/co-sidebar.tsx` |

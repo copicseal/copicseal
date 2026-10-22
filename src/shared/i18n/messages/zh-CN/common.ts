@@ -18,7 +18,10 @@ export const common = {
   },
   nav: {
     template: '边框水印',
+    /** 「更多功能」面板里作为入口说明的短句 */
+    templateDescription: '给照片套用边框、水印与品牌样式',
     collage: '拼图',
+    collageDescription: '把多张照片拼成一张',
     settings: '设置',
   },
   window: {
@@ -65,10 +68,12 @@ export const common = {
     title: '更多功能',
     manage: '管理',
     manageDone: '完成',
-    added: '已添加功能',
-    addedEmpty: '还没有添加任何功能',
-    available: '未添加功能',
-    availableEmpty: '全部功能都已添加',
+    added: '已显示入口',
+    addedEmpty: '还没有显示任何入口',
+    available: '未显示入口',
+    availableEmpty: '全部入口都已显示',
+    /** 管理态点到不可隐藏的入口（边框水印）时的提示 */
+    lockedHint: '边框水印是主界面，不能隐藏',
     loading: '正在加载…',
     back: '返回',
     notFound: '这个功能不存在（可能已从应用里移除）',

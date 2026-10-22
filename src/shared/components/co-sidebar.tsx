@@ -1,12 +1,12 @@
-import { Grid3x3, LayoutGrid, LayoutTemplate, Settings2 } from 'lucide-react';
+import { LayoutGrid, Settings2 } from 'lucide-react';
 import { type ReactNode, useEffect, useState } from 'react';
-import { type AppRoute, toolRoute } from '@/app/routes';
+import { findNavEntry, visibleNavEntries } from '@/app/nav-entries';
+import { type AppRoute, DEFAULT_ROUTE } from '@/app/routes';
 import appLogoUrl from '@/assets/logo.svg';
 import { useTemplateStore } from '@/features/template/store/use-template-store';
-import { resolveEnabledTools } from '@/features/tools/lib/tool-settings';
+import { resolveNavSettings } from '@/features/tools/lib/tool-settings';
 import { MoreToolsDialog } from '@/features/tools/more-tools-dialog';
-import { findTool, TOOLS, type ToolDefinition } from '@/features/tools/registry';
-import { type MessageKey, useTranslate } from '@/shared/i18n';
+import { useTranslate } from '@/shared/i18n';
 import { cn } from '@/shared/lib/utils';
 import { useWindowStyle } from '@/shared/providers/window-style-provider';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/ui/tooltip';
@@ -16,16 +16,7 @@ interface CoSidebarProps {
   onRouteChange: (route: AppRoute) => void;
 }
 
-const items: Array<{
-  route: AppRoute;
-  labelKey: MessageKey;
-  icon: typeof LayoutTemplate;
-}> = [
-  { route: '/template', labelKey: 'common.nav.template', icon: LayoutTemplate },
-  { route: '/collage', labelKey: 'common.nav.collage', icon: Grid3x3 },
-];
-
-/** 侧栏图标按钮：导航项与「更多功能」共用同一套样式，避免三处各写一份类名。 */
+/** 侧栏图标按钮：导航项与「更多功能」「设置」共用同一套样式。 */
 function RailButton({
   active,
   label,
@@ -65,44 +56,51 @@ export function CoSidebar({ route, onRouteChange }: CoSidebarProps) {
   const [toolsOpen, setToolsOpen] = useState(false);
   const setEnabledTools = useTemplateStore((state) => state.setEnabledTools);
   const enabledTools = useTemplateStore((state) => state.enabledTools);
+  const setHiddenNavEntries = useTemplateStore((state) => state.setHiddenNavEntries);
+  const hiddenNavEntries = useTemplateStore((state) => state.hiddenNavEntries);
 
   /**
-   * 启动时把「已启用的小功能」读进 store。
+   * 启动时把「入口显隐设置」读进 store。
    *
-   * 配置里还没有 `tools` 段时套用注册表里的默认值（而不是当成「用户全关掉了」），
+   * 配置里还没有 `tools` 段时套用默认值（常驻页面全显示、小功能按注册表默认），
    * 但不写回配置——只有用户真的动过开关才落盘。
    */
   useEffect(() => {
     let cancelled = false;
 
-    void resolveEnabledTools().then((enabled) => {
+    void resolveNavSettings().then((settings) => {
       if (cancelled) {
         return;
       }
 
-      setEnabledTools(
-        enabled ?? TOOLS.filter((tool) => tool.defaultEnabled).map((tool) => tool.id),
-      );
+      setEnabledTools(settings.enabledTools);
+      setHiddenNavEntries(settings.hiddenEntries);
     });
 
     return () => {
       cancelled = true;
     };
-  }, [setEnabledTools]);
+  }, [setEnabledTools, setHiddenNavEntries]);
 
-  // 已添加的功能会各占一个侧栏图标（注册表里已删掉的 id 自动忽略）
-  const toolItems = enabledTools
-    .map((id) => findTool(id))
-    .filter((tool): tool is ToolDefinition => Boolean(tool));
+  const navItems = visibleNavEntries({ enabledTools, hiddenEntries: hiddenNavEntries });
 
   return (
     <TooltipProvider>
       <MoreToolsDialog
         open={toolsOpen}
         onOpenChange={setToolsOpen}
-        onOpenTool={(id) => {
+        activeRoute={route}
+        // 面板里把「当前页面」的入口隐藏掉时别把人留在没有侧栏入口的页面上：
+        // 回到默认页，避免出现「高亮全无、也点不回自己」的中间态
+        onActiveEntryHidden={() => onRouteChange(DEFAULT_ROUTE)}
+        onOpenEntry={(id) => {
+          const entry = findNavEntry(id);
+          if (!entry) {
+            return;
+          }
+
           setToolsOpen(false);
-          onRouteChange(toolRoute(id));
+          onRouteChange(entry.route);
         }}
       />
       <aside
@@ -119,7 +117,7 @@ export function CoSidebar({ route, onRouteChange }: CoSidebarProps) {
               <button
                 type="button"
                 aria-label={t('common.brand.name')}
-                onClick={() => onRouteChange('/template')}
+                onClick={() => onRouteChange(DEFAULT_ROUTE)}
                 className="flex size-11 items-center justify-center rounded-2xl border border-border/80 bg-card text-primary shadow-sm transition-transform hover:-translate-y-0.5"
               >
                 <img src={appLogoUrl} alt="" className="size-6" />
@@ -129,39 +127,23 @@ export function CoSidebar({ route, onRouteChange }: CoSidebarProps) {
           </Tooltip>
 
           <div className="flex flex-col items-center gap-2">
-            {items.map((item) => {
-              const Icon = item.icon;
+            {/* 可见入口：边框水印（固定）→ 拼图（可隐藏）→ 已启用的小功能 */}
+            {navItems.map((entry) => {
+              const Icon = entry.icon;
 
               return (
                 <RailButton
-                  key={item.route}
-                  active={route === item.route}
-                  label={t(item.labelKey)}
-                  onClick={() => onRouteChange(item.route)}
+                  key={entry.id}
+                  active={route === entry.route}
+                  label={t(entry.nameKey)}
+                  onClick={() => onRouteChange(entry.route)}
                 >
                   <Icon className="size-4.5" />
                 </RailButton>
               );
             })}
 
-            {/* 已添加的小功能：与「边框」「拼图」同级，点进去是独立页面 */}
-            {toolItems.map((tool) => {
-              const Icon = tool.icon;
-              const path = toolRoute(tool.id);
-
-              return (
-                <RailButton
-                  key={tool.id}
-                  active={route === path}
-                  label={t(tool.nameKey)}
-                  onClick={() => onRouteChange(path)}
-                >
-                  <Icon className="size-4.5" />
-                </RailButton>
-              );
-            })}
-
-            {/* 「更多功能」：小功能的管理入口（加 / 减），本身不是页面 */}
+            {/* 「更多功能」：入口的管理面板（加 / 减），本身不是页面 */}
             <RailButton
               active={false}
               label={t('common.tools.title')}

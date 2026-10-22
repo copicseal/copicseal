@@ -26,7 +26,7 @@ const defaultConfig = {
   plugins: { sources: [] },
   devices: { items: [] },
   logos: { items: [] },
-  tools: { enabled: [] },
+  tools: { enabled: [], hidden: [] },
   rename: { presets: [] },
   device_id: 'web-device',
 };

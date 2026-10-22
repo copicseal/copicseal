@@ -140,6 +140,15 @@ interface TemplateStoreState {
   enabledTools: string[];
   setEnabledTools: (enabled: string[]) => void;
   /**
+   * 侧栏里被隐藏的常驻入口 id（目前只有「拼图」）。
+   *
+   * 与 `enabledTools` 一样是 `config.tools` 的镜像，但记的是**隐藏**列表：
+   * 常驻页面默认就该显示（老配置没有这个字段时拼图照旧出现），
+   * 只有用户真的点了「−」才记下来。「边框水印」不可隐藏，永远不会进这个列表。
+   */
+  hiddenNavEntries: string[];
+  setHiddenNavEntries: (entries: string[]) => void;
+  /**
    * 把一条模板预设应用到若干张照片。
    *
    * 模板、参数、背景与字体一次性写入：它们共同构成「一套样式」，
@@ -177,6 +186,7 @@ export const useTemplateStore = create<TemplateStoreState>()((set) => ({
   devices: [],
   customLogos: [],
   enabledTools: [],
+  hiddenNavEntries: [],
 
   setTemplate: (photoId, templateId) => {
     const template = resolveBuiltinTemplate(templateId);
@@ -321,6 +331,10 @@ export const useTemplateStore = create<TemplateStoreState>()((set) => ({
 
   setEnabledTools: (enabled) => {
     set({ enabledTools: [...enabled] });
+  },
+
+  setHiddenNavEntries: (entries) => {
+    set({ hiddenNavEntries: [...entries] });
   },
 
   setRetainExifInExport: (value) => {

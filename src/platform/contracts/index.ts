@@ -445,14 +445,16 @@ export interface LogoConfig {
 }
 
 /**
- * 「更多功能」面板里已启用的小功能。
+ * 侧栏导航入口的显隐设置（「更多功能」面板管理的就是它）。
  *
- * 只记 id：功能本身是前端静态注册表（`src/features/tools/registry.ts`），
- * 注册表里删掉的 id 会被前端忽略。
+ * 只记 id：入口本身是前端静态注册表（`src/app/nav-entries.ts`），注册表里删掉的 id
+ * 会被前端忽略。小功能记「启用列表」，常驻页面（拼图）默认显示、记「隐藏列表」。
  */
 export interface ToolConfig {
   /** 已添加（启用）的小功能 id，顺序即展示顺序 */
   enabled: string[];
+  /** 被隐藏的常驻页面 id（目前只有 `collage`）；边框水印不可隐藏，不会写进来 */
+  hidden: string[];
 }
 
 /** 批量改文件名的设置：只存用户自己保存的命名规则（内置规则在前端代码里）。 */
@@ -545,7 +547,7 @@ export interface AppConfig {
   devices: DeviceConfig;
   /** 自定义品牌 Logo（内置之外的厂商标志，可覆盖同名内置品牌） */
   logos: LogoConfig;
-  /** 「更多功能」面板已启用的小功能 */
+  /** 侧栏导航入口的显隐设置（「更多功能」面板管理的就是它） */
   tools: ToolConfig;
   /** 批量改文件名保存的命名规则 */
   rename: RenameConfig;

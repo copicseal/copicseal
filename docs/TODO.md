@@ -420,9 +420,12 @@
 - [x] 模板文案的**连续空格原样保留**（用于控制参数间距）：单空格仍是普通空格、该折行处照旧折行，
       空变量两侧的空白只收成一个空格；`formatExifText` 的这一语义同步写进 SDK 类型注释
 - [ ] 在线 Logo 库 / 从 URL 导入 Logo
-- [x] 左侧导航栏新增「更多功能」面板：已添加 / 未添加两个分区 + 管理态增删，
-      开关存 `config.tools.enabled`；功能注册表在前端（`src/features/tools/registry.ts`），
+- [x] 左侧导航栏新增「更多功能」面板：已显示 / 未显示两个分区 + 管理态显隐，
+      小工具的开关存 `config.tools.enabled`；功能注册表在前端（`src/features/tools/registry.ts`），
       具体功能按需动态 import
+- [x] 「更多功能」面板统一管理**侧栏入口**：「边框水印」（固定、不可隐藏）与「拼图」
+      （可隐藏、默认显示）也列进面板；入口注册表收敛到 `src/app/nav-entries.ts`，
+      显隐拆成「小工具启用列表」与「页面隐藏列表」（新增 `config.tools.hidden`，老配置缺字段＝全部显示）
 - [x] 第一个小功能「快门数查询」：读相机直出文件（JPEG / RAW / HEIC）的累计快门次数，
       解析能力走 `ShutterCountProvider` 抽象，当前实现为 ExifTool(WASM)
 - [ ] 快门数查询补「使用当前照片」入口（需要照片列表 API + 读原图字节；

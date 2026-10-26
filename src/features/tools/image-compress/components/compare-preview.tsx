@@ -388,7 +388,11 @@ export function ComparePreview({
                 <span
                   className={cn(
                     'font-medium tabular-nums',
-                    change.bigger ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400',
+                    change.bigger
+                      ? 'text-destructive'
+                      : change.percent > 0
+                        ? 'text-emerald-600 dark:text-emerald-400'
+                        : 'text-muted-foreground',
                   )}
                 >
                   {change.bigger ? '+' : ''}

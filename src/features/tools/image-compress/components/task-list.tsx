@@ -80,7 +80,15 @@ export function TaskList({ tasks, selectedId, running, onSelect, onRemove }: Tas
                           {task.blockedReason}
                         </span>
                       ) : task.status === 'done' && task.result ? (
-                        <span className="truncate text-[10px] text-emerald-600 dark:text-emerald-400">
+                        <span
+                          className={cn(
+                            'truncate text-[10px]',
+                            task.result.output_bytes > task.result.original_bytes
+                              ? 'text-amber-600 dark:text-amber-400'
+                              : 'text-muted-foreground',
+                          )}
+                          title={task.result.warnings.join('\n') || undefined}
+                        >
                           {formatFileSize(task.result.output_bytes)}
                         </span>
                       ) : null}

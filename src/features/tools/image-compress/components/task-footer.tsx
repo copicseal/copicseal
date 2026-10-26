@@ -84,7 +84,16 @@ export function TaskFooter({
         ) : null}
 
         {finished.length > 0 && !running ? (
-          <span className={cn('ml-auto', change.bigger ? 'text-destructive' : 'text-emerald-600')}>
+          <span
+            className={cn(
+              'ml-auto',
+              change.bigger
+                ? 'text-destructive'
+                : change.saved > 0
+                  ? 'text-emerald-600'
+                  : 'text-muted-foreground',
+            )}
+          >
             {change.bigger
               ? t('compress.footer.summaryBigger', {
                   succeeded: counts.done,

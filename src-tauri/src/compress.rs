@@ -45,6 +45,8 @@ const MAX_SCALE_ROUNDS: u32 = 4;
 const MAX_QUALITY_PROBES: u32 = 6;
 /// 目标体积搜索的最低质量（再低画质已经不可用，直接转去缩尺寸）
 const MIN_QUALITY: u8 = 5;
+/// 输出大于原图时自动降质量的下限：再低画质不可接受，直接保留原图
+const AUTO_MIN_QUALITY: u8 = 40;
 const MAX_CONFLICT_INDEX: u32 = 999;
 const PREVIEW_JPEG_QUALITY: u8 = 82;
 const PREVIEW_DIR_NAME: &str = "Compress";
@@ -980,6 +982,58 @@ fn encode_jpeg(image: &RgbImage, quality: u8) -> Result<Vec<u8>, String> {
     Ok(output)
 }
 
+/// 在保持尺寸不变时，尽量用较低质量把 JPEG 压到不超过原图体积。
+/// 返回 `None` 表示最低可接受质量仍然偏大，调用方应保留原文件。
+fn fit_jpeg_under_limit(
+    image: &RgbImage,
+    requested_quality: u8,
+    limit: u64,
+    segments: &JpegSegments,
+    metadata_policy: &str,
+) -> Result<Option<(Vec<u8>, u8)>, String> {
+    let mut candidate = requested_quality.saturating_sub(5);
+
+    if candidate < AUTO_MIN_QUALITY {
+        return Ok(None);
+    }
+
+    let mut probes = 0u32;
+
+    while probes < 6 {
+        probes += 1;
+        let encoded = encode_jpeg(image, candidate)?;
+        let with_metadata = inject_metadata(
+            encoded,
+            segments,
+            metadata_policy,
+            image.width(),
+            image.height(),
+        )?;
+
+        if with_metadata.len() as u64 <= limit {
+            return Ok(Some((with_metadata, candidate)));
+        }
+
+        if candidate <= AUTO_MIN_QUALITY {
+            break;
+        }
+
+        let ratio = (limit as f64 / with_metadata.len() as f64).sqrt();
+        let estimate = (f64::from(candidate) * ratio).floor() as u8;
+        let next = estimate
+            .min(candidate.saturating_sub(5))
+            .max(AUTO_MIN_QUALITY);
+
+        if next >= candidate {
+            break;
+        }
+
+        candidate = next;
+    }
+
+    Ok(None)
+}
+
 fn encode_png(pixels: &Pixels) -> Result<Vec<u8>, String> {
     let mut output: Vec<u8> = Vec::new();
     let encoder = PngEncoder::new_with_quality(
@@ -1590,14 +1644,18 @@ fn compress_one(
     };
 
     on_stage("encoding");
+    let mut prepared = Some(prepared);
     let encoded = match options.target_bytes {
-        Some(target) => match encode_to_target(prepared, options.quality, target) {
-            Ok(value) => value,
-            Err(error) => return failed_result(item, error, metadata.len(), warnings),
-        },
+        Some(target) => {
+            match encode_to_target(prepared.take().expect("prepared"), options.quality, target) {
+                Ok(value) => value,
+                Err(error) => return failed_result(item, error, metadata.len(), warnings),
+            }
+        }
         None => {
-            let (width, height) = prepared.dimensions();
-            match encode_pixels(&prepared, output_format, options.quality) {
+            let pixels = prepared.as_ref().expect("prepared");
+            let (width, height) = pixels.dimensions();
+            match encode_pixels(pixels, output_format, options.quality) {
                 Ok(bytes) => Encoded {
                     bytes,
                     quality: if output_format == OutFormat::Jpeg {
@@ -1628,14 +1686,6 @@ fn compress_one(
         ));
     }
 
-    if encoded.bytes.len() as u64 > metadata.len() {
-        warnings.push(format!(
-            "输出比原图更大（{} → {} 字节），可降低质量或限制尺寸后重试",
-            metadata.len(),
-            encoded.bytes.len()
-        ));
-    }
-
     on_stage("writing");
     let directory = match target_directory(source, options, default_output_dir) {
         Ok(value) => value,
@@ -1657,7 +1707,7 @@ fn compress_one(
     }
 
     // 元数据只对 JPEG 输出有意义；PNG 输出显式告警，而不是假装保留
-    let bytes = if output_format == OutFormat::Jpeg {
+    let mut bytes = if output_format == OutFormat::Jpeg {
         match inject_metadata(
             encoded.bytes,
             &segments,
@@ -1675,6 +1725,80 @@ fn compress_one(
         encoded.bytes
     };
 
+    let same_format = matches!(
+        (input_format, output_format),
+        (InputFormat::Jpeg, OutFormat::Jpeg) | (InputFormat::Png, OutFormat::Png)
+    );
+
+    let mut final_format = output_format.label().to_string();
+    let mut final_quality = encoded.quality;
+    let mut final_width = encoded.width;
+    let mut final_height = encoded.height;
+
+    // 纯重编码（不缩放、不变格式）不应该让文件变大：
+    // JPEG 先自动降质量，PNG 或已到质量下限则保留原图。
+    if !needs_resize && same_format && bytes.len() as u64 > metadata.len() {
+        let mut replaced = false;
+
+        if options.target_bytes.is_none() && output_format == OutFormat::Jpeg {
+            if let Some(Pixels::Rgb(image)) = prepared.as_ref() {
+                match fit_jpeg_under_limit(
+                    image,
+                    options.quality,
+                    metadata.len(),
+                    &segments,
+                    &options.metadata,
+                ) {
+                    Ok(Some((fitted, quality))) => {
+                        bytes = fitted;
+                        final_quality = Some(quality);
+                        warnings.push(format!(
+                            "为避免体积变大，质量已从 {} 调整为 {}",
+                            options.quality.clamp(1, 100),
+                            quality
+                        ));
+                        replaced = true;
+                    }
+                    Ok(None) => {}
+                    Err(error) => return failed_result(item, error, metadata.len(), warnings),
+                }
+            }
+        }
+
+        if !replaced {
+            match fs::read(source) {
+                Ok(original) => {
+                    bytes = original;
+                    final_quality = None;
+                    final_width = source_width;
+                    final_height = source_height;
+                    final_format = out_label(input_format).to_string();
+                    warnings.push("重新编码无法小于原图，已保留原文件".to_string());
+                }
+                Err(error) => {
+                    return failed_result(
+                        item,
+                        format!("读取原文件失败: {error}"),
+                        metadata.len(),
+                        warnings,
+                    );
+                }
+            }
+        }
+    }
+
+    if bytes.len() as u64 > metadata.len() {
+        warnings.push(format!(
+            "输出比原图更大（{} → {} 字节），可降低质量或限制尺寸后重试",
+            metadata.len(),
+            bytes.len()
+        ));
+    }
+
+    if let Some(target) = options.target_bytes {
+        result.reached_target = bytes.len() as u64 <= target;
+    }
+
     if let Err(error) = write_atomically(&target_path, &bytes) {
         return failed_result(item, error, metadata.len(), warnings);
     }
@@ -1684,7 +1808,10 @@ fn compress_one(
     result.output_path = Some(target_path.to_string_lossy().to_string());
     result.output_name = Some(file_name_of(&target_path));
     result.output_bytes = bytes.len() as u64;
-    result.output_format = output_format.label().to_string();
+    result.output_format = final_format;
+    result.quality_used = final_quality;
+    result.output_width = final_width;
+    result.output_height = final_height;
     result.warnings = warnings;
     result
 }
@@ -2177,6 +2304,29 @@ mod tests {
             (160, 120)
         );
         assert!(output_dir.join("photo-compressed.jpg").exists());
+    }
+
+    #[test]
+    fn never_outputs_larger_than_original_for_pure_reencode() {
+        let dir = probe_dir("no-grow");
+        let input = dir.join("already-compressed.jpg");
+        // 原图用低质量写，再用较高质量重压时很容易变大，用来覆盖防膨胀逻辑
+        write_jpeg(&input, &noisy_rgb(240, 180), 50);
+        let output_dir = dir.join("out");
+        fs::create_dir_all(&output_dir).unwrap();
+
+        let mut settings = options();
+        settings.quality = 95;
+
+        let result = compress(&input, &settings, &output_dir);
+
+        assert_eq!(result.status, "ok", "{:?}", result.message);
+        assert!(
+            result.output_bytes <= result.original_bytes,
+            "纯重编码不应变大: {} -> {}",
+            result.original_bytes,
+            result.output_bytes
+        );
     }
 
     #[test]

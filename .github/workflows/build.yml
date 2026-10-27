@@ -127,7 +127,7 @@ jobs:
       # 两个 macOS job 的产物在 Release 里合并时会互相覆盖，latest.json 也没法区分平台。
       # 这里按 `<Product>_<version>_<arch>.app.tar.gz` 重命名，签名同步改名。
       - name: 规范化更新包文件名（macOS）
-        if: steps.signing.outputs.enabled == 'true' && startsWith(inputs.target, 'darwin')
+        if: steps.signing.outputs.enabled == 'true' && contains(inputs.target, 'darwin')
         shell: bash
         run: |
           set -euo pipefail

@@ -612,6 +612,9 @@ export const settings = {
     downloaded: '已下载 {progress}%',
     installed: '更新已安装，请重新启动应用',
     installFailed: '更新安装失败',
+    /** 检查 / 安装失败时展示的兜底入口（跳官网下载页） */
+    manualHint: '如果应用内更新一直失败，可以前往官网手动下载安装包。',
+    manualDownload: '前往官网下载',
     unsupported: '当前环境不支持应用内更新。',
   },
 };

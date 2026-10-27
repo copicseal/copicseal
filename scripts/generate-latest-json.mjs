@@ -11,22 +11,35 @@ import path from 'node:path';
  * 找不到再回退到 `{os}-{arch}`）。签名必须是 .sig 文件的内容，不能是路径或链接。
  */
 
-const REQUIRED_PLATFORMS = ['windows-x86_64', 'windows-aarch64', 'darwin-x86_64', 'darwin-aarch64'];
+const REQUIRED_PLATFORMS = [
+  'windows-x86_64',
+  'windows-aarch64',
+  'darwin-x86_64',
+  'darwin-aarch64',
+  'linux-x86_64',
+];
 
-/** 更新包在不同架构下的文件名标记。 */
+/**
+ * 更新包在不同平台/架构下的文件名标记。
+ *
+ * - Windows：NSIS 产物 `*_x64-setup.exe` / `*_arm64-setup.exe`
+ * - macOS：更新包 `*_x64.app.tar.gz` / `*_aarch64.app.tar.gz`
+ * - Linux：只有 AppImage 支持应用内更新（Tauri 的限制），deb/rpm 只作为手动安装包发布
+ */
 function resolvePlatformKey(fileName) {
-  const isWindowsInstaller = fileName.endsWith('-setup.exe');
-  const isMacUpdaterBundle = fileName.endsWith('.app.tar.gz');
-
-  if (!isWindowsInstaller && !isMacUpdaterBundle) return null;
-
-  const isArm = /aarch64|arm64/i.test(fileName);
-  const isX64 = /x86_64|x64/i.test(fileName);
+  const lower = fileName.toLowerCase();
+  const isArm = /aarch64|arm64/.test(lower);
+  const isX64 = /x86_64|amd64|x64/.test(lower);
 
   if (!isArm && !isX64) return null;
 
   const arch = isArm ? 'aarch64' : 'x86_64';
-  return `${isWindowsInstaller ? 'windows' : 'darwin'}-${arch}`;
+
+  if (lower.endsWith('-setup.exe')) return `windows-${arch}`;
+  if (lower.endsWith('.app.tar.gz')) return `darwin-${arch}`;
+  if (lower.endsWith('.appimage.tar.gz')) return `linux-${arch}`;
+
+  return null;
 }
 
 function parseArgs(argv) {

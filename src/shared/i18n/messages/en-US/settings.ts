@@ -634,6 +634,8 @@ export const settings: Messages['settings'] = {
     downloaded: 'Downloaded {progress}%',
     installed: 'Update installed, please restart the app',
     installFailed: 'Update installation failed',
+    manualHint: 'If in-app updates keep failing, download the installer from the website.',
+    manualDownload: 'Open download page',
     unsupported: 'In-app updates are not supported in this environment.',
   },
 };

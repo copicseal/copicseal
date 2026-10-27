@@ -12,5 +12,8 @@ export const app: Messages['app'] = {
   update: {
     available: 'Version {version} is available',
     availableHint: 'Download and install it from Settings → About.',
+    checkFailed: 'Could not check for updates',
+    checkFailedHint: 'You can download the latest version from the website.',
+    manualDownload: 'Open download page',
   },
 };

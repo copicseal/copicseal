@@ -8,8 +8,13 @@ on:
 permissions:
   contents: read
 
+# 同一个标签只允许一次发布流程；不要并发跑两份，避免两次都在往同一个 Release 上传。
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
-  # 四个平台/架构并行打包，具体步骤在 build.yml 中复用。
+  # 五个平台/架构并行打包，具体步骤在 build.yml 中复用。
   build:
     name: 打包 ${{ matrix.label }}
     strategy:
@@ -34,6 +39,11 @@ jobs:
             platform: macos-15-intel
             target: x86_64-apple-darwin
             bundles: app,dmg
+          # Linux 只发布 x64：AppImage 参与应用内更新，deb 是给包管理器用户的手动安装包。
+          - label: linux-x64
+            platform: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            bundles: appimage,deb
     uses: ./.github/workflows/build.yml
     with:
       label: ${{ matrix.label }}
@@ -86,5 +96,8 @@ jobs:
             artifacts/**/*.exe
             artifacts/**/*.dmg
             artifacts/**/*.app.tar.gz
+            artifacts/**/*.AppImage.tar.gz
+            artifacts/**/*.AppImage
+            artifacts/**/*.deb
             artifacts/**/*.sig
             artifacts/latest.json

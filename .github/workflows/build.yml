@@ -41,6 +41,23 @@ jobs:
       - name: 检出仓库代码
         uses: actions/checkout@v4
 
+      # Linux 打包依赖：Tauri v2 用 webkit2gtk-4.1；字体子系统（font-kit）需要
+      # fontconfig / freetype 的 pkg-config 文件；AppImage 打包期间要执行 linuxdeploy
+      # （Ubuntu 22.04+ 默认没有 FUSE2，缺 libfuse2 会失败）。
+      - name: 安装 Linux 打包依赖
+        if: startsWith(inputs.target, 'linux')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libgtk-3-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            patchelf \
+            libfuse2
+
       - name: 安装 pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -109,7 +126,14 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: pnpm tauri build --target ${{ inputs.target }} --bundles ${{ inputs.bundles }}
+        run: |
+          set -euo pipefail
+          # 私钥没有密码时 GitHub 会把未创建的 secret 展开成空串；Tauri 以"变量是否存在"
+          # 判断要不要解密私钥，空串会解密失败，所以这里显式 unset。
+          if [[ -z "${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}" ]]; then
+            unset TAURI_SIGNING_PRIVATE_KEY_PASSWORD
+          fi
+          pnpm tauri build --target ${{ inputs.target }} --bundles ${{ inputs.bundles }}
 
       - name: 打包安装包（跳过更新包签名）
         if: steps.signing.outputs.enabled != 'true'
@@ -117,6 +141,7 @@ jobs:
         run: pnpm tauri build --target ${{ inputs.target }} --bundles ${{ inputs.bundles }} --config "$GITHUB_WORKSPACE/.github/tauri-nosign.conf.json"
 
       # 只收安装包与签名；*.app 目录不入 artifact，避免重复一份未压缩的 bundle。
+      # Linux：.AppImage 供手动下载，.AppImage.tar.gz 才是应用内更新用的产物（deb/rpm 不参与自动更新）。
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
@@ -127,4 +152,7 @@ jobs:
             src-tauri/target/${{ inputs.target }}/release/bundle/**/*.exe
             src-tauri/target/${{ inputs.target }}/release/bundle/**/*.dmg
             src-tauri/target/${{ inputs.target }}/release/bundle/**/*.tar.gz
+            src-tauri/target/${{ inputs.target }}/release/bundle/**/*.AppImage
+            src-tauri/target/${{ inputs.target }}/release/bundle/**/*.deb
+            src-tauri/target/${{ inputs.target }}/release/bundle/**/*.rpm
             src-tauri/target/${{ inputs.target }}/release/bundle/**/*.sig

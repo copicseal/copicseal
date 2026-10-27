@@ -261,17 +261,22 @@
 
 ## Phase 15 — 发布流水线与自动更新
 
-- [x] 建立可复用的打包流程，覆盖 Windows x64 / Windows ARM64 / macOS arm64 / macOS x64
+- [x] 建立可复用的打包流程，覆盖 Windows x64 / Windows ARM64 / macOS arm64 / macOS x64 / Linux x64
 - [x] 标签发布流程与版本号同步（`pnpm sync:version <version>` 一次同步三处版本号）
 - [x] 推送 `dev` 或手动触发时只产出内测产物，不创建 Release
 - [x] 缺少更新签名密钥时自动降级为不产出更新包，并在公钥仍是占位符时拦截
-- [x] 由产物与签名生成更新清单 `latest.json` 并随 Release 发布
-- [x] 客户端补齐下载、安装与重启提示，启动后静默检查一次更新
-- [ ] 生成更新签名密钥、替换 `plugins.updater.pubkey` 占位符并配置 Secrets
-- [ ] 部署 `updates.copicseal.com` 更新服务，或确认长期使用 Release 上的 `latest.json`
+- [x] 由产物与签名生成更新清单 `latest.json` 并随 Release 发布（Windows / macOS / Linux 五个平台键）
+- [x] 客户端补齐下载、安装与重启提示，启动后检查一次更新
+- [x] 生成更新签名密钥并把真实公钥写入 `plugins.updater.pubkey`
+- [x] 更新源以 GitHub Release 的 `latest.json` 为主，官网自建服务作回退
+- [x] 检查更新 / 下载安装失败时给出官网下载兜底入口（启动提示与「设置 → 关于」都带按钮，见 docs/12 §12.10）
+- [x] Linux x64 打包（AppImage + deb），AppImage 参与应用内更新，deb 仅手动安装
+- [ ] 把已生成的私钥内容配置成仓库 Secret `TAURI_SIGNING_PRIVATE_KEY`（无密码）
+- [ ] 部署 `updates.copicseal.com` 更新服务（灰度 / 镜像），或确认长期只用 Release 上的 `latest.json`
+- [ ] Linux arm64 打包（`ubuntu-24.04-arm` + arm64 linuxdeploy，需同步 `latest.json` 必填平台）
 - [ ] macOS 代码签名与公证
 - [ ] Windows 代码签名证书
-- [ ] 独立的 lint 与类型检查工作流（复用 `pnpm run ci` 与 `tsc --noEmit`）
+- [ ] 独立于打包的 lint / 类型检查工作流（复用 `pnpm run ci` 与 `tsc --noEmit`）
 - [ ] 清理 `features/settings/components/co-settings-dialog.tsx` 中无人引用的更新入口
 
 ---

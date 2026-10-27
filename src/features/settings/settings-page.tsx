@@ -8,6 +8,7 @@ import {
   Cog,
   Database,
   Download,
+  ExternalLink,
   Info,
   LayoutTemplate,
   type LucideIcon,
@@ -92,6 +93,7 @@ import {
   useI18n,
   useTranslate,
 } from '@/shared/i18n';
+import { DOWNLOAD_URL } from '@/shared/lib/links';
 import { ACCENT_THEMES, type AccentTheme, THEME_OPTIONS, type Theme } from '@/shared/lib/theme';
 import { cn } from '@/shared/lib/utils';
 import { useAppNavigation } from '@/shared/providers/navigation-provider';
@@ -1753,6 +1755,8 @@ function AboutTab() {
   const [installing, setInstalling] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  /** 检查或安装失败时展示「前往官网下载」兜底入口 */
+  const [failed, setFailed] = useState(false);
   const [update, setUpdate] = useState<AppUpdateInfo | null>(null);
   const [info, setInfo] = useState<AppVersion | null>(null);
 
@@ -1783,6 +1787,7 @@ function AboutTab() {
     setChecking(true);
     setStatus(null);
     setUpdate(null);
+    setFailed(false);
 
     try {
       const next = await checkForUpdate();
@@ -1793,6 +1798,8 @@ function AboutTab() {
           : t('settings.update.upToDate'),
       );
     } catch {
+      // 检查失败不能只报错：给一条明确的「去官网手动下载」出路
+      setFailed(true);
       setStatus(t('settings.update.checkFailed'));
     } finally {
       setChecking(false);
@@ -1802,6 +1809,7 @@ function AboutTab() {
   const handleInstallUpdate = async () => {
     setInstalling(true);
     setProgress(null);
+    setFailed(false);
 
     try {
       await installUpdate({ onProgress: (next) => setProgress(next.percent) });
@@ -1810,6 +1818,7 @@ function AboutTab() {
       toast.success(t('settings.update.installed'));
       setStatus(t('settings.update.installed'));
     } catch {
+      setFailed(true);
       toast.error(t('settings.toast.updateInstallFailed'));
       setStatus(t('settings.update.installFailed'));
     } finally {
@@ -1921,6 +1930,20 @@ function AboutTab() {
                 ) : null}
                 {status ? <p className="text-xs text-muted-foreground">{status}</p> : null}
               </div>
+              {failed ? (
+                <div className="flex flex-wrap items-center gap-2 rounded-md border border-dashed border-border/70 px-3 py-2 text-xs text-muted-foreground">
+                  <span>{t('settings.update.manualHint')}</span>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => openLink(DOWNLOAD_URL)}
+                  >
+                    <ExternalLink data-icon="inline-start" />
+                    {t('settings.update.manualDownload')}
+                  </Button>
+                </div>
+              ) : null}
               {update?.notes ? (
                 <p className="whitespace-pre-line text-xs text-muted-foreground">{update.notes}</p>
               ) : null}
@@ -1939,7 +1962,18 @@ function AboutTab() {
               ) : null}
             </div>
           ) : (
-            <p className="text-xs text-muted-foreground">{t('settings.update.unsupported')}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-xs text-muted-foreground">{t('settings.update.unsupported')}</p>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => openLink(DOWNLOAD_URL)}
+              >
+                <ExternalLink data-icon="inline-start" />
+                {t('settings.update.manualDownload')}
+              </Button>
+            </div>
           )}
         </SettingField>
       </FieldGroup>

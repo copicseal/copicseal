@@ -9,8 +9,8 @@
 
 | 工作流 | 触发 | 结果 |
 |--------|------|------|
-| `Release CI`（`.github/workflows/release.yml`） | 推送 `v*` 标签 | 打包四个目标 → 生成 `latest.json` → 发布 GitHub Release |
-| `Beta CI`（`.github/workflows/beta.yml`） | 推送到 `dev` 分支、或手动 `workflow_dispatch` | 打包四个目标，只上传 Actions artifact，不创建 Release |
+| `Release CI`（`.github/workflows/release.yml`） | 推送 `v*` 标签 | 打包五个目标 → 生成 `latest.json` → 发布 GitHub Release |
+| `Beta CI`（`.github/workflows/beta.yml`） | 推送到 `dev` 分支、或手动 `workflow_dispatch` | 打包五个目标，只上传 Actions artifact，不创建 Release |
 
 两个工作流都调用 `.github/workflows/build.yml`（`workflow_call` 可复用流程），打包步骤只在那一处维护。
 
@@ -24,10 +24,13 @@
 | `windows-arm64` | `windows-11-arm` | `aarch64-pc-windows-msvc` | `nsis` | `*-arm64-setup.exe` |
 | `macos-arm64` | `macos-15` | `aarch64-apple-darwin` | `app,dmg` | `*.dmg`（含更新包 `*.app.tar.gz`） |
 | `macos-x64` | `macos-15-intel` | `x86_64-apple-darwin` | `app,dmg` | `*.dmg`（含更新包 `*.app.tar.gz`） |
+| `linux-x64` | `ubuntu-22.04` | `x86_64-unknown-linux-gnu` | `appimage,deb` | `*.AppImage`、`*.deb`（含更新包 `*.AppImage.tar.gz`） |
 
-产物落在 `src-tauri/target/<target>/release/bundle/` 下（`nsis/`、`dmg/`、`macos/`）。
+产物落在 `src-tauri/target/<target>/release/bundle/` 下（`nsis/`、`dmg/`、`macos/`、`appimage/`、`deb/`）。
 
 Windows 只发布 NSIS：更新清单里一个 `windows-x86_64` 平台键只能指向一种安装包，统一成 NSIS 才能让所有 Windows 用户走同一条更新路径。macOS 的 `*.dmg` 用于首次安装，`*.app.tar.gz` 供自动更新使用。
+
+Linux 的自动更新**只支持 AppImage**（Tauri 更新插件的限制）：`*.AppImage.tar.gz` + `.sig` 进清单，`*.deb` 与 `*.AppImage` 只作为手动安装包发布。Linux 打包机在 `build.yml` 里装好 `libwebkit2gtk-4.1-dev`、字体（`fontconfig` / `freetype`）与 AppImage 需要的 `libfuse2`。
 
 ---
 
@@ -54,7 +57,14 @@ pnpm sync:version         # 不带参数：以 package.json 为准同步另外�
 
 Tauri 更新包使用 minisign 签名校验，**这套密钥与操作系统代码签名无关**，必须先生成好才能发布可自动更新的版本。
 
-- **只需一对密钥**：`plugins.updater.pubkey` 只有一个字段，四个打包任务也都使用同一个 `TAURI_SIGNING_PRIVATE_KEY`。各平台分别给自己的产物签名，但用的是同一对密钥，没有"Windows 密钥"与"macOS 密钥"之分。
+> **当前状态（2026-10-27）**：仓库已经生成过一对更新签名密钥，公钥已写入
+> `plugins.updater.pubkey`（不再有 `PENDING_RELEASE_KEY` 占位符）。私钥保存在维护者本机的
+> `~/.tauri/copicseal.key`（生成时**没有设置密码**），公钥在同目录的 `.key.pub`。
+> 还需要做两件事才算真正可用：① 把私钥内容配置成仓库 Secret `TAURI_SIGNING_PRIVATE_KEY`
+> （没有密码，所以不需要 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`）；② 离线备份私钥 —— 丢了以后
+> 所有已安装的用户都再也收不到自动更新（见下面第 5、6 节）。
+
+- **只需一对密钥**：`plugins.updater.pubkey` 只有一个字段，五个打包任务也都使用同一个 `TAURI_SIGNING_PRIVATE_KEY`。各平台分别给自己的产物签名，但用的是同一对密钥，没有"Windows 密钥"与"macOS 密钥"之分。
 - **不需要 Apple / 微软开发者账号**：更新校验走的是这套 minisign 密钥，与系统代码签名是两条独立链路，插件在校验与安装阶段都不检查操作系统签名。不购买代码签名的代价只体现在首次安装：Windows 会弹 SmartScreen、macOS 需要在"隐私与安全性"中放行；后续自动更新由应用自行下载安装包，不再经过浏览器下载流程。
 
 ### 1. 生成密钥对
@@ -92,7 +102,7 @@ pnpm tauri signer generate -w "$env:USERPROFILE\.tauri\copicseal.key"
 | Secret | 内容 |
 |--------|------|
 | `TAURI_SIGNING_PRIVATE_KEY` | 私钥文件**内容**（不是路径） |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 生成时设置的密码；未设密码则留空或不建 |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 生成时设置的密码；未设密码则**不要创建**这个 secret（工作流会把空串 unset 掉，避免 Tauri 误判为"需要解密"） |
 
 ```bash
 # macOS / Linux
@@ -192,12 +202,12 @@ DMG 里 `.background/background.png` 照样存在，但没有任何记录引用�
 
 ## 12.6 更新源与接口约定
 
-`plugins.updater.endpoints` 按顺序尝试：
+`plugins.updater.endpoints` 按顺序尝试。**GitHub Release 是主源**，官网自建服务留作镜像/灰度：
 
 ```json
 "endpoints": [
-  "https://updates.copicseal.com/{{target}}/{{arch}}/{{current_version}}",
-  "https://github.com/copicseal/copicseal/releases/latest/download/latest.json"
+  "https://github.com/copicseal/copicseal/releases/latest/download/latest.json",
+  "https://updates.copicseal.com/{{target}}/{{arch}}/{{current_version}}"
 ]
 ```
 
@@ -211,7 +221,7 @@ DMG 里 `.background/background.png` 照样存在，但没有任何记录引用�
 | `200` + 响应体不是 JSON | **整体失败，不再继续** |
 | `200` + 结构不合法 | 记录错误并继续下一个 endpoint |
 
-因此自建服务上线后：无更新时返回 `404` 才会回退到 GitHub；返回 `204` 表示"以我为准"。
+所以 GitHub 不可用时才会走到自建服务；自建服务想要自己控制"无更新"的语义，就返回 `204`（而不是 `404`）。
 
 **静态清单**（Release 上的 `latest.json`，由 `scripts/generate-latest-json.mjs` 生成）：
 
@@ -223,12 +233,13 @@ DMG 里 `.background/background.png` 照样存在，但没有任何记录引用�
     "windows-x86_64": { "signature": "<.sig 文件内容>", "url": "https://..." },
     "windows-aarch64": { "signature": "...", "url": "..." },
     "darwin-x86_64": { "signature": "...", "url": "..." },
-    "darwin-aarch64": { "signature": "...", "url": "..." }
+    "darwin-aarch64": { "signature": "...", "url": "..." },
+    "linux-x86_64": { "signature": "...", "url": "...AppImage.tar.gz" }
   }
 }
 ```
 
-约束：`signature` 必须是 `.sig` 文件**内容**（不能是路径或链接），`url` 必须是绝对地址，Tauri 会先整份校验再比较版本。平台键使用 `{os}-{arch}`，运行时先找 `{os}-{arch}-{installer}`（如 `windows-x86_64-nsis`）再回退到 `{os}-{arch}`。
+约束：`signature` 必须是 `.sig` 文件**内容**（不能是路径或链接），`url` 必须是绝对地址，Tauri 会先整份校验再比较版本。平台键使用 `{os}-{arch}`，运行时先找 `{os}-{arch}-{installer}`（如 `windows-x86_64-nsis`）再回退到 `{os}-{arch}`。脚本里这五个平台是**必填**的：少一个就判定发布失败，避免发出一个"某平台永远收不到更新"的版本。
 
 **自建更新服务**：若要在 URL 里使用 `{{target}}`（`windows`/`darwin`）、`{{arch}}`（`x86_64`/`aarch64`）、`{{current_version}}`，有更新时返回 `200` 与 `{ "version", "url", "signature", "notes?", "pub_date?" }`，无更新时按上表选择 `204` 或 `404`。
 
@@ -238,6 +249,7 @@ DMG 里 `.background/background.png` 照样存在，但没有任何记录引用�
 
 - Windows：必须通过 NSIS `-setup.exe` 安装。安装阶段应用会被安装器结束并由安装器重新拉起（`installMode: passive` 对应 `/P /R`），所以界面上的"请重新启动"主要针对 macOS。
 - macOS：从 `.dmg` 拖入 `/Applications` 安装；更新时插件会替换 `.app` 包（权限不足时通过系统授权对话框提权），完成后需要用户手动重启应用。
+- Linux：只有 **AppImage** 支持应用内更新——更新插件会下载新的 `.AppImage` 并替换正在运行的那个文件，因此用户必须从 AppImage 启动（`chmod +x` 后直接运行，或用 AppImageLauncher 集成）。`.deb` / `.rpm` 安装的用户收不到应用内更新，需要到发布页手动下载新包。
 - 更新包由服务端产物决定安装方式：清单里指向 NSIS 就调用 NSIS，指向 MSI 就调用 `msiexec`。绿色版/未安装的副本不参与更新。
 - 预发布标签（如 `v0.6.0-beta.1`）不会被 `releases/latest/download/latest.json` 命中，这是 GitHub 端点固有限制。
 
@@ -259,7 +271,28 @@ DMG 里 `.background/background.png` 照样存在，但没有任何记录引用�
 
 ## 12.9 已知缺口
 
-- `updates.copicseal.com` 尚未部署（当前 DNS 不解析，客户端会回退到 GitHub 端点）。
+- **私钥尚未配置到 GitHub Secrets**：`TAURI_SIGNING_PRIVATE_KEY` 为空时流水线仍能出安装包，但会跳过 `.sig` 与 `latest.json`（自动更新不可用）。配置方法见 12.4 第 3 节。
+- `updates.copicseal.com` 尚未部署：GitHub Release 是主源，只有它失败时客户端才会尝试这个地址（当前会失败，最终判定"检查更新失败"并提示手动下载）。
+- **Linux arm64 未打包**：目前只发 `linux-x64`。要加的话需要 `ubuntu-24.04-arm` 运行器（`ubuntu-22.04` 没有 arm 版托管机）与 arm64 的 linuxdeploy，并同步把 `linux-aarch64` 加进 `generate-latest-json.mjs` 的必填平台列表。
+- 官网自建更新服务（灰度/镜像）尚未实现，见 12.6 的接口约定。
 - macOS 未配置签名与公证；Windows 未配置代码签名证书。
 - 预发布版本无法通过 GitHub 端点被自动发现。
-- 在配置真实公钥之前发布的版本永远无法自动更新。
+
+---
+
+## 12.10 检查更新失败时的手动兜底
+
+应用内更新不是唯一出路：**任何一次更新检查 / 下载 / 安装失败，都要给用户一个能自己拿到最新安装包的入口**——
+官网下载页 <https://copicseal.com/download.html>（常量在 `src/shared/lib/links.ts` 的 `DOWNLOAD_URL`，换域名只改这一处）。
+
+| 场景 | 行为 |
+|------|------|
+| 启动时自动检查（在线） | 失败弹一条 toast「检查更新失败」，带「前往官网下载」按钮（点击用系统浏览器打开下载页） |
+| 启动时自动检查（离线） | 静默跳过：断网时提示去下载没有意义，也不该每次启动都打扰 |
+| 设置 → 关于 → 检查更新失败 | 状态显示「检查更新失败」，下方出现虚线提示块 + 「前往官网下载」按钮 |
+| 设置 → 关于 → 下载 / 安装失败 | 同上，提示「如果应用内更新一直失败，可以前往官网手动下载安装包」 |
+| 当前环境不支持应用内更新（如网页端） | 显示「当前环境不支持应用内更新」，同样给出「前往官网下载」按钮 |
+| 检查成功但没有新版本 | 只显示「已是最新版本」，不出现下载入口 |
+
+这样即使签名密钥丢失、GitHub 端点被墙、或用户装的是 deb/rpm，也有一条可执行的手动升级路径。
+

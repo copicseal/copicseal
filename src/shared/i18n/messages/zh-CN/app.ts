@@ -10,5 +10,9 @@ export const app = {
   update: {
     available: '发现新版本 {version}',
     availableHint: '可在「设置 → 关于」中下载并安装',
+    /** 启动时检查更新失败（非离线）：给一条去官网手动下载的出路 */
+    checkFailed: '检查更新失败',
+    checkFailedHint: '可以前往官网手动下载最新版本。',
+    manualDownload: '前往官网下载',
   },
 };

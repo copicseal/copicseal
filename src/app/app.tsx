@@ -9,6 +9,7 @@ import { platformCapabilities } from '@/platform';
 import { platformRuntime } from '@/platform/providers/platform-runtime';
 import { CoSidebar } from '@/shared/components/co-sidebar';
 import { I18nProvider, translate } from '@/shared/i18n';
+import { DOWNLOAD_URL } from '@/shared/lib/links';
 import { cn } from '@/shared/lib/utils';
 import { NavigationProvider } from '@/shared/providers/navigation-provider';
 import { PageActivityProvider } from '@/shared/providers/page-activity-provider';
@@ -107,8 +108,8 @@ function AppContent() {
     return () => document.removeEventListener('contextmenu', handleContextMenu);
   }, []);
 
-  // 启动后静默检查一次更新：失败不打扰用户，发现新版本时提示到设置页安装，
-  // 同时把待安装的更新预热给设置页使用。
+  // 启动后检查一次更新：发现新版本时提示到设置页安装；检查本身失败不阻塞启动，
+  // 但会给一条「去官网手动下载」的兜底提示（离线时保持安静，避免每次启动都打扰）。
   useEffect(() => {
     if (!platformCapabilities.system.autoUpdate) return;
 
@@ -124,8 +125,23 @@ function AppContent() {
             description: translate('app.update.availableHint'),
           });
         }
-      } catch {
-        // 静默失败：检查更新不应影响启动流程。
+      } catch (error) {
+        console.warn('检查更新失败:', error);
+
+        // 断网时提示"去官网下载"没有意义，只有在线却检查失败才给出口
+        if (!cancelled && navigator.onLine !== false) {
+          toast.info(translate('app.update.checkFailed'), {
+            description: translate('app.update.checkFailedHint'),
+            action: {
+              label: translate('app.update.manualDownload'),
+              onClick: () => {
+                void platformRuntime.openExternal(DOWNLOAD_URL).catch((openError) => {
+                  console.error('打开下载页失败:', openError);
+                });
+              },
+            },
+          });
+        }
       }
     })();
 

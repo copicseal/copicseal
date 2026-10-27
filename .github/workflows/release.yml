@@ -39,11 +39,6 @@ jobs:
             platform: macos-15-intel
             target: x86_64-apple-darwin
             bundles: app,dmg
-          # Linux 只发布 x64：AppImage 参与应用内更新，deb 是给包管理器用户的手动安装包。
-          - label: linux-x64
-            platform: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu
-            bundles: appimage,deb
     uses: ./.github/workflows/build.yml
     with:
       label: ${{ matrix.label }}
@@ -96,8 +91,5 @@ jobs:
             artifacts/**/*.exe
             artifacts/**/*.dmg
             artifacts/**/*.app.tar.gz
-            artifacts/**/*.AppImage.tar.gz
-            artifacts/**/*.AppImage
-            artifacts/**/*.deb
             artifacts/**/*.sig
             artifacts/latest.json

@@ -270,10 +270,9 @@
 - [x] 生成更新签名密钥并把真实公钥写入 `plugins.updater.pubkey`
 - [x] 更新源以 GitHub Release 的 `latest.json` 为主，官网自建服务作回退
 - [x] 检查更新 / 下载安装失败时给出官网下载兜底入口（启动提示与「设置 → 关于」都带按钮，见 docs/12 §12.10）
-- [x] Linux x64 打包（AppImage + deb），AppImage 参与应用内更新，deb 仅手动安装
-- [ ] 把已生成的私钥内容配置成仓库 Secret `TAURI_SIGNING_PRIVATE_KEY`（无密码）
+- [x] 把已生成的私钥内容配置成仓库 Secret `TAURI_SIGNING_PRIVATE_KEY`（无密码）
+- [ ] Linux 打包（AppImage + deb）：需要修 `build.yml` 的依赖安装条件（用 `contains(inputs.target, 'linux')`）并装齐 gdk/webkit 依赖；当前矩阵里已撤回
 - [ ] 部署 `updates.copicseal.com` 更新服务（灰度 / 镜像），或确认长期只用 Release 上的 `latest.json`
-- [ ] Linux arm64 打包（`ubuntu-24.04-arm` + arm64 linuxdeploy，需同步 `latest.json` 必填平台）
 - [ ] macOS 代码签名与公证
 - [ ] Windows 代码签名证书
 - [ ] 独立于打包的 lint / 类型检查工作流（复用 `pnpm run ci` 与 `tsc --noEmit`）

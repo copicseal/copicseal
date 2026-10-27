@@ -11,20 +11,15 @@ import path from 'node:path';
  * 找不到再回退到 `{os}-{arch}`）。签名必须是 .sig 文件的内容，不能是路径或链接。
  */
 
-const REQUIRED_PLATFORMS = [
-  'windows-x86_64',
-  'windows-aarch64',
-  'darwin-x86_64',
-  'darwin-aarch64',
-  'linux-x86_64',
-];
+const REQUIRED_PLATFORMS = ['windows-x86_64', 'windows-aarch64', 'darwin-x86_64', 'darwin-aarch64'];
 
 /**
  * 更新包在不同平台/架构下的文件名标记。
  *
  * - Windows：NSIS 产物 `*_x64-setup.exe` / `*_arm64-setup.exe`
  * - macOS：更新包 `*_x64.app.tar.gz` / `*_aarch64.app.tar.gz`
- * - Linux：只有 AppImage 支持应用内更新（Tauri 的限制），deb/rpm 只作为手动安装包发布
+ * - Linux：暂不打包（见 docs/12 的已知缺口）；将来加回来时按
+ *   `*.AppImage.tar.gz` → `linux-{arch}` 映射，并把它加进上面的必填列表
  */
 function resolvePlatformKey(fileName) {
   const lower = fileName.toLowerCase();

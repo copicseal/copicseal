@@ -9,10 +9,14 @@
 
 | 工作流 | 触发 | 结果 |
 |--------|------|------|
-| `Release CI`（`.github/workflows/release.yml`） | 推送 `v*` 标签 | 打包四个目标 → 生成 `latest.json` → 发布 GitHub Release |
+| `Release CI`（`.github/workflows/release.yml`） | 推送 `v*` 标签 | 打包四个目标 → 生成 `latest.json` → 创建**草稿** Release |
 | `Beta CI`（`.github/workflows/beta.yml`） | 推送到 `dev` 分支、或手动 `workflow_dispatch` | 打包四个目标，只上传 Actions artifact，不创建 Release |
 
 两个工作流都调用 `.github/workflows/build.yml`（`workflow_call` 可复用流程），打包步骤只在那一处维护。
+
+> **发布是人工动作**：Release CI 只把安装包、签名与 `latest.json` 传到一个 **draft**（草稿）Release 上，
+> 不会自动成为「latest」。维护者验收产物后，在 GitHub Release 页面手动点「Publish release」（需要时勾选
+> pre-release）；在此之前 `releases/latest/download/latest.json` 指向上一个已发布版本，用户不会收到未验收的更新。
 
 ---
 

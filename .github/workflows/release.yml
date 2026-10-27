@@ -83,8 +83,10 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          draft: false
-          # 形如 v0.6.0-beta.1 的标签自动标记为预发布。
+          # 只生成草稿：发布（以及是否标为 latest / prerelease）由人工在 Release 页确认，
+          # 避免 CI 一跑完就变成"最新版"、把还没验收的构建推给所有用户。
+          draft: true
+          # 形如 v0.6.0-beta.1 的标签在人工发布时会带预发布标记。
           prerelease: ${{ contains(github.ref_name, '-') }}
           generate_release_notes: true
           files: |

@@ -47,6 +47,8 @@ reqwest = { version = "0.12", default-features = false, features = [
 ] }
 sha2 = "0.10"
 zip = { version = "2", default-features = false, features = ["deflate"] }
+# 构造更新清单地址（UpdaterBuilder::endpoints 只收 Url）
+url = "2"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.61", features = [

@@ -70,8 +70,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IERBN0JGMTU3RENGMEY1OUMKUldTYzlmRGNWL0Y3MmhENngzeXZ4SWNtbG05d01ZVEhZTWMvM0pXRTg4N3VZVEhiQkJiMDFmRzgK",
       "endpoints": [
-        "https://github.com/copicseal/copicseal/releases/latest/download/latest.json",
-        "https://updates.copicseal.com/{{target}}/{{arch}}/{{current_version}}"
+        "https://github.com/copicseal/copicseal/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"

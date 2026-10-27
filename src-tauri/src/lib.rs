@@ -10,6 +10,7 @@ mod logo;
 mod plugin;
 mod rename;
 mod system;
+mod update;
 mod window;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -19,6 +20,7 @@ pub fn run() {
     tauri::Builder::default()
         .manage(thumbnail_scheduler)
         .manage(compress::CompressState::default())
+        .manage(update::UpdateState::default())
         .plugin(
             tauri_plugin_sql::Builder::default()
                 .add_migrations(db::DATABASE_URL, db::migrations())
@@ -90,6 +92,8 @@ pub fn run() {
             font::inline_imported_font,
             system::get_app_info,
             system::open_external,
+            update::check_update,
+            update::download_and_install_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

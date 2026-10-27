@@ -123,6 +123,34 @@ jobs:
         shell: bash
         run: pnpm tauri build --target ${{ inputs.target }} --bundles ${{ inputs.bundles }} --config "$GITHUB_WORKSPACE/.github/tauri-nosign.conf.json"
 
+      # Tauri 的 macOS 更新包固定叫 `<Product>.app.tar.gz`（不带版本/架构）：
+      # 两个 macOS job 的产物在 Release 里合并时会互相覆盖，latest.json 也没法区分平台。
+      # 这里按 `<Product>_<version>_<arch>.app.tar.gz` 重命名，签名同步改名。
+      - name: 规范化更新包文件名（macOS）
+        if: steps.signing.outputs.enabled == 'true' && startsWith(inputs.target, 'darwin')
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle_dir="src-tauri/target/${{ inputs.target }}/release/bundle/macos"
+          if [[ ! -d "$bundle_dir" ]]; then
+            echo "::warning::没有找到 macOS bundle 目录，跳过更新包重命名"
+            exit 0
+          fi
+
+          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          arch="${{ inputs.target }}"
+          arch="${arch%%-*}"        # aarch64 / x86_64
+
+          shopt -s nullglob
+          for file in "$bundle_dir"/*.app.tar.gz; do
+            renamed="${file%.app.tar.gz}_${version}_${arch}.app.tar.gz"
+            mv "$file" "$renamed"
+            if [[ -f "${file}.sig" ]]; then
+              mv "${file}.sig" "${renamed}.sig"
+            fi
+            echo "renamed $(basename "$file") -> $(basename "$renamed")"
+          done
+
       # 只收安装包与签名；*.app 目录不入 artifact，避免重复一份未压缩的 bundle。
       - name: 上传构建产物
         uses: actions/upload-artifact@v4

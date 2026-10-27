@@ -111,7 +111,9 @@ async function main() {
     const platformKey = resolvePlatformKey(fileName);
 
     if (!platformKey) {
-      throw new Error(`无法识别的更新包文件名：${fileName}`);
+      // 例如 macOS 的 *.dmg.sig、或者历史遗留的其它签名文件：不影响更新清单，跳过即可
+      console.log(`::warning::忽略无法识别的更新包：${fileName}`);
+      continue;
     }
     if (platforms[platformKey]) {
       throw new Error(`平台 ${platformKey} 出现多个更新包：${fileName}`);
